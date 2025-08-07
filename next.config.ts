@@ -1,13 +1,15 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  // output: 'standalone', // Commenté pour Vercel
   serverExternalPackages: ['@prisma/client'],
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client'],
   },
   images: {
     domains: ['lh3.googleusercontent.com', 'avatars.githubusercontent.com'],
