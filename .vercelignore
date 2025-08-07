@@ -24,4 +24,7 @@ docs/
 # Ignore les fichiers de configuration de développement
 .eslintrc*
 .prettierrc*
-jest.config.* 
+jest.config.*
+
+# Configuration pour Vercel Auth
+# Garder l'authentification Vercel active 

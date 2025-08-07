@@ -25,15 +25,24 @@
   ],
   "rewrites": [
     {
+      "source": "/api/auth/(.*)",
+      "destination": "/api/auth/$1"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/login",
+      "destination": "/login"
+    },
+    {
+      "source": "/register",
+      "destination": "/register"
+    },
+    {
       "source": "/(.*)",
       "destination": "/$1"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/login",
-      "permanent": false
     }
   ]
 } 
