@@ -1,0 +1,210 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  firstName     String
+  lastName      String
+  password      String
+  role          String   @default("CLIENT") // CLIENT, ACCOUNT_MANAGER, ADMIN
+  company       String?
+  phone         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  clientAccount         ClientAccount?
+  accountManager        AccountManager?
+  googleAdsConnection   GoogleAdsConnection?
+  ticketResponses       TicketResponse[]
+
+  @@map("users")
+}
+
+model Company {
+  id                String   @id @default(cuid())
+  name              String
+  website           String?
+  industry          String
+  teamSize          String?
+  goals             String? // JSON string
+  googleAdsAccount  String?
+  currentChallenges String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  clientAccounts ClientAccount[]
+  accountManagers AccountManager[]
+
+  @@map("companies")
+}
+
+model ClientAccount {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  companyId             String
+  subscriptionPlan      String?
+  monthlyBudget         Float?
+  onboardingCompleted   Boolean  @default(false)
+  googleAdsConnected    Boolean  @default(false)
+  status                String   @default("ACTIVE") // ACTIVE, CANCELLED, SUSPENDED
+  endDate               DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     Company     @relation(fields: [companyId], references: [id])
+  subscription Subscription?
+  appointments Appointment[]
+  campaigns   Campaign[]
+  invoices    Invoice[]
+  tickets     Ticket[]
+
+  @@map("client_accounts")
+}
+
+model AccountManager {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  companyId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id])
+  tickets  Ticket[]
+  appointments Appointment[]
+
+  @@map("account_managers")
+}
+
+model Subscription {
+  id                    String   @id @default(cuid())
+  clientAccountId       String   @unique
+  plan                  String   // BASIC, PRO, ENTERPRISE
+  status                String   // TRIAL, ACTIVE, CANCELLED, SUSPENDED
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  trialStart            DateTime?
+  trialEnd              DateTime?
+  amount                Float
+  currency              String   @default("EUR")
+  endDate               DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model GoogleAdsConnection {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  accessToken   String
+  refreshToken  String?
+  tokenExpiry   DateTime?
+  accounts      String?  // JSON string of accessible accounts
+  isConnected   Boolean  @default(false)
+  connectedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("google_ads_connections")
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  clientAccountId String
+  name        String
+  status      String   // ACTIVE, PAUSED, REMOVED
+  budget      Float?
+  metrics     String?  // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  @@map("campaigns")
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  clientAccountId String
+  number      String
+  amount      Float
+  status      String   // DRAFT, SENT, PAID, OVERDUE
+  dueDate     DateTime
+  items       String?  // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model Ticket {
+  id          String   @id @default(cuid())
+  clientAccountId String
+  accountManagerId String?
+  subject     String
+  description String
+  status      String   // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  priority    String   // LOW, MEDIUM, HIGH, URGENT
+  category    String   // TECHNICAL, BILLING, OPTIMIZATION, ACCOUNT, OTHER
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  accountManager AccountManager? @relation(fields: [accountManagerId], references: [id])
+  responses    TicketResponse[]
+
+  @@map("tickets")
+}
+
+model TicketResponse {
+  id          String   @id @default(cuid())
+  ticketId    String
+  userId      String
+  content     String
+  isFromAM    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_responses")
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  clientAccountId String
+  accountManagerId String?
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  status      String   // SCHEDULED, CONFIRMED, CANCELLED, COMPLETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  accountManager AccountManager? @relation(fields: [accountManagerId], references: [id])
+
+  @@map("appointments")
+} 
