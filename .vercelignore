@@ -1,0 +1,27 @@
+# Ignore les fichiers de développement
+.env.local
+.env.development
+.env.test
+
+# Ignore les logs
+*.log
+
+# Ignore les fichiers de cache
+.next/cache
+node_modules/.cache
+
+# Ignore les fichiers de test
+__tests__
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Ignore les fichiers de documentation
+*.md
+docs/
+
+# Ignore les fichiers de configuration de développement
+.eslintrc*
+.prettierrc*
+jest.config.* 

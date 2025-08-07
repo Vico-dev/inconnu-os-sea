@@ -26,6 +26,7 @@ model User {
   accountManager        AccountManager?
   googleAdsConnection   GoogleAdsConnection?
   ticketResponses       TicketResponse[]
+  googleAdsPermissions  GoogleAdsPermission[]
 
   @@map("users")
 }
@@ -68,6 +69,7 @@ model ClientAccount {
   campaigns   Campaign[]
   invoices    Invoice[]
   tickets     Ticket[]
+  googleAdsPermissions GoogleAdsPermission[]
 
   @@map("client_accounts")
 }
@@ -124,6 +126,24 @@ model GoogleAdsConnection {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("google_ads_connections")
+}
+
+// Nouveau modèle pour gérer les permissions MCC
+model GoogleAdsPermission {
+  id              String   @id @default(cuid())
+  clientAccountId String
+  userId          String
+  googleAdsCustomerId String // ID du compte Google Ads client
+  permissions     String   // JSON string: {read: true, write: false, admin: false}
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clientAccountId, googleAdsCustomerId])
+  @@map("google_ads_permissions")
 }
 
 model Campaign {

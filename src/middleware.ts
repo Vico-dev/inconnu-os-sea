@@ -1,23 +1,26 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { logger } from '@/lib/logger'
 
 export function middleware(request: NextRequest) {
-  const startTime = Date.now()
   const { pathname } = request.nextUrl
 
-  // Récupérer l'IP du client
-  const ip = request.headers.get('x-forwarded-for') || 
-             request.headers.get('x-real-ip') || 
-             'unknown'
+  // Routes publiques qui ne nécessitent pas d'authentification
+  const publicRoutes = [
+    '/login',
+    '/register',
+    '/api/auth',
+    '/api/health',
+    '/api/test-auth',
+    '/api/google-ads/auth',
+    '/api/google-ads/callback'
+  ]
 
-  // Log de la requête
-  logger.info(`Request started: ${request.method} ${pathname}`, {
-    method: request.method,
-    path: pathname,
-    userAgent: request.headers.get('user-agent'),
-    ip
-  })
+  // Vérifier si c'est une route publique
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+  
+  if (isPublicRoute) {
+    return NextResponse.next()
+  }
 
   // Protection des routes sensibles
   const protectedRoutes = ['/admin', '/am', '/client']
@@ -29,21 +32,11 @@ export function middleware(request: NextRequest) {
                   request.cookies.get('__Secure-next-auth.session-token')?.value
 
     if (!token) {
-      logger.warn(`Unauthorized access attempt: ${pathname}`, {
-        path: pathname,
-        ip
-      })
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }
 
-  const response = NextResponse.next()
-
-  // Log de la réponse
-  const duration = Date.now() - startTime
-  logger.apiCall(request.method, pathname, response.status, duration)
-
-  return response
+  return NextResponse.next()
 }
 
 export const config = {
