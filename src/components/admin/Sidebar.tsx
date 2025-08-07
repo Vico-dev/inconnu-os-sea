@@ -18,7 +18,8 @@ import {
   UserPlus,
   FileText,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Shield
 } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
@@ -91,6 +92,12 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
       href: "/admin/settings",
       icon: Settings,
       current: pathname === "/admin/settings"
+    },
+    {
+      name: "Google Ads Permissions",
+      href: "/admin/google-ads-permissions",
+      icon: Shield,
+      current: pathname === "/admin/google-ads-permissions"
     }
   ]
 
