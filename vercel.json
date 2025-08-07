@@ -44,5 +44,12 @@
       "source": "/(.*)",
       "destination": "/$1"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/login",
+      "permanent": false
+    }
   ]
 } 
