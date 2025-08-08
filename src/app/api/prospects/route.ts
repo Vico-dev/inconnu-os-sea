@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { firstName, lastName, email, phone, company, message } = body
+    const { firstName, lastName, email, phone, company, message, notes, score, budget, status } = body
 
     // Validation des champs requis
     if (!firstName || !lastName || !email) {
@@ -25,6 +25,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validation du score
+    if (score !== undefined && (score < 1 || score > 10)) {
+      return NextResponse.json(
+        { error: 'Score doit être entre 1 et 10' },
+        { status: 400 }
+      )
+    }
+
     // Créer le prospect
     const prospect = await prisma.prospect.create({
       data: {
@@ -34,8 +42,11 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         company: company || null,
         message: message || null,
+        notes: notes || null,
+        score: score || null,
+        budget: budget || null,
         source: 'WEBSITE',
-        status: 'NEW'
+        status: status || 'NEW'
       }
     })
 
