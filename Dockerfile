@@ -12,7 +12,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Installer les dépendances
-RUN npm ci --omit=dev --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
 
 # Copier le code source
 COPY . .
@@ -37,6 +37,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=base /app/public ./public
 COPY --from=base /app/.next/standalone ./
 COPY --from=base /app/.next/static ./.next/static
+COPY --from=base /app/node_modules ./node_modules
 
 # Changer les permissions
 RUN chown -R nextjs:nodejs /app
