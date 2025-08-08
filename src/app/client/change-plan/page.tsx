@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Star, Zap, Crown, ArrowLeft } from "lucide-react"
+import { Check, Star, TrendingUp, Zap, Crown, ArrowLeft } from "lucide-react"
 
 interface SubscriptionPlan {
   id: string
@@ -16,50 +16,59 @@ interface SubscriptionPlan {
   features: string[]
   popular?: boolean
   icon: React.ReactNode
+  mediaBudget: string
 }
 
 const subscriptionPlans: SubscriptionPlan[] = [
   {
-    id: "basic",
-    name: "Basic",
-    price: 99,
+    id: "SMALL_BUDGET",
+    name: "Petit Chasseur",
+    price: 200,
     period: "mois",
     features: [
-      "Gestion de 1 compte Google Ads",
-      "Reporting hebdomadaire",
+      "Audit mensuel de vos campagnes",
+      "Optimisations techniques",
+      "Recommandations stratégiques",
       "Support par email",
-      "Optimisations mensuelles"
+      "Reporting mensuel",
+      "Accès à l'espace client"
     ],
+    mediaBudget: "< 1000€/mois",
     icon: <Zap className="w-6 h-6" />
   },
   {
-    id: "pro",
-    name: "Pro",
-    price: 199,
+    id: "MEDIUM_BUDGET",
+    name: "Chasseur",
+    price: 400,
     period: "mois",
     features: [
-      "Gestion de 3 comptes Google Ads",
-      "Reporting quotidien",
+      "Tout du forfait Petit Chasseur",
+      "Call hebdomadaire de 30 min",
+      "Optimisations en temps réel",
+      "Reporting détaillé",
       "Support prioritaire",
-      "Optimisations hebdomadaires",
-      "Formation personnalisée"
+      "Formation équipe",
+      "Tests A/B"
     ],
     popular: true,
-    icon: <Star className="w-6 h-6" />
+    mediaBudget: "1000€ - 5000€/mois",
+    icon: <TrendingUp className="w-6 h-6" />
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 399,
+    id: "LARGE_BUDGET",
+    name: "Grand Chasseur",
+    price: 600,
     period: "mois",
     features: [
-      "Gestion illimitée de comptes",
-      "Reporting en temps réel",
-      "Support dédié 24/7",
-      "Optimisations quotidiennes",
+      "Tout du forfait Chasseur",
+      "Dédié account manager",
+      "Support 24/7",
+      "Stratégie personnalisée",
+      "Analytics avancées",
       "Formation complète",
-      "Stratégie personnalisée"
+      "Accompagnement prioritaire"
     ],
+    mediaBudget: "5000€ - 10000€/mois",
     icon: <Crown className="w-6 h-6" />
   }
 ]
@@ -88,7 +97,7 @@ export default function ChangePlanPage() {
       const response = await fetch(`/api/subscription/status?userId=${session?.user?.id}`)
       if (response.ok) {
         const data = await response.json()
-        setCurrentPlan(data.subscription?.plan?.toLowerCase() || null)
+        setCurrentPlan(data.subscription?.plan || null)
       }
     } catch (error) {
       console.error("Erreur lors de la récupération du plan actuel:", error)
@@ -105,26 +114,40 @@ export default function ChangePlanPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/subscription/change-plan", {
+      // Récupérer le clientAccountId
+      const accountResponse = await fetch('/api/client/account')
+      if (!accountResponse.ok) {
+        throw new Error('Compte client non trouvé')
+      }
+      const accountData = await accountResponse.json()
+      const clientAccountId = accountData.clientAccount.id
+
+      // Créer la session de checkout Stripe
+      const response = await fetch("/api/stripe/checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          userId: session?.user?.id,
-          newPlanId: plan.id
+          plan: plan.id,
+          clientAccountId
         })
       })
 
       if (response.ok) {
-        alert(`Plan changé avec succès vers ${plan.name}`)
-        router.push("/client")
+        const data = await response.json()
+        if (data.url) {
+          window.location.href = data.url
+        } else {
+          throw new Error('URL de paiement introuvable')
+        }
       } else {
-        alert("Erreur lors du changement de plan")
+        const error = await response.json()
+        throw new Error(error.error || 'Erreur lors du changement de plan')
       }
     } catch (error) {
       console.error("Erreur lors du changement de plan:", error)
-      alert("Erreur lors du changement de plan")
+      alert(`Erreur lors du changement de plan: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
     } finally {
       setIsLoading(false)
     }
@@ -212,6 +235,9 @@ export default function ChangePlanPage() {
                   </span>
                   <span className="text-gray-600">/{plan.period}</span>
                 </CardDescription>
+                <div className="text-sm text-gray-500 mt-2">
+                  Budget média : {plan.mediaBudget}
+                </div>
               </CardHeader>
 
               <CardContent>
@@ -234,7 +260,7 @@ export default function ChangePlanPage() {
                   onClick={() => handlePlanChange(plan)}
                 >
                   {isLoading && selectedPlan?.id === plan.id 
-                    ? "Changement en cours..." 
+                    ? "Redirection vers le paiement..." 
                     : currentPlan === plan.id 
                     ? "Plan actuel" 
                     : `Changer vers ${plan.name}`}

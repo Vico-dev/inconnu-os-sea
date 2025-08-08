@@ -53,6 +53,10 @@ export default function ClientPage() {
     }
   }
 
+  const handleSubscribe = () => {
+    router.push("/client/subscribe")
+  }
+
   const handleChangePlan = () => {
     router.push("/client/change-plan")
   }
@@ -150,6 +154,33 @@ export default function ClientPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Subscription Banner */}
+            <Card className="mb-8 border-green-200 bg-green-50">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                      <CreditCard className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-green-900">Souscrivez à un forfait</h3>
+                      <p className="text-green-700">
+                        Choisissez le forfait qui correspond à votre budget média et commencez à optimiser vos campagnes
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Badge className="bg-green-600 text-white">
+                      Paiement sécurisé
+                    </Badge>
+                    <Button onClick={handleSubscribe} size="sm" className="bg-green-600 hover:bg-green-700">
+                      Voir les forfaits
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Google Ads Connection Banner */}
             <Card className="mb-8 border-blue-200 bg-blue-50">
@@ -430,10 +461,10 @@ export default function ClientPage() {
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="font-semibold text-blue-900">Plan Pro</h3>
-                            <p className="text-blue-700">199€/mois - Essai gratuit jusqu&apos;au 17 août 2024</p>
+                            <h3 className="font-semibold text-blue-900">Chasseur</h3>
+                            <p className="text-blue-700">400€/mois HT - Paiement mensuel sécurisé</p>
                           </div>
-                          <Badge className="bg-blue-500 text-white">Essai actif</Badge>
+                          <Badge className="bg-green-500 text-white">Actif</Badge>
                         </div>
                       </div>
 

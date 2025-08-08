@@ -1,97 +1,75 @@
-import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
+import { NextRequest, NextResponse } from 'next/server'
+import { PrismaClient } from '@prisma/client'
 
-const planPricing = {
-  basic: { price: 99, name: "Basic" },
-  pro: { price: 199, name: "Pro" },
-  enterprise: { price: 399, name: "Enterprise" }
-}
+const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, planId } = await request.json()
+    const body = await request.json()
+    const { clientAccountId, plan } = body
 
-    if (!userId || !planId) {
+    // Validation du plan
+    const validPlans = ['SMALL_BUDGET', 'MEDIUM_BUDGET', 'LARGE_BUDGET']
+    if (!validPlans.includes(plan)) {
       return NextResponse.json(
-        { message: "Données manquantes" },
+        { error: 'Plan invalide' },
         { status: 400 }
       )
     }
 
-    // Récupérer le compte client
-    const clientAccount = await prisma.clientAccount.findUnique({
-      where: { userId: userId },
-      include: {
-        subscription: true
+    // Définir le montant selon le plan
+    const planAmounts = {
+      SMALL_BUDGET: 200,
+      MEDIUM_BUDGET: 400,
+      LARGE_BUDGET: 600
+    }
+
+    const amount = planAmounts[plan as keyof typeof planAmounts]
+
+    // Vérifier si une souscription existe déjà
+    const existingSubscription = await prisma.subscription.findUnique({
+      where: { clientAccountId }
+    })
+
+    if (existingSubscription) {
+      return NextResponse.json(
+        { error: 'Une souscription existe déjà pour ce compte' },
+        { status: 400 }
+      )
+    }
+
+    // Créer la souscription
+    const subscription = await prisma.subscription.create({
+      data: {
+        clientAccountId,
+        plan,
+        status: 'TRIAL',
+        amount,
+        currency: 'EUR',
+        trialStart: new Date(),
+        trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 jours
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 jours
       }
     })
 
-    if (!clientAccount) {
-      return NextResponse.json(
-        { message: "Compte client non trouvé" },
-        { status: 404 }
-      )
-    }
-
-    const plan = planPricing[planId as keyof typeof planPricing]
-    if (!plan) {
-      return NextResponse.json(
-        { message: "Plan invalide" },
-        { status: 400 }
-      )
-    }
-
-    // Mettre à jour ou créer l&apos;abonnement (en mode TRIAL)
-    let subscription
-    if (clientAccount.subscription) {
-      // Mettre à jour l&apos;abonnement existant
-      subscription = await prisma.subscription.update({
-        where: { clientAccountId: clientAccount.id },
-        data: {
-          plan: planId.toUpperCase(),
-          status: "TRIAL", // Commence par un essai
-          amount: plan.price,
-          trialStart: new Date(),
-          trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 jours
-        }
-      })
-    } else {
-      // Créer un nouvel abonnement
-      subscription = await prisma.subscription.create({
-        data: {
-          clientAccountId: clientAccount.id,
-          plan: planId.toUpperCase(),
-          status: "TRIAL",
-          amount: plan.price,
-          currency: "EUR",
-          trialStart: new Date(),
-          trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 jours
-        }
-      })
-    }
-
-    // Mettre à jour le plan dans le compte client
+    // Mettre à jour le compte client
     await prisma.clientAccount.update({
-      where: { id: clientAccount.id },
+      where: { id: clientAccountId },
       data: {
-        subscriptionPlan: planId.toUpperCase()
+        subscriptionPlan: plan
       }
     })
 
     return NextResponse.json({
-      message: "Abonnement d&apos;essai créé avec succès",
-      subscription: {
-        id: subscription.id,
-        plan: subscription.plan,
-        status: subscription.status,
-        trialEnd: subscription.trialEnd
-      }
-    })
+      message: 'Souscription créée avec succès',
+      subscription
+    }, { status: 201 })
 
   } catch (error) {
-    console.error("Erreur lors de la création de l&apos;abonnement:", error)
+    console.error('Erreur lors de la création de la souscription:', error)
     return NextResponse.json(
-      { message: "Erreur interne du serveur" },
+      { error: 'Erreur interne du serveur' },
       { status: 500 }
     )
   }

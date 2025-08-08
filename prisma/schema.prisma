@@ -92,7 +92,7 @@ model AccountManager {
 model Subscription {
   id                    String   @id @default(cuid())
   clientAccountId       String   @unique
-  plan                  String   // BASIC, PRO, ENTERPRISE
+  plan                  String   // SMALL_BUDGET, MEDIUM_BUDGET, LARGE_BUDGET
   status                String   // TRIAL, ACTIVE, CANCELLED, SUSPENDED
   stripeCustomerId      String?
   stripeSubscriptionId  String?

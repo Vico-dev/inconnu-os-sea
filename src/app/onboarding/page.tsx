@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
   ArrowLeft, 
@@ -32,6 +32,7 @@ interface OnboardingData {
   goals: string[]
   googleAdsAccount: string
   currentChallenges: string
+  selectedPlan: string
 }
 
 const onboardingSteps = [
@@ -76,6 +77,13 @@ const onboardingSteps = [
     subtitle: "Avez-vous déjà un compte Google Ads ?",
     icon: BarChart3,
     fields: ["googleAdsAccount"]
+  },
+  {
+    id: 7,
+    title: "Choisissez votre forfait",
+    subtitle: "Sélectionnez le forfait qui correspond à votre budget média",
+    icon: DollarSign,
+    fields: ["selectedPlan"]
   }
 ]
 
@@ -126,7 +134,8 @@ export default function OnboardingPage() {
     teamSize: "",
     goals: [],
     googleAdsAccount: "",
-    currentChallenges: ""
+    currentChallenges: "",
+    selectedPlan: ""
   })
 
   useEffect(() => {
@@ -183,19 +192,19 @@ export default function OnboardingPage() {
       })
 
       if (response.ok) {
-        setMessage("Onboarding terminé ! Redirection vers votre espace client...")
+        setMessage("Onboarding terminé ! Redirection vers la souscription...")
         
-        // Attendre un peu pour que l&apos;utilisateur voie le message
+        // Attendre un peu pour que l'utilisateur voie le message
         setTimeout(() => {
-          // Forcer la redirection vers le dashboard client
-          window.location.href = "/client"
+          // Rediriger vers la page de souscription avec le plan sélectionné
+          window.location.href = `/client/subscribe?plan=${onboardingData.selectedPlan}`
         }, 1500)
       } else {
         const error = await response.json()
-        setMessage(error.message || "Erreur lors de l&apos;onboarding")
+        setMessage(error.message || "Erreur lors de l'onboarding")
       }
     } catch (error) {
-      console.error("Erreur lors de l&apos;onboarding:", error)
+      console.error("Erreur lors de l'onboarding:", error)
       setMessage("Erreur de connexion au serveur")
     } finally {
       setIsLoading(false)
@@ -399,28 +408,110 @@ export default function OnboardingPage() {
           </div>
         )
 
+      case 7:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <p className="text-lg text-gray-600 mb-4">
+                Basé sur vos informations, voici nos forfaits recommandés :
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              {[
+                {
+                  id: 'SMALL_BUDGET',
+                  name: 'Petit Chasseur',
+                  price: 200,
+                  description: 'Budget média < 1000€/mois',
+                  features: ['Audit mensuel', 'Optimisations techniques', 'Support email'],
+                  popular: false
+                },
+                {
+                  id: 'MEDIUM_BUDGET',
+                  name: 'Chasseur',
+                  price: 400,
+                  description: 'Budget média 1000€-5000€/mois',
+                  features: ['Call hebdomadaire', 'Optimisations temps réel', 'Support prioritaire'],
+                  popular: true
+                },
+                {
+                  id: 'LARGE_BUDGET',
+                  name: 'Grand Chasseur',
+                  price: 600,
+                  description: 'Budget média 5000€-10000€/mois',
+                  features: ['Account manager dédié', 'Support 24/7', 'Stratégie personnalisée'],
+                  popular: false
+                }
+              ].map((plan) => (
+                <Card
+                  key={plan.id}
+                  className={`cursor-pointer transition-all ${
+                    onboardingData.selectedPlan === plan.id
+                      ? 'border-2 border-blue-500 bg-blue-50'
+                      : 'border border-gray-200 hover:border-blue-300'
+                  } ${plan.popular ? 'ring-2 ring-blue-300' : ''}`}
+                  onClick={() => handleInputChange("selectedPlan", plan.id)}
+                >
+                  {plan.popular && (
+                    <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white">
+                      Recommandé
+                    </Badge>
+                  )}
+                  
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <div className="text-3xl font-bold text-gray-900">
+                      {plan.price}€<span className="text-sm text-gray-600">/mois</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{plan.description}</p>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <ul className="space-y-2 text-sm">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-center">
+                          <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {onboardingData.selectedPlan && (
+              <div className="text-center mt-6">
+                <p className="text-green-600 font-medium">
+                  ✓ Plan sélectionné : {onboardingData.selectedPlan === 'SMALL_BUDGET' ? 'Petit Chasseur' : 
+                    onboardingData.selectedPlan === 'MEDIUM_BUDGET' ? 'Chasseur' : 'Grand Chasseur'}
+                </p>
+              </div>
+            )}
+          </div>
+        )
+
       default:
         return null
     }
   }
 
   const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return onboardingData.companyName.trim() && onboardingData.industry
-      case 2:
-        return onboardingData.goals.length > 0
-      case 3:
-        return onboardingData.dailyBudget && parseInt(onboardingData.dailyBudget) > 0
-      case 4:
-        return onboardingData.teamSize
-      case 5:
-        return onboardingData.currentChallenges.trim().length > 10
-      case 6:
-        return onboardingData.googleAdsAccount
-      default:
-        return false
+    const currentFields = onboardingSteps[currentStep - 1]?.fields || []
+    
+    // Vérification spéciale pour l'étape 7 (sélection de plan)
+    if (currentStep === 7) {
+      return onboardingData.selectedPlan !== ""
     }
+    
+    return currentFields.every(field => {
+      const value = onboardingData[field as keyof OnboardingData]
+      if (Array.isArray(value)) {
+        return value.length > 0
+      }
+      return value && value.trim() !== ""
+    })
   }
 
   if (!isAuthenticated) {

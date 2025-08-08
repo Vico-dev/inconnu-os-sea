@@ -8,9 +8,7 @@ const testProspects = [
     message: 'Bonjour, nous cherchons à optimiser nos campagnes Google Ads. Notre budget est de 2000€/mois.',
     source: 'WEBSITE',
     status: 'NEW',
-    notes: 'Prospect intéressé par l\'optimisation. Budget confirmé.',
-    score: 8,
-    budget: 2000
+    notes: 'Prospect intéressé par l\'optimisation. Budget confirmé.'
   },
   {
     firstName: 'Marie',
@@ -21,9 +19,7 @@ const testProspects = [
     message: 'Nous lançons un nouveau produit et avons besoin d\'aide pour nos campagnes publicitaires.',
     source: 'WEBSITE',
     status: 'CONTACTED',
-    notes: 'Premier appel effectué. Très réceptive. Rendez-vous de suivi prévu.',
-    score: 9,
-    budget: 1500
+    notes: 'Premier appel effectué. Très réceptive. Rendez-vous de suivi prévu.'
   },
   {
     firstName: 'Pierre',
@@ -34,9 +30,7 @@ const testProspects = [
     message: 'Notre ROAS est actuellement de 1.5x, nous voulons l\'améliorer.',
     source: 'WEBSITE',
     status: 'QUALIFIED',
-    notes: 'Prospect qualifié. Budget de 3000€/mois. Prêt à signer.',
-    score: 10,
-    budget: 3000
+    notes: 'Prospect qualifié. Budget de 3000€/mois. Prêt à signer.'
   },
   {
     firstName: 'Sophie',
@@ -47,9 +41,7 @@ const testProspects = [
     message: 'Nous cherchons un expert pour nos clients.',
     source: 'REFERRAL',
     status: 'CONVERTED',
-    notes: 'Contrat signé ! Démarrage le 1er du mois prochain.',
-    score: 10,
-    budget: 5000
+    notes: 'Contrat signé ! Démarrage le 1er du mois prochain.'
   },
   {
     firstName: 'Thomas',
@@ -60,9 +52,7 @@ const testProspects = [
     message: 'Nous avons un petit budget mais nous voulons essayer.',
     source: 'WEBSITE',
     status: 'LOST',
-    notes: 'Budget trop faible (500€/mois). Pas rentable pour nous.',
-    score: 3,
-    budget: 500
+    notes: 'Budget trop faible (500€/mois). Pas rentable pour nous.'
   }
 ]
 

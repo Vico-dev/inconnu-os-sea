@@ -26,26 +26,31 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
-      case "payment_intent.succeeded":
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        await handlePaymentSuccess(paymentIntent)
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session
+        await handleCheckoutCompleted(session)
         break
-
-      case "payment_intent.payment_failed":
-        const failedPayment = event.data.object as Stripe.PaymentIntent
-        await handlePaymentFailure(failedPayment)
+      }
+      case "customer.subscription.updated": {
+        const sub = event.data.object as Stripe.Subscription
+        await upsertSubscriptionFromStripe(sub, "ACTIVE")
         break
-
-      case "invoice.payment_succeeded":
+      }
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as Stripe.Subscription
+        await upsertSubscriptionFromStripe(sub, "CANCELLED")
+        break
+      }
+      case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice
         await handleInvoicePaymentSuccess(invoice)
         break
-
-      case "invoice.payment_failed":
+      }
+      case "invoice.payment_failed": {
         const failedInvoice = event.data.object as Stripe.Invoice
         await handleInvoicePaymentFailure(failedInvoice)
         break
-
+      }
       default:
         console.log(`Événement non géré: ${event.type}`)
     }
@@ -60,72 +65,95 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
-  const { userId, planId, paymentMethod } = paymentIntent.metadata
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const subscriptionId = session.subscription as string | undefined
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
+  const clientAccountId = (session.client_reference_id as string | null) || (session.metadata?.clientAccountId as string | undefined)
+  const plan = (session.metadata?.plan as string | undefined)
 
-  // Mettre à jour l&apos;abonnement
-  await prisma.subscription.updateMany({
-    where: {
-      clientAccount: {
-        userId: userId
-      }
+  if (!subscriptionId || !customerId || !clientAccountId || !plan) {
+    console.warn('checkout.session.completed: données manquantes', { subscriptionId, customerId, clientAccountId, plan })
+    return
+  }
+
+  const sub = await stripe.subscriptions.retrieve(subscriptionId)
+
+  await prisma.subscription.upsert({
+    where: { clientAccountId },
+    create: {
+      clientAccountId,
+      plan,
+      status: 'ACTIVE',
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscriptionId,
+      currentPeriodStart: new Date(sub.current_period_start * 1000),
+      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      amount: (sub.items.data[0]?.price?.unit_amount ?? 0) / 100,
+      currency: (sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()
     },
-    data: {
-      status: "ACTIVE",
-      stripeSubscriptionId: paymentIntent.id,
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
-      amount: paymentIntent.amount / 100
+    update: {
+      plan,
+      status: 'ACTIVE',
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscriptionId,
+      currentPeriodStart: new Date(sub.current_period_start * 1000),
+      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      amount: (sub.items.data[0]?.price?.unit_amount ?? 0) / 100,
+      currency: (sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()
     }
   })
-
-  console.log(`Paiement réussi pour l&apos;utilisateur ${userId}, plan ${planId}`)
 }
 
-async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) {
-  const { userId } = paymentIntent.metadata
+async function upsertSubscriptionFromStripe(sub: Stripe.Subscription, status: string) {
+  const clientAccountId = (sub.metadata?.clientAccountId as string | undefined)
+  const plan = (sub.metadata?.plan as string | undefined)
 
-  // Mettre à jour l&apos;abonnement en échec
-  await prisma.subscription.updateMany({
-    where: {
-      clientAccount: {
-        userId: userId
-      }
+  if (!clientAccountId) return
+
+  await prisma.subscription.upsert({
+    where: { clientAccountId },
+    create: {
+      clientAccountId,
+      plan: plan || 'SMALL_BUDGET',
+      status,
+      stripeCustomerId: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id,
+      stripeSubscriptionId: sub.id,
+      currentPeriodStart: new Date(sub.current_period_start * 1000),
+      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      amount: (sub.items.data[0]?.price?.unit_amount ?? 0) / 100,
+      currency: (sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()
     },
-    data: {
-      status: "CANCELLED"
+    update: {
+      plan: plan || undefined,
+      status,
+      stripeCustomerId: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id,
+      stripeSubscriptionId: sub.id,
+      currentPeriodStart: new Date(sub.current_period_start * 1000),
+      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      amount: (sub.items.data[0]?.price?.unit_amount ?? 0) / 100,
+      currency: (sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()
     }
   })
-
-  console.log(`Paiement échoué pour l&apos;utilisateur ${userId}`)
 }
 
 async function handleInvoicePaymentSuccess(invoice: Stripe.Invoice) {
-  // Gérer les paiements récurrents
   if (invoice.subscription) {
     await prisma.subscription.updateMany({
-      where: {
-        stripeSubscriptionId: invoice.subscription as string
-      },
+      where: { stripeSubscriptionId: invoice.subscription as string },
       data: {
         status: "ACTIVE",
-        currentPeriodStart: new Date(invoice.period_start * 1000),
-        currentPeriodEnd: new Date(invoice.period_end * 1000)
+        currentPeriodStart: invoice.lines?.data[0]?.period?.start ? new Date(invoice.lines.data[0].period.start * 1000) : undefined,
+        currentPeriodEnd: invoice.lines?.data[0]?.period?.end ? new Date(invoice.lines.data[0].period.end * 1000) : undefined,
       }
     })
   }
 }
 
 async function handleInvoicePaymentFailure(invoice: Stripe.Invoice) {
-  // Gérer les échecs de paiement récurrents
   if (invoice.subscription) {
     await prisma.subscription.updateMany({
-      where: {
-        stripeSubscriptionId: invoice.subscription as string
-      },
-      data: {
-        status: "CANCELLED"
-      }
+      where: { stripeSubscriptionId: invoice.subscription as string },
+      data: { status: "CANCELLED" }
     })
   }
 } 

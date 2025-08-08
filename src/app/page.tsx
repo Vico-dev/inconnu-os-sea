@@ -82,9 +82,9 @@ export default function HomePage() {
                 Réserver un audit gratuit <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
-            <Link href="#offres">
+            <Link href="/pricing">
               <Button variant="outline" size="lg" className="text-lg px-8 py-3 border-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white">
-                Découvrir notre méthode
+                Voir nos tarifs
               </Button>
             </Link>
           </div>
