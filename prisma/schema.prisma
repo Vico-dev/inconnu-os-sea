@@ -227,4 +227,21 @@ model Appointment {
   accountManager AccountManager? @relation(fields: [accountManagerId], references: [id])
 
   @@map("appointments")
+}
+
+model Prospect {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  company     String?
+  message     String?
+  source      String   @default("WEBSITE") // WEBSITE, REFERRAL, SOCIAL_MEDIA
+  status      String   @default("NEW") // NEW, CONTACTED, QUALIFIED, CONVERTED, LOST
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("prospects")
 } 

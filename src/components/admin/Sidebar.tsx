@@ -98,6 +98,13 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
       href: "/admin/google-ads-permissions",
       icon: Shield,
       current: pathname === "/admin/google-ads-permissions"
+    },
+    {
+      name: "Prospects",
+      href: "/admin/prospects",
+      icon: Users,
+      current: pathname === "/admin/prospects"
+    }
     }
   ]
 

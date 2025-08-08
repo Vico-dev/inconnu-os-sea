@@ -3,7 +3,8 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, TrendingUp, Users, Zap, ArrowRight } from "lucide-react"
+import { CheckCircle, TrendingUp, Users, Zap, ArrowRight, Mail, Phone, MapPin } from "lucide-react"
+import ContactForm from "@/components/ContactForm"
 
 export default function HomePage() {
   return (
@@ -49,10 +50,10 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20">
         <div className="text-center max-w-4xl mx-auto">
-          <Badge variant="secondary" className="mb-4">
+          <Badge variant="secondary" className="mb-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
             ✔ Certifié Google Partner
           </Badge>
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
             Transformez vos campagnes Google Ads en machine à convertir
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
@@ -77,12 +78,12 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
-              <Button size="lg" className="text-lg px-8 py-3">
+              <Button size="lg" className="text-lg px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0">
                 Réserver un audit gratuit <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
             <Link href="#offres">
-              <Button variant="outline" size="lg" className="text-lg px-8 py-3">
+              <Button variant="outline" size="lg" className="text-lg px-8 py-3 border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white">
                 Découvrir notre méthode
               </Button>
             </Link>
@@ -338,42 +339,89 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="bg-blue-600 py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Prêt à transformer vos campagnes ?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Rejoignez nos clients qui ont déjà multiplié leur ROAS par 4.2x en moyenne.
-          </p>
-          
-          <div className="grid md:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
-            <div className="text-center text-blue-100">
-              <div className="text-2xl font-bold">✓</div>
-              <div className="text-sm">Audit gratuit sans engagement</div>
-            </div>
-            <div className="text-center text-blue-100">
-              <div className="text-2xl font-bold">✓</div>
-              <div className="text-sm">Résultats dès la première semaine</div>
-            </div>
-            <div className="text-center text-blue-100">
-              <div className="text-2xl font-bold">✓</div>
-              <div className="text-sm">Expert certifié Google Partner</div>
-            </div>
+      {/* Section Contact */}
+      <section id="contact" className="py-20 bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+              Contactez-nous
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Prêt à transformer vos campagnes Google Ads ? Parlons de votre projet et découvrez comment nous pouvons vous aider à maximiser votre ROI.
+            </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
-                Réserver mon audit gratuit
-              </Button>
-            </Link>
-            <Link href="#contact">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-3 bg-transparent border-white text-white hover:bg-white hover:text-blue-600">
-                Nous contacter
-              </Button>
-            </Link>
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            {/* Informations de contact */}
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Parlons de votre projet
+                </h3>
+                <p className="text-gray-600 mb-8">
+                  Expert freelance certifié Google Partner, je vous accompagne dans l&apos;optimisation de vos campagnes publicitaires pour maximiser votre retour sur investissement.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Mail className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Email</h4>
+                    <p className="text-gray-600">contact@agence-inconnu.fr</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Phone className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Téléphone</h4>
+                    <p className="text-gray-600">Disponible sur rendez-vous</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                    <MapPin className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Adresse</h4>
+                    <p className="text-gray-600">74 Avenue générale de Gaulle<br />72000 LE MANS</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+                <h4 className="font-semibold mb-2">Pourquoi nous choisir ?</h4>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Audit gratuit sans engagement
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Résultats dès la première semaine
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Expert certifié Google Partner
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Accompagnement personnalisé
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Formulaire de contact */}
+            <div>
+              <ContactForm />
+            </div>
           </div>
         </div>
       </section>
