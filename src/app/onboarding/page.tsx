@@ -500,18 +500,36 @@ export default function OnboardingPage() {
   const canProceed = () => {
     const currentFields = onboardingSteps[currentStep - 1]?.fields || []
     
+    // Debug temporaire
+    console.log("Étape actuelle:", currentStep)
+    console.log("Champs requis:", currentFields)
+    console.log("Données:", onboardingData)
+    
     // Vérification spéciale pour l'étape 7 (sélection de plan)
     if (currentStep === 7) {
       return onboardingData.selectedPlan !== ""
     }
     
-    return currentFields.every(field => {
+    const result = currentFields.every(field => {
       const value = onboardingData[field as keyof OnboardingData]
       if (Array.isArray(value)) {
         return value.length > 0
       }
-      return value && value.trim() !== ""
+      
+      // Vérification spéciale pour le budget (étape 3)
+      if (field === "dailyBudget") {
+        const isValid = value && !isNaN(Number(value)) && Number(value) > 0
+        console.log("Budget validation:", { value, isValid })
+        return isValid
+      }
+      
+      const isValid = value && value.trim() !== ""
+      console.log(`Champ ${field}:`, { value, isValid })
+      return isValid
     })
+    
+    console.log("Résultat final:", result)
+    return result
   }
 
   if (!isAuthenticated) {
