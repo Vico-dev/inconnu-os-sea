@@ -1,4 +1,4 @@
-import { config } from './config.js'
+const config = require('./config.js')
 
 class RailwayApiClient {
   constructor() {
@@ -96,4 +96,4 @@ class RailwayApiClient {
 // Instance singleton
 const railwayApi = new RailwayApiClient()
 
-export default railwayApi 
+module.exports = railwayApi 

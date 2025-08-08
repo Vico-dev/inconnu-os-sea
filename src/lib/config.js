@@ -1,5 +1,5 @@
 // Configuration pour l'architecture hybride
-export const config = {
+const config = {
   // URL du backend Railway (à configurer)
   BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://inconnu-os-sea-production.up.railway.app',
   
@@ -11,4 +11,6 @@ export const config = {
       'Content-Type': 'application/json'
     }
   }
-} 
+}
+
+module.exports = config 
