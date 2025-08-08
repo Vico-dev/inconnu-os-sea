@@ -55,7 +55,7 @@ const onboardingSteps = [
     title: "Votre budget",
     subtitle: "Quel est votre budget publicitaire mensuel ?",
     icon: DollarSign,
-    fields: ["monthlyBudget"]
+    fields: ["dailyBudget"]
   },
   {
     id: 4,
