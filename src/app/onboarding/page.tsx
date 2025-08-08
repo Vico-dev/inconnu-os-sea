@@ -196,8 +196,8 @@ export default function OnboardingPage() {
         
         // Attendre un peu pour que l'utilisateur voie le message
         setTimeout(() => {
-          // Rediriger vers la page de souscription avec le plan sélectionné
-          window.location.href = `/client/subscribe?plan=${onboardingData.selectedPlan}`
+          // Rediriger directement vers le checkout avec le plan sélectionné
+          window.location.href = `/client/checkout?plan=${onboardingData.selectedPlan}`
         }, 1500)
       } else {
         const error = await response.json()
@@ -500,17 +500,12 @@ export default function OnboardingPage() {
   const canProceed = () => {
     const currentFields = onboardingSteps[currentStep - 1]?.fields || []
     
-    // Debug temporaire
-    console.log("Étape actuelle:", currentStep)
-    console.log("Champs requis:", currentFields)
-    console.log("Données:", onboardingData)
-    
     // Vérification spéciale pour l'étape 7 (sélection de plan)
     if (currentStep === 7) {
       return onboardingData.selectedPlan !== ""
     }
     
-    const result = currentFields.every(field => {
+    return currentFields.every(field => {
       const value = onboardingData[field as keyof OnboardingData]
       if (Array.isArray(value)) {
         return value.length > 0
@@ -518,18 +513,11 @@ export default function OnboardingPage() {
       
       // Vérification spéciale pour le budget (étape 3)
       if (field === "dailyBudget") {
-        const isValid = value && !isNaN(Number(value)) && Number(value) > 0
-        console.log("Budget validation:", { value, isValid })
-        return isValid
+        return value && !isNaN(Number(value)) && Number(value) > 0
       }
       
-      const isValid = value && value.trim() !== ""
-      console.log(`Champ ${field}:`, { value, isValid })
-      return isValid
+      return value && value.trim() !== ""
     })
-    
-    console.log("Résultat final:", result)
-    return result
   }
 
   if (!isAuthenticated) {
