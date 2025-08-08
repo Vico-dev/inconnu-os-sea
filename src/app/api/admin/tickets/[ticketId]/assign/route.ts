@@ -11,7 +11,7 @@ export async function PATCH(
 
     if (!accountManagerId) {
       return NextResponse.json(
-        { error: "ID de l'Account Manager requis" },
+        { error: "ID de l&apos;Account Manager requis" },
         { status: 400 }
       )
     }
@@ -28,7 +28,7 @@ export async function PATCH(
       )
     }
 
-    // Vérifier que l'Account Manager existe
+    // Vérifier que l&apos;Account Manager existe
     const accountManager = await prisma.accountManager.findUnique({
       where: { id: accountManagerId }
     })
@@ -40,7 +40,7 @@ export async function PATCH(
       )
     }
 
-    // Assigner l'AM au ticket
+    // Assigner l&apos;AM au ticket
     const updatedTicket = await prisma.ticket.update({
       where: { id: ticketId },
       data: {
@@ -76,7 +76,7 @@ export async function PATCH(
     })
 
   } catch (error) {
-    console.error("Erreur lors de l'attribution du ticket:", error)
+    console.error("Erreur lors de l&apos;attribution du ticket:", error)
     return NextResponse.json(
       { error: "Erreur interne du serveur" },
       { status: 500 }

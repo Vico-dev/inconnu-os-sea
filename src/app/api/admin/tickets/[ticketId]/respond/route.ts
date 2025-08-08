@@ -26,9 +26,9 @@ export async function POST(
     const response = await prisma.ticketResponse.create({
       data: {
         ticketId,
-        userId: amId, // Utiliser l'ID de l'AM ou de l'admin
+        userId: amId, // Utiliser l&apos;ID de l&apos;AM ou de l&apos;admin
         content,
-        isFromAM: true // Marquer comme réponse d'AM/Admin
+        isFromAM: true // Marquer comme réponse d&apos;AM/Admin
       },
       include: {
         user: { select: { firstName: true, lastName: true } }
@@ -50,7 +50,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error("Erreur lors de l'envoi de la réponse:", error)
+    console.error("Erreur lors de l&apos;envoi de la réponse:", error)
     return NextResponse.json({ message: "Erreur interne du serveur" }, { status: 500 })
   }
 } 

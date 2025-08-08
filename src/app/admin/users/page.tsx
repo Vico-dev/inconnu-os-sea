@@ -25,6 +25,7 @@ export default function AdminUsersPage() {
   const [editingUser, setEditingUser] = useState(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     fetchUsers()
   }, [])
 
@@ -63,7 +64,7 @@ export default function AdminUsersPage() {
         setEditingUser(null)
       }
     } catch (error) {
-      console.error("Erreur lors de la création de l'utilisateur:", error)
+      console.error("Erreur lors de la création de l&apos;utilisateur:", error)
     }
   }
 
@@ -170,7 +171,7 @@ export default function AdminUsersPage() {
             </CardContent>
           </Card>
 
-          {/* Modal de création/édition d'utilisateur */}
+          {/* Modal de création/édition d&apos;utilisateur */}
           <UserModal
             isOpen={showCreateModal}
             onClose={() => {

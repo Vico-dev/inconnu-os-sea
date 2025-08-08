@@ -28,8 +28,8 @@ export default function CancelSubscriptionPage() {
     },
     {
       id: "not_using",
-      label: "Je n'utilise pas le service",
-      description: "Je n'ai pas le temps ou l'envie d'utiliser la plateforme"
+      label: "Je n&apos;utilise pas le service",
+      description: "Je n&apos;ai pas le temps ou l&apos;envie d&apos;utiliser la plateforme"
     },
     {
       id: "switching",
@@ -73,7 +73,7 @@ export default function CancelSubscriptionPage() {
         setShowConfirmation(true)
       } else {
         const error = await response.json()
-        alert(`Erreur: ${error.message || "Impossible de résilier l'abonnement"}`)
+        alert(`Erreur: ${error.message || "Impossible de résilier l&apos;abonnement"}`)
       }
     } catch (error) {
       alert("Erreur lors de la résiliation")

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Mettre à jour l'abonnement
+    // Mettre à jour l&apos;abonnement
     const updatedSubscription = await prisma.subscription.update({
       where: { clientAccountId: clientAccount.id },
       data: {

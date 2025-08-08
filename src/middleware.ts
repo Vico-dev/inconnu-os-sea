@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Routes publiques qui ne nécessitent pas d'authentification
+  // Routes publiques qui ne nécessitent pas d&apos;authentification
   const publicRoutes = [
     '/login',
     '/register',
@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
     '/api/google-ads/callback'
   ]
 
-  // Vérifier si c'est une route publique
+  // Vérifier si c&apos;est une route publique
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   
   if (isPublicRoute) {
@@ -27,7 +27,7 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
   if (isProtectedRoute) {
-    // Vérifier l'authentification
+    // Vérifier l&apos;authentification
     const token = request.cookies.get('next-auth.session-token')?.value ||
                   request.cookies.get('__Secure-next-auth.session-token')?.value
 

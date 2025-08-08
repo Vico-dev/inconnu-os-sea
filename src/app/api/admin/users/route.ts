@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Vérifier que l'utilisateur est admin
+    // TODO: Vérifier que l&apos;utilisateur est admin
     // const session = await getServerSession(authOptions)
     // if (!session || session.user.role !== "ADMIN") {
     //   return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   try {
     const { email, firstName, lastName, role, password, company, phone } = await request.json()
 
-    // TODO: Vérifier que l'utilisateur est admin
+    // TODO: Vérifier que l&apos;utilisateur est admin
     // const session = await getServerSession(authOptions)
     // if (!session || session.user.role !== "ADMIN") {
     //   return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Vérifier si l'email existe déjà
+    // Vérifier si l&apos;email existe déjà
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Créer l'utilisateur avec les enregistrements associés selon le rôle
+    // Créer l&apos;utilisateur avec les enregistrements associés selon le rôle
     const user = await prisma.user.create({
       data: {
         email,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
                   }
                 }
               }),
-              // Créer un abonnement d'essai
+              // Créer un abonnement d&apos;essai
               subscription: {
                 create: {
                   plan: "BASIC",
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Erreur lors de la création de l'utilisateur:", error)
+    console.error("Erreur lors de la création de l&apos;utilisateur:", error)
     return NextResponse.json(
       { error: "Erreur interne du serveur" },
       { status: 500 }

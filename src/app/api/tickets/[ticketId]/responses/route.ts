@@ -17,7 +17,7 @@ export async function GET(
 
     console.log("Recherche du ticket:", ticketId)
 
-    // D'abord, vérifier si le ticket existe
+    // D&apos;abord, vérifier si le ticket existe
     const ticket = await prisma.ticket.findUnique({
       where: { id: ticketId }
     })
@@ -51,7 +51,7 @@ export async function GET(
       }
     }))
 
-    // Récupérer les informations du client et de l'AM
+    // Récupérer les informations du client et de l&apos;AM
     const clientAccount = await prisma.clientAccount.findUnique({
       where: { id: ticket.clientAccountId },
       include: {

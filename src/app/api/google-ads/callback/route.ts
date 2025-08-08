@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get("error")
 
     if (error) {
-      console.error("Erreur d'autorisation Google:", error)
+      console.error("Erreur d&apos;autorisation Google:", error)
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/client?error=google_auth_failed`
       )

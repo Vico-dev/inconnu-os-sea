@@ -7,7 +7,7 @@ export async function GET() {
     // Test de connexion à la base de données
     await prisma.$connect()
     
-    // Vérifier les variables d'environnement
+    // Vérifier les variables d&apos;environnement
     const envCheck = {
       DATABASE_URL: !!process.env.DATABASE_URL,
       NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
@@ -15,7 +15,7 @@ export async function GET() {
       NODE_ENV: process.env.NODE_ENV
     }
     
-    // Tester la recherche d'un utilisateur
+    // Tester la recherche d&apos;un utilisateur
     const testUser = await prisma.user.findFirst({
       where: { email: 'client@test.com' },
       select: {

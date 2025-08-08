@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Rechercher l'utilisateur
+    // Rechercher l&apos;utilisateur
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Retourner les informations de l'utilisateur (sans le mot de passe)
+    // Retourner les informations de l&apos;utilisateur (sans le mot de passe)
     const { password: _, ...userWithoutPassword } = user
 
     return NextResponse.json({

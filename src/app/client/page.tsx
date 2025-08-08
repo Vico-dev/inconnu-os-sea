@@ -189,7 +189,7 @@ export default function ClientPage() {
             {/* Main Content */}
             <Tabs defaultValue="overview" className="space-y-6">
               <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+                <TabsTrigger value="overview">Vue d&apos;ensemble</TabsTrigger>
                 <TabsTrigger value="campaigns">Campagnes</TabsTrigger>
                 <TabsTrigger value="invoices">Factures</TabsTrigger>
                 <TabsTrigger value="tickets">Support</TabsTrigger>

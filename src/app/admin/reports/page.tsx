@@ -20,6 +20,7 @@ export default function AdminReportsPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     // Simuler le chargement
     setTimeout(() => setIsLoading(false), 1000)
   }, [])

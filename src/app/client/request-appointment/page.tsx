@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Calendar, Clock, Send } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, send } from "lucide-react"
 
 export default function RequestAppointmentPage() {
   const router = useRouter()
@@ -29,10 +29,10 @@ export default function RequestAppointmentPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Implémenter l'API pour créer le rendez-vous
+      // TODO: Implémenter l&apos;API pour créer le rendez-vous
       console.log("Demande de rendez-vous:", formData)
       
-      // Simulation d'un délai
+      // Simulation d&apos;un délai
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       router.push("/client?message=Demande de rendez-vous envoyée avec succès")
@@ -186,7 +186,7 @@ export default function RequestAppointmentPage() {
                     Annuler
                   </Button>
                   <Button type="submit" disabled={isLoading}>
-                    <Send className="w-4 h-4 mr-2" />
+                    <send className="w-4 h-4 mr-2" />
                     {isLoading ? "Envoi..." : "Demander le rendez-vous"}
                   </Button>
                 </div>

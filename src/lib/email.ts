@@ -55,7 +55,7 @@ export function generateWelcomeEmail(userName: string, loginUrl: string) {
             Accéder à votre espace client
           </a>
         </div>
-        <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+        <p>Si vous avez des questions, n&apos;hésitez pas à nous contacter.</p>
         <p>Cordialement,<br>L'équipe Agence Inconnu</p>
       </div>
     `
@@ -72,7 +72,7 @@ export function generateCancellationEmail(userName: string, endDate: string) {
         <p>Nous confirmons la résiliation de votre abonnement.</p>
         <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 20px; border-radius: 6px; margin: 20px 0;">
           <h3 style="color: #dc2626; margin-top: 0;">Important</h3>
-          <p><strong>Mois engagé, mois dû :</strong> Votre abonnement reste actif jusqu'au ${endDate}.</p>
+          <p><strong>Mois engagé, mois dû :</strong> Votre abonnement reste actif jusqu&apos;au ${endDate}.</p>
           <p>Vous continuerez à bénéficier de tous nos services jusqu'à cette date.</p>
         </div>
         <p>Nous espérons vous revoir bientôt !</p>

@@ -6,7 +6,7 @@ export async function GET() {
     // Vérifier la connexion à la base de données
     await prisma.$queryRaw`SELECT 1`
     
-    // Vérifier les variables d'environnement critiques
+    // Vérifier les variables d&apos;environnement critiques
     const requiredEnvVars = [
       'DATABASE_URL',
       'NEXTAUTH_SECRET',

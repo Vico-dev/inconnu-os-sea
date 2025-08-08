@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Créer un abonnement d'essai seulement s'il n'en existe pas déjà
+      // Créer un abonnement d&apos;essai seulement s&apos;il n&apos;en existe pas déjà
       if (!existingClientAccount.subscription) {
         await prisma.subscription.create({
           data: {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
             amount: 0,
             currency: "EUR",
             trialStart: new Date(),
-            trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 jours d'essai
+            trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 jours d&apos;essai
           }
         })
       }
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Créer un abonnement d'essai
+      // Créer un abonnement d&apos;essai
       await prisma.subscription.create({
         data: {
           clientAccountId: updatedClientAccount.id,
@@ -125,12 +125,12 @@ export async function POST(request: NextRequest) {
           amount: 0,
           currency: "EUR",
           trialStart: new Date(),
-          trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 jours d'essai
+          trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 jours d&apos;essai
         }
       })
     }
 
-    console.log("Onboarding terminé pour l'utilisateur:", userId)
+    console.log("Onboarding terminé pour l&apos;utilisateur:", userId)
 
     return NextResponse.json({
       message: "Onboarding terminé avec succès",
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Erreur détaillée lors de l'onboarding:", error)
+    console.error("Erreur détaillée lors de l&apos;onboarding:", error)
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

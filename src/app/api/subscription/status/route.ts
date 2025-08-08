@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Récupérer le compte client avec l'abonnement
+    // Récupérer le compte client avec l&apos;abonnement
     const clientAccount = await prisma.clientAccount.findUnique({
       where: { userId: userId },
       include: {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Vérifier si l'abonnement est actif
+    // Vérifier si l&apos;abonnement est actif
     const hasActiveSubscription = clientAccount.subscription && 
       (clientAccount.subscription.status === "ACTIVE" || 
        clientAccount.subscription.status === "TRIAL")
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Erreur lors de la vérification de l'abonnement:", error)
+    console.error("Erreur lors de la vérification de l&apos;abonnement:", error)
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

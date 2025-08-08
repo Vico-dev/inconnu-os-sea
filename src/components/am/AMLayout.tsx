@@ -12,8 +12,8 @@ export function AMLayout({ children }: AMLayoutProps) {
   const [appointmentStats, setAppointmentStats] = useState(null)
 
   useEffect(() => {
-    // Ici on pourrait récupérer les stats depuis l'API
-    // Pour l'instant, on utilise des valeurs par défaut
+    // Ici on pourrait récupérer les stats depuis l&apos;API
+    // Pour l&apos;instant, on utilise des valeurs par défaut
     setTicketStats({
       total: 0,
       open: 0,

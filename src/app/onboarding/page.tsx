@@ -85,7 +85,7 @@ const goalOptions = [
   "Améliorer le ROAS",
   "Élargir la clientèle",
   "Lancer un nouveau produit",
-  "Optimiser les coûts d'acquisition"
+  "Optimiser les coûts d&apos;acquisition"
 ]
 
 const industryOptions = [
@@ -185,17 +185,17 @@ export default function OnboardingPage() {
       if (response.ok) {
         setMessage("Onboarding terminé ! Redirection vers votre espace client...")
         
-        // Attendre un peu pour que l'utilisateur voie le message
+        // Attendre un peu pour que l&apos;utilisateur voie le message
         setTimeout(() => {
           // Forcer la redirection vers le dashboard client
           window.location.href = "/client"
         }, 1500)
       } else {
         const error = await response.json()
-        setMessage(error.message || "Erreur lors de l'onboarding")
+        setMessage(error.message || "Erreur lors de l&apos;onboarding")
       }
     } catch (error) {
-      console.error("Erreur lors de l'onboarding:", error)
+      console.error("Erreur lors de l&apos;onboarding:", error)
       setMessage("Erreur de connexion au serveur")
     } finally {
       setIsLoading(false)
@@ -229,7 +229,7 @@ export default function OnboardingPage() {
               />
             </div>
             <div>
-              <Label htmlFor="industry" className="text-lg font-medium">Secteur d'activité</Label>
+              <Label htmlFor="industry" className="text-lg font-medium">Secteur d&apos;activité</Label>
               <select
                 id="industry"
                 value={onboardingData.industry}
@@ -373,7 +373,7 @@ export default function OnboardingPage() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Oui, j'ai déjà un compte Google Ads</span>
+                  <span className="font-medium">Oui, j&apos;ai déjà un compte Google Ads</span>
                   {onboardingData.googleAdsAccount === "yes" && (
                     <Check className="w-5 h-5 text-blue-600" />
                   )}
@@ -389,7 +389,7 @@ export default function OnboardingPage() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Non, je n'ai pas encore de compte</span>
+                  <span className="font-medium">Non, je n&apos;ai pas encore de compte</span>
                   {onboardingData.googleAdsAccount === "no" && (
                     <Check className="w-5 h-5 text-blue-600" />
                   )}
@@ -514,7 +514,7 @@ export default function OnboardingPage() {
                         ) : (
                           <>
                             <Check className="w-4 h-4 mr-2" />
-                            Terminer l'onboarding
+                            Terminer l&apos;onboarding
                           </>
                         )}
                       </Button>

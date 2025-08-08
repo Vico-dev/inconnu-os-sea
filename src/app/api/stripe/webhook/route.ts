@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
   const { userId, planId, paymentMethod } = paymentIntent.metadata
 
-  // Mettre à jour l'abonnement
+  // Mettre à jour l&apos;abonnement
   await prisma.subscription.updateMany({
     where: {
       clientAccount: {
@@ -79,13 +79,13 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
     }
   })
 
-  console.log(`Paiement réussi pour l'utilisateur ${userId}, plan ${planId}`)
+  console.log(`Paiement réussi pour l&apos;utilisateur ${userId}, plan ${planId}`)
 }
 
 async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) {
   const { userId } = paymentIntent.metadata
 
-  // Mettre à jour l'abonnement en échec
+  // Mettre à jour l&apos;abonnement en échec
   await prisma.subscription.updateMany({
     where: {
       clientAccount: {
@@ -97,7 +97,7 @@ async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) {
     }
   })
 
-  console.log(`Paiement échoué pour l'utilisateur ${userId}`)
+  console.log(`Paiement échoué pour l&apos;utilisateur ${userId}`)
 }
 
 async function handleInvoicePaymentSuccess(invoice: Stripe.Invoice) {

@@ -24,7 +24,7 @@ function ConnectGoogleAdsContent() {
       return
     }
 
-    // Vérifier les paramètres d'URL pour les messages de succès/erreur
+    // Vérifier les paramètres d&apos;URL pour les messages de succès/erreur
     const success = searchParams.get("success")
     const error = searchParams.get("error")
 
@@ -39,11 +39,11 @@ function ConnectGoogleAdsContent() {
   const getErrorMessage = (error: string) => {
     switch (error) {
       case "google_auth_failed":
-        return "L'authentification Google a échoué. Veuillez réessayer."
+        return "L&apos;authentification Google a échoué. Veuillez réessayer."
       case "missing_params":
         return "Paramètres manquants. Veuillez réessayer."
       case "no_access_token":
-        return "Impossible d'obtenir le token d'accès. Veuillez réessayer."
+        return "Impossible d&apos;obtenir le token d&apos;accès. Veuillez réessayer."
       case "callback_failed":
         return "Erreur lors de la connexion. Veuillez réessayer."
       default:
@@ -64,7 +64,7 @@ function ConnectGoogleAdsContent() {
         window.location.href = data.authUrl
       } else {
         setConnectionStatus("error")
-        setErrorMessage("Erreur lors de la génération de l'URL d'autorisation")
+        setErrorMessage("Erreur lors de la génération de l&apos;URL d&apos;autorisation")
       }
     } catch (error) {
       setConnectionStatus("error")
@@ -221,7 +221,7 @@ function ConnectGoogleAdsContent() {
                   )}
                 </Button>
                 <p className="text-xs text-gray-500 mt-2">
-                  Vous serez redirigé vers Google pour autoriser l'accès
+                  Vous serez redirigé vers Google pour autoriser l&apos;accès
                 </p>
               </div>
             </CardContent>

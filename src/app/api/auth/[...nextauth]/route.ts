@@ -45,7 +45,7 @@ export const authOptions: AuthOptions = {
             accountManager: user.accountManager
           }
         } catch (error) {
-          console.error("Erreur d'authentification:", error)
+          console.error("Erreur d&apos;authentification:", error)
           return null
         }
       }

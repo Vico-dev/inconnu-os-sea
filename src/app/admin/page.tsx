@@ -110,7 +110,7 @@ export default function AdminPage() {
                   <div className="flex items-center">
                     <DollarSign className="w-8 h-8 text-yellow-600 mr-4" />
                     <div>
-                      <p className="text-sm text-gray-600">Chiffre d'affaires</p>
+                      <p className="text-sm text-gray-600">Chiffre d&apos;affaires</p>
                       <p className="text-2xl font-bold text-gray-900">€12,450</p>
                     </div>
                   </div>

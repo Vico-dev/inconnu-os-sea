@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Restreindre l'inscription publique aux clients uniquement
+    // Restreindre l&apos;inscription publique aux clients uniquement
     if (role && role !== "client") {
       return NextResponse.json(
         { message: "Seuls les comptes clients peuvent être créés publiquement" },
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Vérifier si l'utilisateur existe déjà
+    // Vérifier si l&apos;utilisateur existe déjà
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
@@ -46,14 +46,14 @@ export async function POST(request: NextRequest) {
     // Hasher le mot de passe
     const hashedPassword = await bcryptjs.hash(password, 12)
 
-    // Créer l'utilisateur (toujours en tant que client pour l'inscription publique)
+    // Créer l&apos;utilisateur (toujours en tant que client pour l&apos;inscription publique)
     const user = await prisma.user.create({
       data: {
         email,
         firstName,
         lastName,
         password: hashedPassword,
-        role: "CLIENT", // Forcer le rôle client pour l'inscription publique
+        role: "CLIENT", // Forcer le rôle client pour l&apos;inscription publique
         company: company || null
       }
     })
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Créer un abonnement d'essai
+    // Créer un abonnement d&apos;essai
     await prisma.subscription.create({
       data: {
         clientAccountId: clientAccount.id,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         amount: 0,
         currency: "EUR",
         trialStart: new Date(),
-        trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 jours d'essai
+        trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 jours d&apos;essai
       }
     })
 
@@ -102,8 +102,8 @@ export async function POST(request: NextRequest) {
         ...emailData
       })
     } catch (emailError) {
-      console.error("Erreur lors de l'envoi de l'email de bienvenue:", emailError)
-      // Ne pas faire échouer l'inscription si l'email échoue
+      console.error("Erreur lors de l&apos;envoi de l&apos;email de bienvenue:", emailError)
+      // Ne pas faire échouer l&apos;inscription si l&apos;email échoue
     }
 
     return NextResponse.json(
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error("Erreur détaillée lors de l'inscription:", error)
+    console.error("Erreur détaillée lors de l&apos;inscription:", error)
     
     // Gestion spécifique des erreurs Prisma
     if (error instanceof Error) {

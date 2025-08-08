@@ -12,7 +12,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout"
 import { useParams, useRouter } from "next/navigation"
 import { 
   ArrowLeft, 
-  Send, 
+  send, 
   User, 
   Shield, 
   MessageSquare, 
@@ -113,7 +113,7 @@ export default function AdminTicketDetailsPage() {
         setNewResponse("")
         await fetchTicketDetails()
       } else {
-        console.error("Erreur lors de l'envoi de la réponse")
+        console.error("Erreur lors de l&apos;envoi de la réponse")
       }
     } catch (error) {
       console.error("Erreur:", error)
@@ -206,7 +206,7 @@ export default function AdminTicketDetailsPage() {
             <div className="text-center">
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Ticket non trouvé</h2>
-              <p className="text-gray-600 mb-4">Le ticket que vous recherchez n'existe pas.</p>
+              <p className="text-gray-600 mb-4">Le ticket que vous recherchez n&apos;existe pas.</p>
               <Button onClick={() => router.push('/admin/tickets')}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Retour aux tickets
@@ -373,7 +373,7 @@ export default function AdminTicketDetailsPage() {
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       ) : (
                         <>
-                          <Send className="w-4 h-4 mr-2" />
+                          <send className="w-4 h-4 mr-2" />
                           Envoyer la réponse
                         </>
                       )}
@@ -445,7 +445,7 @@ export default function AdminTicketDetailsPage() {
                      className="w-full"
                      onClick={() => window.open(`mailto:${ticket.client.email}?subject=Re: ${ticket.subject}`)}
                    >
-                     <Send className="w-4 h-4 mr-2" />
+                     <send className="w-4 h-4 mr-2" />
                      Contacter le client
                    </Button>
                    <Button

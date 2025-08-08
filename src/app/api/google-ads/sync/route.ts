@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("🔄 Début de la synchronisation Google Ads pour l'utilisateur:", userId)
+    console.log("🔄 Début de la synchronisation Google Ads pour l&apos;utilisateur:", userId)
 
-    // Récupérer la connexion Google Ads de l'utilisateur
+    // Récupérer la connexion Google Ads de l&apos;utilisateur
     const connection = await prisma.googleAdsConnection.findUnique({
       where: { userId },
       include: {

@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Inconnu OS - Gestion SEA",
-  description: "Plateforme de gestion d'activité SEA pour Agence Inconnu",
+  description: "Plateforme de gestion d&apos;activité SEA pour Agence Inconnu",
 }
 
 export default function RootLayout({

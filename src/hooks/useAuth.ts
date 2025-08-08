@@ -35,7 +35,7 @@ export function useAuth() {
     if (session?.user?.role === "ADMIN" || session?.user?.role === "ACCOUNT_MANAGER") {
       router.push("/admin")
     } else if (session?.user?.role === "CLIENT") {
-      // Vérifier si l'onboarding est terminé
+      // Vérifier si l&apos;onboarding est terminé
       if (session?.user?.clientAccount?.onboardingCompleted) {
         router.push("/client")
       } else {

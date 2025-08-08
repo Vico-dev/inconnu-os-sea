@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log("📊 Récupération des données Google Ads pour l'utilisateur:", userId)
+    console.log("📊 Récupération des données Google Ads pour l&apos;utilisateur:", userId)
 
     // Récupérer le compte client et ses campagnes
     const clientAccount = await prisma.clientAccount.findFirst({
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     const conversionRate = globalMetrics.clicks > 0 ? (globalMetrics.conversions / globalMetrics.clicks) * 100 : 0
     const roas = globalMetrics.cost > 0 ? (globalMetrics.conversions * 50) / globalMetrics.cost : 0 // Estimation du ROAS
 
-    // Formater les campagnes pour l'affichage
+    // Formater les campagnes pour l&apos;affichage
     const formattedCampaigns = campaigns.map(campaign => {
       const metrics = JSON.parse(campaign.metrics || "{}")
       const campaignCtr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0

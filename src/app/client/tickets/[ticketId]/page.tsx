@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Send, User, Shield, MessageSquare, Calendar, Clock } from "lucide-react"
+import { ArrowLeft, send, User, Shield, MessageSquare, Calendar, Clock } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 
@@ -99,7 +99,7 @@ export default function TicketDetailsPage() {
         setNewResponse("")
         await fetchTicketDetails() // Recharger les données
       } else {
-        console.error("Erreur lors de l'envoi de la réponse")
+        console.error("Erreur lors de l&apos;envoi de la réponse")
       }
     } catch (error) {
       console.error("Erreur:", error)
@@ -329,7 +329,7 @@ export default function TicketDetailsPage() {
                       onClick={handleSubmitResponse}
                       disabled={!newResponse.trim() || isSubmitting}
                     >
-                      <Send className="w-4 h-4 mr-2" />
+                      <send className="w-4 h-4 mr-2" />
                       {isSubmitting ? "Envoi..." : "Envoyer la réponse"}
                     </Button>
                   </div>

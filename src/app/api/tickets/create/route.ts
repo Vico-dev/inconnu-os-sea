@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (!user?.clientAccount) {
-        console.log("❌ Client non trouvé pour l'email:", clientEmail)
+        console.log("❌ Client non trouvé pour l&apos;email:", clientEmail)
         return NextResponse.json(
           { message: "Client non trouvé pour cet email" },
           { status: 404 }

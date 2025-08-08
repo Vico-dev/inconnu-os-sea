@@ -41,10 +41,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Mettre à jour ou créer l'abonnement (en mode TRIAL)
+    // Mettre à jour ou créer l&apos;abonnement (en mode TRIAL)
     let subscription
     if (clientAccount.subscription) {
-      // Mettre à jour l'abonnement existant
+      // Mettre à jour l&apos;abonnement existant
       subscription = await prisma.subscription.update({
         where: { clientAccountId: clientAccount.id },
         data: {
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({
-      message: "Abonnement d'essai créé avec succès",
+      message: "Abonnement d&apos;essai créé avec succès",
       subscription: {
         id: subscription.id,
         plan: subscription.plan,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Erreur lors de la création de l'abonnement:", error)
+    console.error("Erreur lors de la création de l&apos;abonnement:", error)
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

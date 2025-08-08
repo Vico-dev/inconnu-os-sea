@@ -16,7 +16,7 @@ export async function POST(
       )
     }
 
-    // Si c'est une réponse d'AM
+    // Si c&apos;est une réponse d&apos;AM
     if (amId) {
       // Vérifier que le ticket existe
       const ticket = await prisma.ticket.findUnique({
@@ -30,7 +30,7 @@ export async function POST(
         )
       }
 
-      // Vérifier que l'AM est bien assigné à ce ticket
+      // Vérifier que l&apos;AM est bien assigné à ce ticket
       if (ticket.accountManagerId !== amId) {
         return NextResponse.json(
           { message: "Non autorisé à répondre à ce ticket" },
@@ -38,7 +38,7 @@ export async function POST(
         )
       }
 
-      // Récupérer l'utilisateur AM
+      // Récupérer l&apos;utilisateur AM
       const amUser = await prisma.accountManager.findUnique({
         where: { id: amId },
         include: { user: true }
@@ -95,9 +95,9 @@ export async function POST(
       })
     }
 
-    // Si c'est une réponse de client
+    // Si c&apos;est une réponse de client
     if (userId) {
-      // Vérifier que l'utilisateur existe et est un client
+      // Vérifier que l&apos;utilisateur existe et est un client
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: { clientAccount: true }
@@ -159,12 +159,12 @@ export async function POST(
     }
 
     return NextResponse.json(
-      { message: "ID d'utilisateur ou d'AM requis" },
+      { message: "ID d&apos;utilisateur ou d&apos;AM requis" },
       { status: 400 }
     )
 
   } catch (error) {
-    console.error("Erreur lors de l'envoi de la réponse:", error)
+    console.error("Erreur lors de l&apos;envoi de la réponse:", error)
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

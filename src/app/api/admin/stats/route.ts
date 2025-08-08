@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Statistiques d'onboarding
+    // Statistiques d&apos;onboarding
     const completedOnboarding = await prisma.clientAccount.count({
       where: {
         onboardingCompleted: true

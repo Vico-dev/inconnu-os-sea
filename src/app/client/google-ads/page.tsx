@@ -290,7 +290,7 @@ export default function ClientGoogleAdsPage() {
           <CardHeader>
             <CardTitle>Résumé des campagnes</CardTitle>
             <CardDescription>
-              Vue d'ensemble de vos campagnes Google Ads
+              Vue d&apos;ensemble de vos campagnes Google Ads
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -30,7 +30,7 @@ const steps = [
   {
     id: 2,
     title: "Votre email professionnel",
-    subtitle: "Nous l'utiliserons pour vous connecter et vous envoyer des rapports",
+    subtitle: "Nous l&apos;utiliserons pour vous connecter et vous envoyer des rapports",
     field: "email",
     icon: Mail
   },
@@ -125,7 +125,7 @@ export default function RegisterPage() {
           window.location.href = "/login?message=Inscription réussie ! Vous pouvez maintenant vous connecter."
         }, 2000)
       } else {
-        setMessage(data.message || "Erreur lors de l'inscription")
+        setMessage(data.message || "Erreur lors de l&apos;inscription")
       }
     } catch (error) {
       setMessage("Erreur de connexion au serveur")

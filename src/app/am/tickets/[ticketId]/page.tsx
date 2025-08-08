@@ -11,7 +11,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { useParams, useRouter } from "next/navigation"
 import { 
   ArrowLeft, 
-  Send, 
+  send, 
   User, 
   Shield, 
   MessageSquare, 
@@ -107,7 +107,7 @@ export default function AMTicketDetailsPage() {
         setNewResponse("")
         await fetchTicketDetails()
       } else {
-        console.error("Erreur lors de l'envoi de la réponse")
+        console.error("Erreur lors de l&apos;envoi de la réponse")
       }
     } catch (error) {
       console.error("Erreur:", error)
@@ -362,7 +362,7 @@ export default function AMTicketDetailsPage() {
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     ) : (
                       <>
-                        <Send className="w-4 h-4 mr-2" />
+                        <send className="w-4 h-4 mr-2" />
                         Envoyer la réponse
                       </>
                     )}
@@ -426,7 +426,7 @@ export default function AMTicketDetailsPage() {
                   className="w-full"
                   onClick={() => window.open(`mailto:${ticket.client.email}?subject=Re: ${ticket.subject}`)}
                 >
-                  <Send className="w-4 h-4 mr-2" />
+                  <send className="w-4 h-4 mr-2" />
                   Contacter le client
                 </Button>
                 <Button

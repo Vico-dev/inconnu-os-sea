@@ -60,6 +60,7 @@ export default function GoogleAdsPermissionsPage() {
   })
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     fetchPermissions()
   }, [])
 
@@ -149,7 +150,7 @@ export default function GoogleAdsPermissionsPage() {
         </Button>
       </div>
 
-      {/* Formulaire d'ajout */}
+      {/* Formulaire d&apos;ajout */}
       {showAddForm && (
         <Card className="mb-6">
           <CardHeader>
@@ -323,7 +324,7 @@ export default function GoogleAdsPermissionsPage() {
             <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune permission configurée</h3>
             <p className="text-gray-600 mb-4">
-              Commencez par ajouter des permissions pour permettre aux clients d'accéder à leurs comptes Google Ads.
+              Commencez par ajouter des permissions pour permettre aux clients d&apos;accéder à leurs comptes Google Ads.
             </p>
             <Button onClick={() => setShowAddForm(true)}>
               <Plus className="w-4 h-4 mr-2" />

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, MessageSquare, Send } from "lucide-react"
+import { ArrowLeft, MessageSquare, send } from "lucide-react"
 
 export default function CreateTicketPage() {
   const router = useRouter()
@@ -157,7 +157,7 @@ export default function CreateTicketPage() {
                     Annuler
                   </Button>
                   <Button type="submit" disabled={isLoading}>
-                    <Send className="w-4 h-4 mr-2" />
+                    <send className="w-4 h-4 mr-2" />
                     {isLoading ? "Création..." : "Créer le ticket"}
                   </Button>
                 </div>

@@ -20,7 +20,7 @@ export function OnboardingCheck({ children }: OnboardingCheckProps) {
     console.log("OnboardingCheck - User ID:", session?.user?.id)
 
     if (isAuthenticated && session?.user?.role === "CLIENT") {
-      // Vérifier si l'onboarding est terminé via une API
+      // Vérifier si l&apos;onboarding est terminé via une API
       const checkOnboarding = async () => {
         try {
           const userId = session.user.id
@@ -37,17 +37,17 @@ export function OnboardingCheck({ children }: OnboardingCheckProps) {
               console.log("OnboardingCheck - Redirecting to onboarding")
               router.push("/onboarding")
             } else if (data.subscription?.status === "TRIAL" && !data.hasActiveSubscription) {
-              // Rediriger vers la souscription si l'essai est terminé ou pas d'abonnement actif
+              // Rediriger vers la souscription si l&apos;essai est terminé ou pas d&apos;abonnement actif
               console.log("OnboardingCheck - Redirecting to subscription")
               router.push("/subscription")
             } else {
               console.log("OnboardingCheck - Onboarding and subscription completed, staying on dashboard")
             }
           } else {
-            console.error("Erreur lors de la vérification de l'onboarding:", response.status)
+            console.error("Erreur lors de la vérification de l&apos;onboarding:", response.status)
           }
         } catch (error) {
-          console.error("Erreur lors de la vérification de l'onboarding:", error)
+          console.error("Erreur lors de la vérification de l&apos;onboarding:", error)
         }
       }
 

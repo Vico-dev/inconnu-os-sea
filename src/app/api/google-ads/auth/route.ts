@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Générer l'URL d'autorisation Google
+    // Générer l&apos;URL d&apos;autorisation Google
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: [
@@ -28,16 +28,16 @@ export async function GET(request: NextRequest) {
         "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/userinfo.profile"
       ],
-      state: userId // Passer l'ID utilisateur dans le state
+      state: userId // Passer l&apos;ID utilisateur dans le state
     })
 
     return NextResponse.json({
       authUrl,
-      message: "URL d'autorisation générée"
+      message: "URL d&apos;autorisation générée"
     })
 
   } catch (error) {
-    console.error("Erreur lors de la génération de l'URL d'autorisation:", error)
+    console.error("Erreur lors de la génération de l&apos;URL d&apos;autorisation:", error)
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

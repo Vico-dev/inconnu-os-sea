@@ -98,7 +98,7 @@ export default function AdminSettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Mode maintenance</Label>
-                    <p className="text-sm text-gray-600">Désactiver l'accès public</p>
+                    <p className="text-sm text-gray-600">Désactiver l&apos;accès public</p>
                   </div>
                   <Switch
                     checked={settings.maintenanceMode}

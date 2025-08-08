@@ -40,7 +40,7 @@ export class GoogleAdsMCCService {
    */
   async getAllMCCAccounts(): Promise<any[]> {
     try {
-      // Utiliser le premier compte comme point d'entrée MCC
+      // Utiliser le premier compte comme point d&apos;entrée MCC
       const mccCustomer = this.client.Customer({
         customer_id: this.config.clientId,
         refresh_token: this.config.refreshToken,
@@ -228,7 +228,7 @@ export class GoogleAdsMCCService {
         }
       })
     } catch (error) {
-      console.error("Erreur lors de l'ajout de permission:", error)
+      console.error("Erreur lors de l&apos;ajout de permission:", error)
       throw error
     }
   }

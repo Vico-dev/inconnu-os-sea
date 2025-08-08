@@ -4,7 +4,7 @@ import { z } from "zod"
 export const emailSchema = z.string().email("Email invalide")
 export const passwordSchema = z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères")
 
-// Schéma d'authentification
+// Schéma d&apos;authentification
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Mot de passe requis")
@@ -21,10 +21,10 @@ export const registerSchema = z.object({
   path: ["confirmPassword"]
 })
 
-// Schéma d'onboarding
+// Schéma d&apos;onboarding
 export const onboardingSchema = z.object({
-  companyName: z.string().min(2, "Nom d'entreprise trop court").max(100, "Nom d'entreprise trop long"),
-  industry: z.string().min(2, "Secteur d'activité requis"),
+  companyName: z.string().min(2, "Nom d&apos;entreprise trop court").max(100, "Nom d&apos;entreprise trop long"),
+  industry: z.string().min(2, "Secteur d&apos;activité requis"),
   website: z.string().url("URL invalide").optional().or(z.literal("")),
   phone: z.string().min(10, "Numéro de téléphone invalide"),
   address: z.string().min(10, "Adresse trop courte"),
@@ -54,7 +54,7 @@ export const ticketResponseSchema = z.object({
   amId: z.string().optional()
 })
 
-// Schéma de création d'utilisateur (Admin)
+// Schéma de création d&apos;utilisateur (Admin)
 export const createUserSchema = z.object({
   firstName: z.string().min(2, "Prénom trop court").max(50, "Prénom trop long"),
   lastName: z.string().min(2, "Nom trop court").max(50, "Nom trop long"),
@@ -64,7 +64,7 @@ export const createUserSchema = z.object({
     errorMap: () => ({ message: "Rôle invalide" })
   }),
   phone: z.string().min(10, "Numéro de téléphone invalide").optional(),
-  companyName: z.string().min(2, "Nom d'entreprise trop court").optional()
+  companyName: z.string().min(2, "Nom d&apos;entreprise trop court").optional()
 })
 
 // Schéma de changement de plan
@@ -86,7 +86,7 @@ export const appointmentSchema = z.object({
   description: z.string().min(10, "Description trop courte").max(500, "Description trop longue")
 })
 
-// Schéma de paramètres d'URL
+// Schéma de paramètres d&apos;URL
 export const ticketIdSchema = z.object({
   ticketId: z.string().min(1, "ID du ticket requis")
 })

@@ -57,6 +57,7 @@ export default function AdminTicketsPage() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     fetchTickets()
     fetchAccountManagers()
   }, [])
@@ -101,7 +102,7 @@ export default function AdminTicketsPage() {
       if (response.ok) {
         await fetchTickets()
       } else {
-        console.error("Erreur lors de l'attribution")
+        console.error("Erreur lors de l&apos;attribution")
       }
     } catch (error) {
       console.error("Erreur:", error)

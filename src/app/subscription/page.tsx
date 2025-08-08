@@ -181,7 +181,7 @@ function SubscriptionPage() {
       return
     }
 
-    // Vérifier si l'utilisateur a déjà un abonnement actif
+    // Vérifier si l&apos;utilisateur a déjà un abonnement actif
     checkSubscriptionStatus()
   }, [session, status, router])
 
@@ -195,7 +195,7 @@ function SubscriptionPage() {
         }
       }
     } catch (error) {
-      console.error("Erreur lors de la vérification de l'abonnement:", error)
+      console.error("Erreur lors de la vérification de l&apos;abonnement:", error)
     }
   }
 
@@ -212,7 +212,7 @@ function SubscriptionPage() {
         body: JSON.stringify({
           amount: plan.price,
           currency: "eur",
-          paymentMethod: "card", // Par défaut, sera modifié par l'utilisateur
+          paymentMethod: "card", // Par défaut, sera modifié par l&apos;utilisateur
           planId: plan.id,
           userId: session?.user?.id
         })
@@ -368,7 +368,7 @@ function SubscriptionPage() {
                   }`}
                   disabled={isLoading}
                 >
-                  {isLoading ? "Chargement..." : "Commencer l'essai gratuit"}
+                  {isLoading ? "Chargement..." : "Commencer l&apos;essai gratuit"}
                 </Button>
               </CardContent>
             </Card>

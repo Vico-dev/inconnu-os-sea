@@ -3,8 +3,8 @@ import { prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Récupérer l'utilisateur depuis la session NextAuth
-    // Pour l'instant, on utilise un paramètre pour simuler
+    // TODO: Récupérer l&apos;utilisateur depuis la session NextAuth
+    // Pour l&apos;instant, on utilise un paramètre pour simuler
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get("userId")
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Récupérer le compte client avec l'abonnement
+    // Récupérer le compte client avec l&apos;abonnement
     const clientAccount = await prisma.clientAccount.findUnique({
       where: {
         userId: userId
@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Vérifier si l'onboarding est terminé
+    // Vérifier si l&apos;onboarding est terminé
     const onboardingCompleted = clientAccount.onboardingCompleted || false
 
-    // Vérifier si l'abonnement est actif
+    // Vérifier si l&apos;abonnement est actif
     const hasActiveSubscription = clientAccount.subscription && 
       (clientAccount.subscription.status === "ACTIVE" || 
        clientAccount.subscription.status === "TRIAL")
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Erreur lors de la vérification de l'onboarding:", error)
+    console.error("Erreur lors de la vérification de l&apos;onboarding:", error)
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

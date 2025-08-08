@@ -6,7 +6,7 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
 interface RateLimitConfig {
   windowMs: number // Fenêtre de temps en millisecondes
   maxRequests: number // Nombre maximum de requêtes
-  message?: string // Message d'erreur personnalisé
+  message?: string // Message d&apos;erreur personnalisé
 }
 
 export function createRateLimiter(config: RateLimitConfig) {
@@ -70,7 +70,7 @@ export function createRateLimiter(config: RateLimitConfig) {
 
 // Configurations prédéfinies
 export const rateLimiters = {
-  // Limite stricte pour l'authentification
+  // Limite stricte pour l&apos;authentification
   auth: createRateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
     maxRequests: 5, // 5 tentatives par 15 minutes

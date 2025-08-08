@@ -28,9 +28,9 @@ export class GoogleAdsSync {
         }
       }
 
-      // Pour l'instant, on simule la synchronisation
-      // L'API réelle sera implémentée plus tard
-      console.log("🔄 Synchronisation simulée pour l'utilisateur:", userId)
+      // Pour l&apos;instant, on simule la synchronisation
+      // L&apos;API réelle sera implémentée plus tard
+      console.log("🔄 Synchronisation simulée pour l&apos;utilisateur:", userId)
 
       // Mettre à jour la date de sync
       await prisma.googleAdsConnection.update({

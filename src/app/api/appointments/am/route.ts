@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
     if (!amId) {
       return NextResponse.json(
-        { message: "ID de l'Account Manager requis" },
+        { message: "ID de l&apos;Account Manager requis" },
         { status: 400 }
       )
     }

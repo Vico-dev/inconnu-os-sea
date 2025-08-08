@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const amId = searchParams.get('amId')
 
     if (!amId) {
-      return NextResponse.json({ error: "ID de l'AM requis" }, { status: 400 })
+      return NextResponse.json({ error: "ID de l&apos;AM requis" }, { status: 400 })
     }
 
     // Récupérer tous les tickets assignés à cet AM

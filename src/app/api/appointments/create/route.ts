@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calculer l'heure de fin basée sur la durée
+    // Calculer l&apos;heure de fin basée sur la durée
     const startTime = new Date(`${date}T${time}`)
     const endTime = new Date(startTime.getTime() + (parseInt(duration) || 60) * 60000)
 

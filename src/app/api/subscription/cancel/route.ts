@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const currentDate = new Date()
     const currentPeriodEnd = clientAccount.subscription.currentPeriodEnd || new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, currentDate.getDate())
     
-    // Marquer l'abonnement comme annulé mais garder l'accès jusqu'à la fin de la période
+    // Marquer l&apos;abonnement comme annulé mais garder l&apos;accès jusqu'à la fin de la période
     const cancelledSubscription = await prisma.subscription.update({
       where: { clientAccountId: clientAccount.id },
       data: {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Mettre à jour le statut du compte client mais garder l'accès
+    // Mettre à jour le statut du compte client mais garder l&apos;accès
     await prisma.clientAccount.update({
       where: { id: clientAccount.id },
       data: {
@@ -82,8 +82,8 @@ export async function POST(request: NextRequest) {
         })
       }
     } catch (emailError) {
-      console.error("Erreur lors de l'envoi de l'email:", emailError)
-      // Ne pas faire échouer la résiliation si l'email échoue
+      console.error("Erreur lors de l&apos;envoi de l&apos;email:", emailError)
+      // Ne pas faire échouer la résiliation si l&apos;email échoue
     }
 
     return NextResponse.json({

@@ -90,10 +90,10 @@ export function UserModal({ isOpen, onClose, onSubmit, user }: UserModalProps) {
             <div>
               <CardTitle className="flex items-center">
                 <UserPlus className="w-5 h-5 mr-2" />
-                {user ? "Modifier l'utilisateur" : "Créer un utilisateur"}
+                {user ? "Modifier l&apos;utilisateur" : "Créer un utilisateur"}
               </CardTitle>
               <CardDescription>
-                {user ? "Modifiez les informations de l'utilisateur" : "Créez un nouvel utilisateur"}
+                {user ? "Modifiez les informations de l&apos;utilisateur" : "Créez un nouvel utilisateur"}
               </CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>

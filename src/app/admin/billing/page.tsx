@@ -45,6 +45,7 @@ export default function AdminBillingPage() {
   const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     fetchSubscriptions()
   }, [])
 

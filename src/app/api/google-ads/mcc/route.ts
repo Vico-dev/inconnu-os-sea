@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
-    // Vérifier l'authentification
+    // Vérifier l&apos;authentification
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Vérifier que l'utilisateur a accès à ce compte client
+    // Vérifier que l&apos;utilisateur a accès à ce compte client
     const clientAccount = await prisma.clientAccount.findFirst({
       where: {
         id: clientAccountId,
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Récupérer la connexion MCC (connexion unique pour l'agence)
+    // Récupérer la connexion MCC (connexion unique pour l&apos;agence)
     const mccConnection = await prisma.googleAdsConnection.findFirst({
       where: {
         isConnected: true
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Vérifier l'authentification (admin seulement)
+    // Vérifier l&apos;authentification (admin seulement)
     const session = await getServerSession(authOptions)
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
       return NextResponse.json(
@@ -174,9 +174,9 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Erreur lors de l'ajout de permission:", error)
+    console.error("Erreur lors de l&apos;ajout de permission:", error)
     return NextResponse.json(
-      { error: "Erreur lors de l'ajout de permission" },
+      { error: "Erreur lors de l&apos;ajout de permission" },
       { status: 500 }
     )
   }
