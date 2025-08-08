@@ -55,6 +55,7 @@
     "stripe": "^16.9.0",
     "tailwind-merge": "^3.3.1",
     "tsx": "^4.20.3",
+    "typescript": "^5",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -68,7 +69,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.5",
-    "tailwindcss": "^3.4.0",
-    "typescript": "^5"
+    "tailwindcss": "^3.4.0"
   }
 }

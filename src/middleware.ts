@@ -22,8 +22,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Pour les routes protégées, laisser Vercel gérer l'authentification
-  // Notre middleware NextAuth ne s'applique qu'après l'authentification Vercel
+  // Protection des routes sensibles
+  const protectedRoutes = ['/admin', '/am', '/client']
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+
+  if (isProtectedRoute) {
+    // Vérifier l'authentification
+    const token = request.cookies.get('next-auth.session-token')?.value ||
+                  request.cookies.get('__Secure-next-auth.session-token')?.value
+
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
   return NextResponse.next()
 }
 

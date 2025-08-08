@@ -8,4 +8,4 @@ healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 
 [[services]]
-name = "web" 
+name = "backend" 
