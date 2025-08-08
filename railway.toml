@@ -1,11 +1,11 @@
 [build]
-builder = "nixpacks"
+builder = "DOCKERFILE"
 
 [deploy]
 startCommand = "npm start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
-restartPolicyType = "on_failure"
+restartPolicyType = "ON_FAILURE"
 
 [[services]]
-name = "backend" 
+name = "inconnu-os-sea" 
