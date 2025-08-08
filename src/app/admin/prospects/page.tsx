@@ -18,6 +18,8 @@ import {
   RefreshCw
 } from 'lucide-react'
 
+type ProspectStatus = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'LOST'
+
 interface Prospect {
   id: string
   firstName: string
@@ -27,13 +29,13 @@ interface Prospect {
   company: string | null
   message: string | null
   source: string
-  status: string
+  status: ProspectStatus
   notes: string | null
   createdAt: string
   updatedAt: string
 }
 
-const statusColors = {
+const statusColors: Record<ProspectStatus, string> = {
   NEW: 'bg-blue-100 text-blue-800',
   CONTACTED: 'bg-yellow-100 text-yellow-800',
   QUALIFIED: 'bg-green-100 text-green-800',
@@ -41,7 +43,7 @@ const statusColors = {
   LOST: 'bg-red-100 text-red-800'
 }
 
-const statusLabels = {
+const statusLabels: Record<ProspectStatus, string> = {
   NEW: 'Nouveau',
   CONTACTED: 'Contacté',
   QUALIFIED: 'Qualifié',
@@ -100,7 +102,7 @@ export default function ProspectsPage() {
     )
   })
 
-  const updateProspectStatus = async (prospectId: string, newStatus: string) => {
+  const updateProspectStatus = async (prospectId: string, newStatus: ProspectStatus) => {
     try {
       const response = await fetch(`/api/prospects/${prospectId}`, {
         method: 'PATCH',
@@ -239,14 +241,14 @@ export default function ProspectsPage() {
                       </Badge>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <Badge className={statusColors[prospect.status as keyof typeof statusColors]}>
-                        {statusLabels[prospect.status as keyof typeof statusLabels]}
-                      </Badge>
-                      <Select
-                        value={prospect.status}
-                        onValueChange={(value) => updateProspectStatus(prospect.id, value)}
-                      >
+                                         <div className="flex items-center space-x-2">
+                       <Badge className={statusColors[prospect.status]}>
+                         {statusLabels[prospect.status]}
+                       </Badge>
+                       <Select
+                         value={prospect.status}
+                         onValueChange={(value: ProspectStatus) => updateProspectStatus(prospect.id, value)}
+                       >
                         <SelectTrigger className="w-32">
                           <SelectValue />
                         </SelectTrigger>
