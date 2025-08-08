@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { 
   Users, 
   Mail, 
@@ -15,7 +15,10 @@ import {
   MessageSquare,
   Search,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  Edit,
+  Trash2
 } from 'lucide-react'
 
 type ProspectStatus = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'LOST'
@@ -31,6 +34,8 @@ interface Prospect {
   source: string
   status: ProspectStatus
   notes: string | null
+  score: number | null
+  budget: number | null
   createdAt: string
   updatedAt: string
 }
@@ -54,35 +59,27 @@ const statusLabels: Record<ProspectStatus, string> = {
 export default function ProspectsPage() {
   const [prospects, setProspects] = useState<Prospect[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0
-  })
+  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const fetchProspects = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString()
-      })
+      setError(null)
       
-      if (statusFilter) {
-        params.append('status', statusFilter)
+      const response = await fetch('/api/prospects')
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`)
       }
-
-      const response = await fetch(`/api/prospects?${params}`)
-      if (response.ok) {
-        const data = await response.json()
-        setProspects(data.prospects)
-        setPagination(data.pagination)
-      }
+      
+      const data = await response.json()
+      setProspects(data.prospects || [])
     } catch (error) {
       console.error('Erreur lors du chargement des prospects:', error)
+      setError('Erreur lors du chargement des prospects')
     } finally {
       setLoading(false)
     }
@@ -90,17 +87,7 @@ export default function ProspectsPage() {
 
   useEffect(() => {
     fetchProspects()
-  }, [pagination.page, statusFilter])
-
-  const filteredProspects = prospects.filter(prospect => {
-    const searchLower = searchTerm.toLowerCase()
-    return (
-      prospect.firstName.toLowerCase().includes(searchLower) ||
-      prospect.lastName.toLowerCase().includes(searchLower) ||
-      prospect.email.toLowerCase().includes(searchLower) ||
-      (prospect.company && prospect.company.toLowerCase().includes(searchLower))
-    )
-  })
+  }, [])
 
   const updateProspectStatus = async (prospectId: string, newStatus: ProspectStatus) => {
     try {
@@ -126,10 +113,61 @@ export default function ProspectsPage() {
     }
   }
 
+  const updateProspectNotes = async (prospectId: string, notes: string) => {
+    try {
+      const response = await fetch(`/api/prospects/${prospectId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes }),
+      })
+
+      if (response.ok) {
+        setProspects(prev => 
+          prev.map(prospect => 
+            prospect.id === prospectId 
+              ? { ...prospect, notes }
+              : prospect
+          )
+        )
+        setShowEditModal(false)
+        setSelectedProspect(null)
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des notes:', error)
+    }
+  }
+
+  const filteredProspects = prospects.filter(prospect => {
+    const searchLower = searchTerm.toLowerCase()
+    const matchesSearch = (
+      prospect.firstName.toLowerCase().includes(searchLower) ||
+      prospect.lastName.toLowerCase().includes(searchLower) ||
+      prospect.email.toLowerCase().includes(searchLower) ||
+      (prospect.company && prospect.company.toLowerCase().includes(searchLower))
+    )
+    
+    const matchesStatus = !statusFilter || prospect.status === statusFilter
+    
+    return matchesSearch && matchesStatus
+  })
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">{error}</div>
+        <Button onClick={fetchProspects} variant="outline">
+          Réessayer
+        </Button>
       </div>
     )
   }
@@ -139,13 +177,47 @@ export default function ProspectsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Prospects</h1>
+          <h1 className="text-3xl font-bold text-gray-900">CRM Prospects</h1>
           <p className="text-gray-600">Gérez vos prospects et leads</p>
         </div>
         <Button onClick={fetchProspects} variant="outline">
           <RefreshCw className="w-4 h-4 mr-2" />
           Actualiser
         </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-blue-600">{prospects.length}</div>
+            <div className="text-sm text-gray-600">Total Prospects</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-yellow-600">
+              {prospects.filter(p => p.status === 'NEW').length}
+            </div>
+            <div className="text-sm text-gray-600">Nouveaux</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-green-600">
+              {prospects.filter(p => p.status === 'QUALIFIED').length}
+            </div>
+            <div className="text-sm text-gray-600">Qualifiés</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-purple-600">
+              {prospects.filter(p => p.status === 'CONVERTED').length}
+            </div>
+            <div className="text-sm text-gray-600">Convertis</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filtres */}
@@ -161,22 +233,32 @@ export default function ProspectsPage() {
                 className="pl-10"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrer par statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Tous les statuts</SelectItem>
-                <SelectItem value="NEW">Nouveau</SelectItem>
-                <SelectItem value="CONTACTED">Contacté</SelectItem>
-                <SelectItem value="QUALIFIED">Qualifié</SelectItem>
-                <SelectItem value="CONVERTED">Converti</SelectItem>
-                <SelectItem value="LOST">Perdu</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Button
+                variant={statusFilter === '' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('')}
+                size="sm"
+              >
+                Tous
+              </Button>
+              <Button
+                variant={statusFilter === 'NEW' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('NEW')}
+                size="sm"
+              >
+                Nouveaux
+              </Button>
+              <Button
+                variant={statusFilter === 'QUALIFIED' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('QUALIFIED')}
+                size="sm"
+              >
+                Qualifiés
+              </Button>
+            </div>
             <div className="text-sm text-gray-500 flex items-center">
               <Filter className="w-4 h-4 mr-2" />
-              {pagination.total} prospect{pagination.total > 1 ? 's' : ''} au total
+              {filteredProspects.length} prospect{filteredProspects.length > 1 ? 's' : ''} trouvé{filteredProspects.length > 1 ? 's' : ''}
             </div>
           </div>
         </CardContent>
@@ -190,7 +272,7 @@ export default function ProspectsPage() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-900 to-blue-500 rounded-full flex items-center justify-center">
                       <Users className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -230,6 +312,15 @@ export default function ProspectsPage() {
                     </div>
                   )}
 
+                  {prospect.notes && (
+                    <div className="mb-3">
+                      <div className="text-sm text-gray-600 mb-1">Notes</div>
+                      <p className="text-gray-700 text-sm bg-blue-50 p-3 rounded">
+                        {prospect.notes}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <div className="flex items-center">
@@ -241,25 +332,32 @@ export default function ProspectsPage() {
                       </Badge>
                     </div>
 
-                                         <div className="flex items-center space-x-2">
-                       <Badge className={statusColors[prospect.status]}>
-                         {statusLabels[prospect.status]}
-                       </Badge>
-                       <Select
-                         value={prospect.status}
-                         onValueChange={(value: ProspectStatus) => updateProspectStatus(prospect.id, value)}
-                       >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="NEW">Nouveau</SelectItem>
-                          <SelectItem value="CONTACTED">Contacté</SelectItem>
-                          <SelectItem value="QUALIFIED">Qualifié</SelectItem>
-                          <SelectItem value="CONVERTED">Converti</SelectItem>
-                          <SelectItem value="LOST">Perdu</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={statusColors[prospect.status]}>
+                        {statusLabels[prospect.status]}
+                      </Badge>
+                      <div className="flex space-x-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedProspect(prospect)
+                            setShowEditModal(true)
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const nextStatus = getNextStatus(prospect.status)
+                            updateProspectStatus(prospect.id, nextStatus)
+                          }}
+                        >
+                          {getNextStatusLabel(prospect.status)}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -284,28 +382,70 @@ export default function ProspectsPage() {
         </Card>
       )}
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <div className="flex justify-center space-x-2">
-          <Button
-            variant="outline"
-            disabled={pagination.page === 1}
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-          >
-            Précédent
-          </Button>
-          <span className="flex items-center px-4">
-            Page {pagination.page} sur {pagination.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            disabled={pagination.page === pagination.totalPages}
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-          >
-            Suivant
-          </Button>
+      {/* Modal d'édition */}
+      {showEditModal && selectedProspect && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-2xl mx-4">
+            <CardHeader>
+              <CardTitle>Modifier {selectedProspect.firstName} {selectedProspect.lastName}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Notes</label>
+                  <Textarea
+                    value={selectedProspect.notes || ''}
+                    onChange={(e) => setSelectedProspect({
+                      ...selectedProspect,
+                      notes: e.target.value
+                    })}
+                    placeholder="Ajoutez des notes sur ce prospect..."
+                    rows={4}
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowEditModal(false)
+                      setSelectedProspect(null)
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    onClick={() => updateProspectNotes(selectedProspect.id, selectedProspect.notes || '')}
+                  >
+                    Sauvegarder
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
   )
+}
+
+function getNextStatus(currentStatus: ProspectStatus): ProspectStatus {
+  const statusFlow: Record<ProspectStatus, ProspectStatus> = {
+    NEW: 'CONTACTED',
+    CONTACTED: 'QUALIFIED',
+    QUALIFIED: 'CONVERTED',
+    CONVERTED: 'CONVERTED',
+    LOST: 'NEW'
+  }
+  return statusFlow[currentStatus]
+}
+
+function getNextStatusLabel(currentStatus: ProspectStatus): string {
+  const labels: Record<ProspectStatus, string> = {
+    NEW: 'Contacter',
+    CONTACTED: 'Qualifier',
+    QUALIFIED: 'Convertir',
+    CONVERTED: '✓',
+    LOST: 'Relancer'
+  }
+  return labels[currentStatus]
 } 

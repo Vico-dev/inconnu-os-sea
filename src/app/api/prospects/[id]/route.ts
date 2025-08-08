@@ -10,7 +10,7 @@ export async function PATCH(
   try {
     const { id } = params
     const body = await request.json()
-    const { status, notes } = body
+    const { status, notes, score, budget } = body
 
     // Validation du statut
     const validStatuses = ['NEW', 'CONTACTED', 'QUALIFIED', 'CONVERTED', 'LOST']
@@ -21,12 +21,22 @@ export async function PATCH(
       )
     }
 
+    // Validation du score
+    if (score !== undefined && (score < 1 || score > 10)) {
+      return NextResponse.json(
+        { error: 'Score doit être entre 1 et 10' },
+        { status: 400 }
+      )
+    }
+
     // Mettre à jour le prospect
     const updatedProspect = await prisma.prospect.update({
       where: { id },
       data: {
         ...(status && { status }),
         ...(notes !== undefined && { notes }),
+        ...(score !== undefined && { score }),
+        ...(budget !== undefined && { budget }),
         updatedAt: new Date()
       }
     })
