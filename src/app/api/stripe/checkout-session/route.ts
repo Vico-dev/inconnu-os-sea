@@ -33,15 +33,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Price ID manquant pour ${plan}` }, { status: 500 })
     }
 
-    const origin = request.nextUrl.origin
+    // Utiliser le domaine Railway en production, sinon l'origin de la requête
+    const baseUrl = process.env.RAILWAY_STATIC_URL || request.nextUrl.origin
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [
         { price: priceId, quantity: 1 }
       ],
-      success_url: `${origin}/client?checkout=success`,
-      cancel_url: `${origin}/client/subscribe?checkout=cancelled`,
+      success_url: `${baseUrl}/client?checkout=success`,
+      cancel_url: `${baseUrl}/client/subscribe?checkout=cancelled`,
       customer_email: session.user.email!,
       client_reference_id: clientAccountId,
       metadata: { clientAccountId, plan },
