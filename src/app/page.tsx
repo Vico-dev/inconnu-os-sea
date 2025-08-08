@@ -479,9 +479,9 @@ export default function HomePage() {
               © 2025 Agence Inconnu. Tous droits réservés.
             </p>
             <div className="flex space-x-4 text-sm text-gray-400">
-              <a href="#" className="hover:text-white transition-colors">CGV</a>
-              <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
-              <a href="#" className="hover:text-white transition-colors">Politique de confidentialité</a>
+              <Link href="/cgv" className="hover:text-white transition-colors">CGV</Link>
+              <Link href="/mentions-legales" className="hover:text-white transition-colors">Mentions légales</Link>
+              <Link href="/mentions-legales" className="hover:text-white transition-colors">Politique de confidentialité</Link>
             </div>
           </div>
         </div>
