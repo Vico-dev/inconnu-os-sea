@@ -25,7 +25,8 @@
   --radius: 0.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
+/* Mode sombre désactivé pour forcer le mode clair */
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
@@ -47,7 +48,7 @@
     --input: #404040;
     --ring: #3b82f6;
   }
-}
+} */
 
 body {
   background: var(--background);
