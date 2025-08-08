@@ -105,7 +105,6 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
       icon: Users,
       current: pathname === "/admin/prospects"
     }
-    }
   ]
 
   return (
