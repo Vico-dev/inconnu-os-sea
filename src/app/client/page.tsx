@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, Users, DollarSign, FileText, Calendar, MessageSquare, CreditCard, Settings, Zap, CheckCircle } from "lucide-react"
+import { ClientLayout } from "@/components/client/ClientLayout"
 
 interface Ticket {
   id: string
@@ -89,21 +90,8 @@ export default function ClientPage() {
   return (
     <ProtectedRoute allowedRoles={["CLIENT"]}>
       <OnboardingCheck>
-        <div className="min-h-screen bg-gray-50">
-          {/* Header */}
-          <header className="bg-white shadow-sm">
-            <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">AI</span>
-                </div>
-                <span className="text-xl font-bold text-gray-900">Espace Client</span>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleLogout}>Déconnexion</Button>
-            </div>
-          </header>
-
-          <div className="container mx-auto px-4 py-8">
+        <ClientLayout>
+          <div className="p-6">
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card>
@@ -499,7 +487,7 @@ export default function ClientPage() {
               </TabsContent>
             </Tabs>
           </div>
-        </div>
+        </ClientLayout>
       </OnboardingCheck>
     </ProtectedRoute>
   )
