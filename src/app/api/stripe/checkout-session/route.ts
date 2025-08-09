@@ -33,8 +33,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Price ID manquant pour ${plan}` }, { status: 500 })
     }
 
-    // Utiliser le domaine Railway en production, sinon l'origin de la requête
-    const baseUrl = process.env.RAILWAY_STATIC_URL || request.nextUrl.origin
+    // Base URL fiable pour Stripe
+    const envUrl = process.env.RAILWAY_STATIC_URL || process.env.RAILWAY_PUBLIC_DOMAIN
+    let baseUrl = envUrl && envUrl.length > 0 ? envUrl : request.nextUrl.origin
+    if (!baseUrl.startsWith('http')) {
+      baseUrl = `https://${baseUrl}`
+    }
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
