@@ -54,10 +54,10 @@ export default function HomePage() {
             ✔ Certifié Google Partner
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-900 to-blue-500 bg-clip-text text-transparent mb-6">
-            Transformez vos campagnes Google Ads en machine à convertir
+            Freelance SEA & Consultant Google Ads — baissez votre CPA de 20–40% en 60 jours
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Expert freelance certifié Google Partner. Optimisez vos campagnes publicitaires et maximisez votre ROI avec un accompagnement personnalisé.
+            Agence SEA et consultant Google Ads pour e‑commerce et B2B. Optimisation data‑driven, sans engagement, paiement Stripe sécurisé.
           </p>
           
           {/* Stats */}
@@ -77,16 +77,38 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
+            <Link href="/client/subscribe?plan=MEDIUM_BUDGET">
               <Button size="lg" className="text-lg px-8 py-3 bg-gradient-to-r from-blue-900 to-blue-500 hover:from-blue-800 hover:to-blue-600 text-white border-0">
-                Réserver un audit gratuit <ArrowRight className="ml-2 w-4 h-4" />
+                Démarrer avec le forfait Chasseur <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
-            <Link href="/pricing">
+            <Link href="/#contact">
               <Button variant="outline" size="lg" className="text-lg px-8 py-3 border-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white">
-                Voir nos tarifs
+                Parler à un expert
               </Button>
             </Link>
+          </div>
+          <p className="text-sm text-gray-500 mt-4">Sans engagement • Paiement Stripe sécurisé • Démarrage en 48h</p>
+        </div>
+      </section>
+
+      {/* Positionnement SEA */}
+      <section className="py-14 bg-gray-50">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-6">Freelance SEA, Consultant Google Ads & Agence SEA — même exigence de performance</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="p-6 bg-white rounded-lg border border-gray-200">
+              <h3 className="font-semibold text-gray-900 mb-2">Audit & Refonte</h3>
+              <p className="text-gray-600 text-sm">Structure campagnes, mots‑clés, enchères et annonces optimisés pour capter le bon trafic et réduire le CPA.</p>
+            </div>
+            <div className="p-6 bg-white rounded-lg border border-gray-200">
+              <h3 className="font-semibold text-gray-900 mb-2">Optimisation continue</h3>
+              <p className="text-gray-600 text-sm">Tests A/B annonces et pages, ajustements d’enchères, audiences, requêtes de recherche — focus ROAS.</p>
+            </div>
+            <div className="p-6 bg-white rounded-lg border border-gray-200">
+              <h3 className="font-semibold text-gray-900 mb-2">Reporting clair</h3>
+              <p className="text-gray-600 text-sm">Tableaux de bord lisibles, actions priorisées et rendez‑vous réguliers pour scaler ce qui marche.</p>
+            </div>
           </div>
         </div>
       </section>
