@@ -54,10 +54,10 @@ export default function HomePage() {
             ✔ Certifié Google Partner
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-900 to-blue-500 bg-clip-text text-transparent mb-6">
-            Freelance SEA & Consultant Google Ads — baissez votre CPA de 20–40% en 60 jours
+            Freelance SEA & Consultant Google Ads
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Agence SEA et consultant Google Ads pour e‑commerce et B2B. Optimisation data‑driven, sans engagement, paiement Stripe sécurisé.
+            Freelance SEA & consultant Google Ads pour e‑commerce et B2B. Optimisation data‑driven, sans engagement, démarrage en 48h.
           </p>
           
           {/* Stats */}
@@ -77,14 +77,14 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/client/subscribe?plan=MEDIUM_BUDGET">
+            <Link href="/#contact">
               <Button size="lg" className="text-lg px-8 py-3 bg-gradient-to-r from-blue-900 to-blue-500 hover:from-blue-800 hover:to-blue-600 text-white border-0">
-                Démarrer avec le forfait Chasseur <ArrowRight className="ml-2 w-4 h-4" />
+                Parlons de votre présence en ligne <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
-            <Link href="/#contact">
+            <Link href="/client/subscribe?plan=MEDIUM_BUDGET">
               <Button variant="outline" size="lg" className="text-lg px-8 py-3 border-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white">
-                Parler à un expert
+                S’abonner (sans engagement)
               </Button>
             </Link>
           </div>
