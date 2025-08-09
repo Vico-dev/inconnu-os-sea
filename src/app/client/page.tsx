@@ -32,6 +32,24 @@ export default function ClientPage() {
   const { user, logout } = useAuth()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [isLoadingTickets, setIsLoadingTickets] = useState(true)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{ status?: string; plan?: string } | null>(null)
+
+  // Charger statut abonnement
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      if (!user?.id) return
+      try {
+        const resp = await fetch(`/api/subscription/status?userId=${user.id}`)
+        if (resp.ok) {
+          const data = await resp.json()
+          setSubscriptionStatus({ status: data.subscription?.status, plan: data.subscription?.plan })
+        }
+      } catch (e) {
+        console.error('Erreur statut abonnement:', e)
+      }
+    }
+    fetchSubscription()
+  }, [user?.id])
 
   // Charger les tickets
   useEffect(() => {
@@ -62,8 +80,21 @@ export default function ClientPage() {
     router.push("/client/change-plan")
   }
 
-  const handleManagePayment = () => {
-    router.push("/subscription")
+  const handleManagePayment = async () => {
+    try {
+      const resp = await fetch('/api/stripe/billing-portal', { method: 'POST' })
+      if (!resp.ok) {
+        return router.push('/subscription')
+      }
+      const data = await resp.json()
+      if (data.url) {
+        window.location.href = data.url
+        return
+      }
+      router.push('/subscription')
+    } catch {
+      router.push('/subscription')
+    }
   }
 
   const handleCancelSubscription = () => {
@@ -92,6 +123,17 @@ export default function ClientPage() {
       <OnboardingCheck>
         <ClientLayout>
           <div className="p-6">
+            {subscriptionStatus && subscriptionStatus.status !== 'ACTIVE' && (
+              <div className="mb-6 p-4 rounded-lg border border-red-200 bg-red-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-red-800">Problème de paiement</p>
+                    <p className="text-sm text-red-700">Votre abonnement n'est pas actif ({subscriptionStatus.status || 'inconnu'}). Veuillez mettre à jour votre paiement pour continuer à utiliser tous les services.</p>
+                  </div>
+                  <Button onClick={handleManagePayment} className="bg-red-600 hover:bg-red-700 text-white">Mettre à jour le paiement</Button>
+                </div>
+              </div>
+            )}
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card>
