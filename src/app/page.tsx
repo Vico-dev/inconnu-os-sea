@@ -142,68 +142,35 @@ export default function HomePage() {
 
       {/* Le problème */}
       <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Le problème
-          </h2>
-          <p className="text-xl text-gray-600">
-            Les entreprises qui nous contactent partagent souvent les mêmes défis. Des difficultés récurrentes que nous connaissons parfaitement.
-          </p>
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">Le problème</h2>
+          <p className="text-gray-600 max-w-3xl mx-auto">Les mêmes freins reviennent souvent. Voici ceux que nous éliminons en priorité.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-3">Budget gaspillé</h3>
-            <p className="text-gray-600">
-              Vous investissez déjà sur Google sans voir de retour concret. L&apos;argent part sans résultats visibles.
-            </p>
-          </div>
-
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-3">Suivi flou</h3>
-            <p className="text-gray-600">
-              Des rapports compliqués, vous n&apos;avez aucune idée de ce qui fonctionne vraiment dans vos campagnes.
-            </p>
-          </div>
-
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-3">Manque de temps</h3>
-            <p className="text-gray-600">
-              Vous n&apos;avez ni le temps, ni l&apos;envie de gérer tout ça vous-même. C&apos;est complexe et chronophage.
-            </p>
-          </div>
-
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-3">Manque de compétences</h3>
-            <p className="text-gray-600">
-              Ce n&apos;est pas votre métier, vous ne savez pas comment optimiser vos campagnes efficacement.
-            </p>
-          </div>
-
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-3">Mauvaises expériences</h3>
-            <p className="text-gray-600">
-              Vous avez été déçu par des promesses non tenues dans le passé. Vous voulez des résultats concrets.
-            </p>
-          </div>
-
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-3">Site inefficace</h3>
-            <p className="text-gray-600">
-              Votre site est joli mais n&apos;apporte pas de clients. Il semble invisible sur Google.
-            </p>
-          </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {[
+            { title: "Budget gaspillé", desc: "Dépenses qui ne génèrent pas de ventes. CPC élevés, mots‑clés non qualifiés.", icon: Zap },
+            { title: "Suivi flou", desc: "Rapports illisibles, pas de vision claire sur ce qui fonctionne vraiment.", icon: TrendingUp },
+            { title: "Manque de temps", desc: "Vous ne pouvez pas tout gérer. Google Ads demande une itération quotidienne.", icon: Users },
+            { title: "Manque de compétences", desc: "Optimiser structure, enchères, requêtes et annonces n’est pas votre cœur de métier.", icon: CheckCircle },
+            { title: "Mauvaises expériences", desc: "Promesses non tenues, résultats décevants. Vous voulez du concret et mesurable.", icon: CheckCircle },
+            { title: "Site inefficace", desc: "Trafic qui n’achète pas. Pages et messages non alignés avec l’intention de recherche.", icon: CheckCircle }
+          ].map((item, i) => (
+            <div key={i} className="group p-6 bg-white rounded-xl border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center mb-4">
+                <item.icon className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
         </div>
 
-        <div className="text-center mt-12">
-          <Link href="/register">
-            <Button size="lg" className="text-lg px-8 py-3">
-              Obtenir mon audit gratuit
-            </Button>
+        <div className="text-center mt-10">
+          <Link href="#contact">
+            <Button variant="outline" className="px-6">Parler à un consultant</Button>
           </Link>
-          <p className="text-sm text-gray-500 mt-2">
-            Sans engagement. Analyse personnalisée de votre situation.
-          </p>
+          <p className="text-xs text-gray-500 mt-2">Sans engagement • Analyse personnalisée</p>
         </div>
       </section>
 
