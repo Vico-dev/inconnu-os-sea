@@ -178,96 +178,83 @@ export default function HomePage() {
       <section id="offres" className="bg-gray-50 py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Nos Offres
-            </h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Nos Forfaits</h2>
+            <p className="text-gray-600">Choisissez le forfait qui correspond à votre budget média.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <h3 className="text-xl font-semibold mb-4">Accompagnement Mensuel</h3>
-              <p className="text-gray-600 mb-6">
-                Un call mensuel pour optimiser vos campagnes et ajuster votre stratégie selon vos résultats.
-              </p>
+            {/* Petit Chasseur */}
+            <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-blue-50 text-blue-700 rounded-lg flex items-center justify-center mr-3">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-semibold">Petit Chasseur</h3>
+              </div>
+              <p className="text-gray-600 mb-4">Pour budget média &lt; 1000€/mois</p>
+              <div className="mb-6">
+                <span className="text-3xl font-bold text-gray-900">200€</span>
+                <span className="text-gray-600">/mois HT</span>
+              </div>
               <ul className="space-y-3 mb-6">
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Audit mensuel de vos performances
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Optimisations techniques
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Recommandations stratégiques
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Reporting détaillé
-                </li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Audit mensuel</li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Optimisations techniques</li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Recommandations stratégiques</li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Reporting mensuel</li>
               </ul>
-              <Link href="/register">
-                <Button className="w-full">Commencer maintenant</Button>
+              <Link href="/client/subscribe?plan=SMALL_BUDGET">
+                <Button className="w-full">Souscrire</Button>
               </Link>
             </div>
 
+            {/* Chasseur */}
             <div className="bg-white p-8 rounded-lg shadow-sm border-2 border-blue-500 relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <Badge className="bg-blue-500 text-white">Recommandé</Badge>
               </div>
-              <h3 className="text-xl font-semibold mb-4">Accompagnement Quotidien</h3>
-              <p className="text-gray-600 mb-6">
-                Un suivi quotidien de vos campagnes avec optimisations en temps réel et support prioritaire.
-              </p>
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-blue-50 text-blue-700 rounded-lg flex items-center justify-center mr-3">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-semibold">Chasseur</h3>
+              </div>
+              <p className="text-gray-600 mb-4">Budget média 1000€–5000€/mois</p>
+              <div className="mb-6">
+                <span className="text-3xl font-bold text-gray-900">400€</span>
+                <span className="text-gray-600">/mois HT</span>
+              </div>
               <ul className="space-y-3 mb-6">
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Optimisations quotidiennes
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Support prioritaire
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Reporting en temps réel
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Stratégie personnalisée
-                </li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Optimisations quotidiennes</li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Support prioritaire</li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Reporting détaillé</li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Tests A/B & stratégie</li>
               </ul>
-              <Link href="/register">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">Commencer maintenant</Button>
+              <Link href="/client/subscribe?plan=MEDIUM_BUDGET">
+                <Button className="w-full bg-blue-600 hover:bg-blue-700">Souscrire</Button>
               </Link>
             </div>
 
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <h3 className="text-xl font-semibold mb-4">Formation Complète</h3>
-              <p className="text-gray-600 mb-6">
-                Apprenez à gérer vos campagnes Google Ads de A à Z avec notre formation personnalisée.
-              </p>
+            {/* Grand Chasseur */}
+            <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-blue-50 text-blue-700 rounded-lg flex items-center justify-center mr-3">
+                  <Users className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-semibold">Grand Chasseur</h3>
+              </div>
+              <p className="text-gray-600 mb-4">Budget média 5000€–10000€/mois</p>
+              <div className="mb-6">
+                <span className="text-3xl font-bold text-gray-900">600€</span>
+                <span className="text-gray-600">/mois HT</span>
+              </div>
               <ul className="space-y-3 mb-6">
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Formation sur mesure
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Support post-formation
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Ressources exclusives
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Certification incluse
-                </li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Account manager dédié</li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Support 24/7</li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Stratégie personnalisée</li>
+                <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Analytics avancées</li>
               </ul>
-              <Link href="/register">
-                <Button className="w-full">Commencer maintenant</Button>
+              <Link href="/client/subscribe?plan=LARGE_BUDGET">
+                <Button className="w-full">Souscrire</Button>
               </Link>
             </div>
           </div>
