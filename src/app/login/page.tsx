@@ -161,27 +161,7 @@ function LoginContent() {
           </CardContent>
         </Card>
 
-        {/* Comptes de test */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h3 className="text-lg font-semibold mb-4 text-center">Comptes de test</h3>
-          <div className="space-y-3 text-sm">
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Client</div>
-              <div className="text-gray-600">Email: client@test.com</div>
-              <div className="text-gray-600">Mot de passe: password123</div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Account Manager</div>
-              <div className="text-gray-600">Email: am@test.com</div>
-              <div className="text-gray-600">Mot de passe: password123</div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Admin</div>
-              <div className="text-gray-600">Email: admin@test.com</div>
-              <div className="text-gray-600">Mot de passe: password123</div>
-            </div>
-          </div>
-        </div>
+
 
         {/* Avantages */}
         <div className="bg-blue-50 p-6 rounded-lg">
