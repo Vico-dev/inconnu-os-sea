@@ -16,6 +16,11 @@ export class EmailService {
     plan: string
   ) {
     try {
+      if (!resend) {
+        console.log('Resend non configuré, email de bienvenue ignoré')
+        return null
+      }
+
       const emailHtml = render(
         WelcomeEmail({
           firstName,
@@ -51,6 +56,11 @@ export class EmailService {
     invoiceUrl?: string
   ) {
     try {
+      if (!resend) {
+        console.log('Resend non configuré, email de confirmation de paiement ignoré')
+        return null
+      }
+
       const emailHtml = render(
         PaymentConfirmationEmail({
           firstName,
@@ -88,6 +98,11 @@ export class EmailService {
     isNewTicket: boolean = false
   ) {
     try {
+      if (!resend) {
+        console.log('Resend non configuré, email de notification de ticket ignoré')
+        return null
+      }
+
       const emailSubject = isNewTicket 
         ? `Nouveau ticket créé - #${ticketId}`
         : `Réponse à votre ticket - #${ticketId}`
@@ -141,6 +156,11 @@ export class EmailService {
     dueDate: string
   ) {
     try {
+      if (!resend) {
+        console.log('Resend non configuré, email de rappel de facturation ignoré')
+        return null
+      }
+
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1f2937;">Agence Inconnu</h2>
