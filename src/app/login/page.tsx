@@ -25,8 +25,18 @@ function LoginContent() {
 
   useEffect(() => {
     const messageParam = searchParams.get("message")
+    const errorParam = searchParams.get("error")
+    
     if (messageParam) {
       setMessage(messageParam)
+    }
+    
+    if (errorParam) {
+      if (errorParam === "email_not_verified") {
+        setMessage("Veuillez valider votre email avant de vous connecter. Vérifiez votre boîte de réception.")
+      } else {
+        setMessage("Une erreur s'est produite. Veuillez réessayer.")
+      }
     }
   }, [searchParams])
 
@@ -50,8 +60,12 @@ function LoginContent() {
           redirectBasedOnRole()
         }
       }
-    } catch (error) {
-      setMessage("Email ou mot de passe incorrect")
+    } catch (error: any) {
+      if (error?.message?.includes("valider votre email")) {
+        setMessage("Veuillez valider votre email avant de vous connecter. Vérifiez votre boîte de réception.")
+      } else {
+        setMessage("Email ou mot de passe incorrect")
+      }
     } finally {
       setIsLoading(false)
     }

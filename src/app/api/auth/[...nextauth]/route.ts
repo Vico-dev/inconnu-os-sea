@@ -30,6 +30,11 @@ export const authOptions: AuthOptions = {
             return null
           }
 
+          // Vérifier que l'email est validé (sauf pour les admins)
+          if (user.role !== 'ADMIN' && !user.emailVerified) {
+            throw new Error('Veuillez valider votre email avant de vous connecter. Vérifiez votre boîte de réception.')
+          }
+
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
