@@ -28,7 +28,11 @@ function LoginContent() {
     const errorParam = searchParams.get("error")
     
     if (messageParam) {
-      setMessage(messageParam)
+      if (messageParam === "password_reset_success") {
+        setMessage("Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.")
+      } else {
+        setMessage(messageParam)
+      }
     }
     
     if (errorParam) {
@@ -156,6 +160,14 @@ function LoginContent() {
                       <Eye className="h-4 w-4 text-gray-400" />
                     )}
                   </button>
+                </div>
+                <div className="mt-2 text-right">
+                  <Link 
+                    href="/forgot-password" 
+                    className="text-sm text-blue-600 hover:text-blue-500"
+                  >
+                    Mot de passe oublié ?
+                  </Link>
                 </div>
               </div>
 

@@ -96,6 +96,19 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Ajouter automatiquement aux prospects
+    await prisma.prospect.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        company: company || `${firstName} ${lastName}`,
+        source: "WEBSITE",
+        status: "NEW",
+        notes: "Inscription via formulaire - Email non validé"
+      }
+    })
+
     console.log("Utilisateur créé avec succès:", { id: user.id, email: user.email })
 
     // Envoyer un email de validation

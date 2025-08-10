@@ -6,6 +6,7 @@ import EmailReminder1 from '@/components/emails/EmailReminder1'
 import EmailReminder2 from '@/components/emails/EmailReminder2'
 import EmailReminder3 from '@/components/emails/EmailReminder3'
 import EmailReminder4 from '@/components/emails/EmailReminder4'
+import PasswordResetEmail from '@/components/emails/PasswordResetEmail'
 import { render } from '@react-email/components'
 
 export class EmailService {
@@ -401,6 +402,42 @@ export class EmailService {
       return result
     } catch (error) {
       console.error('Erreur envoi email de relance 4:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Envoyer un email de réinitialisation de mot de passe
+   */
+  static async sendPasswordReset(
+    to: string,
+    firstName: string,
+    resetUrl: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de réinitialisation ignoré')
+        return null
+      }
+
+      const emailHtml = await render(
+        PasswordResetEmail({
+          firstName,
+          resetUrl
+        })
+      )
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `${firstName}, réinitialisez votre mot de passe - Agence Inconnu`,
+        html: emailHtml,
+      })
+
+      console.log('Email de réinitialisation envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de réinitialisation:', error)
       throw error
     }
   }
