@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { EmailService } from "@/lib/email-service"
 
 export async function POST(request: NextRequest) {
   try {
@@ -131,6 +132,25 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Onboarding terminé pour l&apos;utilisateur:", userId)
+
+    // Envoyer l'email de bienvenue
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      })
+
+      if (user) {
+        await EmailService.sendWelcomeEmail(
+          user.email,
+          user.firstName,
+          companyName,
+          "Essai gratuit"
+        )
+      }
+    } catch (error) {
+      console.error('Erreur envoi email de bienvenue:', error)
+      // Ne pas faire échouer l'onboarding si l'email échoue
+    }
 
     return NextResponse.json({
       message: "Onboarding terminé avec succès",

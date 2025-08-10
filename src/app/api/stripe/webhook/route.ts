@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { prisma } from "@/lib/db"
+import { EmailService } from "@/lib/email-service"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-06-20"
@@ -100,7 +101,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
   }
 
-  await prisma.subscription.upsert({
+  const subscription = await prisma.subscription.upsert({
     where: { clientAccountId },
     create: {
       clientAccountId,
@@ -124,6 +125,29 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       currency: (sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()
     }
   })
+
+  // Envoyer l'email de confirmation de paiement
+  try {
+    const clientAccount = await prisma.clientAccount.findUnique({
+      where: { id: clientAccountId },
+      include: { user: true, company: true }
+    })
+
+    if (clientAccount && clientAccount.user && clientAccount.company) {
+      const amount = `${(sub.items.data[0]?.price?.unit_amount ?? 0) / 100} ${(sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()}`
+      
+      await EmailService.sendPaymentConfirmation(
+        clientAccount.user.email,
+        clientAccount.user.firstName,
+        clientAccount.company.name,
+        plan,
+        amount
+      )
+    }
+  } catch (error) {
+    console.error('Erreur envoi email de confirmation de paiement:', error)
+    // Ne pas faire échouer le webhook si l'email échoue
+  }
 }
 
 async function upsertSubscriptionFromStripe(sub: Stripe.Subscription, status: string) {
