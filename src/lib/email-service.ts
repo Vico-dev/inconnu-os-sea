@@ -2,6 +2,10 @@ import resend from './resend'
 import WelcomeEmail from '@/components/emails/WelcomeEmail'
 import PaymentConfirmationEmail from '@/components/emails/PaymentConfirmationEmail'
 import EmailVerification from '@/components/emails/EmailVerification'
+import EmailReminder1 from '@/components/emails/EmailReminder1'
+import EmailReminder2 from '@/components/emails/EmailReminder2'
+import EmailReminder3 from '@/components/emails/EmailReminder3'
+import EmailReminder4 from '@/components/emails/EmailReminder4'
 import { render } from '@react-email/components'
 
 export class EmailService {
@@ -233,6 +237,170 @@ export class EmailService {
       return result
     } catch (error) {
       console.error('Erreur envoi email de rappel de facturation:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Envoyer le premier email de relance (jour 1)
+   */
+  static async sendReminder1(
+    to: string,
+    firstName: string,
+    companyName: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de relance 1 ignoré')
+        return null
+      }
+
+      const loginUrl = `${process.env.NEXTAUTH_URL}/login`
+      const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
+
+      const emailHtml = await render(
+        EmailReminder1({
+          firstName,
+          companyName,
+          loginUrl,
+          unsubscribeUrl
+        })
+      )
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `${firstName}, votre compte Agence Inconnu vous attend ! 🚀`,
+        html: emailHtml,
+      })
+
+      console.log('Email de relance 1 envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de relance 1:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Envoyer le deuxième email de relance (jour 3)
+   */
+  static async sendReminder2(
+    to: string,
+    firstName: string,
+    companyName: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de relance 2 ignoré')
+        return null
+      }
+
+      const loginUrl = `${process.env.NEXTAUTH_URL}/login`
+      const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
+
+      const emailHtml = await render(
+        EmailReminder2({
+          firstName,
+          companyName,
+          loginUrl,
+          unsubscribeUrl
+        })
+      )
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `${firstName}, découvrez ce que nos clients disent de nous ! 💬`,
+        html: emailHtml,
+      })
+
+      console.log('Email de relance 2 envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de relance 2:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Envoyer le troisième email de relance (jour 7)
+   */
+  static async sendReminder3(
+    to: string,
+    firstName: string,
+    companyName: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de relance 3 ignoré')
+        return null
+      }
+
+      const loginUrl = `${process.env.NEXTAUTH_URL}/login`
+      const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
+
+      const emailHtml = await render(
+        EmailReminder3({
+          firstName,
+          companyName,
+          loginUrl,
+          unsubscribeUrl
+        })
+      )
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `${firstName}, ne manquez pas ces opportunités ! ⏰`,
+        html: emailHtml,
+      })
+
+      console.log('Email de relance 3 envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de relance 3:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Envoyer le quatrième email de relance (jour 14)
+   */
+  static async sendReminder4(
+    to: string,
+    firstName: string,
+    companyName: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de relance 4 ignoré')
+        return null
+      }
+
+      const loginUrl = `${process.env.NEXTAUTH_URL}/login`
+      const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
+
+      const emailHtml = await render(
+        EmailReminder4({
+          firstName,
+          companyName,
+          loginUrl,
+          unsubscribeUrl
+        })
+      )
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `${firstName}, votre dernière chance de transformer vos campagnes Google Ads`,
+        html: emailHtml,
+      })
+
+      console.log('Email de relance 4 envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de relance 4:', error)
       throw error
     }
   }

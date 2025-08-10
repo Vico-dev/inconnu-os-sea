@@ -76,6 +76,7 @@ model ClientAccount {
   invoices    Invoice[]
   tickets     Ticket[]
   googleAdsPermissions GoogleAdsPermission[]
+  emailReminders EmailReminder[]
 
   @@map("client_accounts")
 }
@@ -252,4 +253,21 @@ model Prospect {
   updatedAt   DateTime @updatedAt
 
   @@map("prospects")
+}
+
+// Modèle pour gérer les relances d'emails
+model EmailReminder {
+  id              String   @id @default(cuid())
+  clientAccountId String
+  reminderType    String   // REMINDER_1, REMINDER_2, REMINDER_3, REMINDER_4
+  scheduledAt     DateTime
+  sentAt          DateTime?
+  status          String   @default("PENDING") // PENDING, SENT, CANCELLED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([clientAccountId, reminderType])
+  @@map("email_reminders")
 } 
