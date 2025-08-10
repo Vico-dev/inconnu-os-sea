@@ -21,7 +21,7 @@ export class EmailService {
         return null
       }
 
-      const emailHtml = render(
+      const emailHtml = await render(
         EmailVerification({
           firstName,
           verificationUrl
@@ -58,7 +58,7 @@ export class EmailService {
         return null
       }
 
-      const emailHtml = render(
+      const emailHtml = await render(
         WelcomeEmail({
           firstName,
           companyName,
@@ -98,7 +98,7 @@ export class EmailService {
         return null
       }
 
-      const emailHtml = render(
+      const emailHtml = await render(
         PaymentConfirmationEmail({
           firstName,
           companyName,
