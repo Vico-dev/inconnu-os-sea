@@ -1,10 +1,47 @@
 import resend from './resend'
 import WelcomeEmail from '@/components/emails/WelcomeEmail'
 import PaymentConfirmationEmail from '@/components/emails/PaymentConfirmationEmail'
+import EmailVerification from '@/components/emails/EmailVerification'
 import { render } from '@react-email/components'
 
 export class EmailService {
   private static from = 'Agence Inconnu <noreply@agence-inconnu.fr>'
+
+  /**
+   * Envoyer un email de validation de compte
+   */
+  static async sendEmailVerification(
+    to: string,
+    firstName: string,
+    verificationUrl: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de validation ignoré')
+        return null
+      }
+
+      const emailHtml = render(
+        EmailVerification({
+          firstName,
+          verificationUrl
+        })
+      )
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: 'Validez votre compte - Agence Inconnu',
+        html: emailHtml,
+      })
+
+      console.log('Email de validation envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de validation:', error)
+      throw error
+    }
+  }
 
   /**
    * Envoyer un email de bienvenue

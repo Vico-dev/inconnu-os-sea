@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcryptjs from "bcryptjs"
 import { prisma } from "@/lib/db"
-import { sendEmail, generateWelcomeEmail } from "@/lib/email"
+import { EmailService } from "@/lib/email-service"
+import crypto from "crypto"
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +47,10 @@ export async function POST(request: NextRequest) {
     // Hasher le mot de passe
     const hashedPassword = await bcryptjs.hash(password, 12)
 
+    // Générer un token de validation d'email
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 heures
+
     // Créer l&apos;utilisateur (toujours en tant que client pour l&apos;inscription publique)
     const user = await prisma.user.create({
       data: {
@@ -54,7 +59,10 @@ export async function POST(request: NextRequest) {
         lastName,
         password: hashedPassword,
         role: "CLIENT", // Forcer le rôle client pour l&apos;inscription publique
-        company: company || null
+        company: company || null,
+        emailVerified: false,
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: verificationExpires
       }
     })
 
@@ -90,24 +98,22 @@ export async function POST(request: NextRequest) {
 
     console.log("Utilisateur créé avec succès:", { id: user.id, email: user.email })
 
-    // Envoyer un email de bienvenue
+    // Envoyer un email de validation
     try {
-      const emailData = generateWelcomeEmail(
-        `${user.firstName} ${user.lastName}`,
-        `${process.env.NEXTAUTH_URL}/login`
-      )
+      const verificationUrl = `${process.env.NEXTAUTH_URL}/api/auth/verify-email?token=${verificationToken}`
       
-      await sendEmail({
-        to: user.email,
-        ...emailData
-      })
+      await EmailService.sendEmailVerification(
+        user.email,
+        user.firstName,
+        verificationUrl
+      )
     } catch (emailError) {
-      console.error("Erreur lors de l&apos;envoi de l&apos;email de bienvenue:", emailError)
+      console.error("Erreur lors de l&apos;envoi de l&apos;email de validation:", emailError)
       // Ne pas faire échouer l&apos;inscription si l&apos;email échoue
     }
 
     return NextResponse.json(
-      { message: "Compte client créé avec succès" },
+      { message: "Compte créé avec succès. Veuillez vérifier votre email pour valider votre compte." },
       { status: 201 }
     )
 
