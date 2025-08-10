@@ -113,7 +113,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { message: "Compte créé avec succès. Veuillez vérifier votre email pour valider votre compte." },
+      { 
+        message: "Compte créé avec succès. Veuillez vérifier votre email pour valider votre compte.",
+        email: email,
+        redirectUrl: `/register/confirmation?email=${encodeURIComponent(email)}`
+      },
       { status: 201 }
     )
 

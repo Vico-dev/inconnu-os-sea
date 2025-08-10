@@ -122,7 +122,8 @@ export default function RegisterPage() {
       if (response.ok) {
         setMessage("Compte créé avec succès ! Redirection...")
         setTimeout(() => {
-          window.location.href = "/login?message=Inscription réussie ! Vous pouvez maintenant vous connecter."
+          // Rediriger vers la page de confirmation avec l'email
+          window.location.href = data.redirectUrl || `/register/confirmation?email=${encodeURIComponent(formData.email)}`
         }, 2000)
       } else {
         setMessage(data.message || "Erreur lors de l&apos;inscription")

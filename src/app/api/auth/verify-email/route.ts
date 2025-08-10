@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('token')
 
     if (!token) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/login?error=token_missing`)
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/email-verified?error=token_missing`)
     }
 
     // Trouver l'utilisateur avec ce token
@@ -16,12 +16,12 @@ export async function GET(request: NextRequest) {
     })
 
     if (!user) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/login?error=invalid_token`)
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/email-verified?error=invalid_token`)
     }
 
     // Vérifier si le token n'a pas expiré
     if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/login?error=token_expired`)
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/email-verified?error=token_expired`)
     }
 
     // Valider l'email
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/login?message=email_verified`)
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/email-verified?token=${token}`)
 
   } catch (error) {
     console.error('Erreur lors de la validation email:', error)
