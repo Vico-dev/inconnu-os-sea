@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
 
 function LoginContent() {
@@ -21,6 +21,7 @@ function LoginContent() {
   const [message, setMessage] = useState("")
   const searchParams = useSearchParams()
   const { login, status, redirectBasedOnRole } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     const messageParam = searchParams.get("message")
@@ -40,8 +41,14 @@ function LoginContent() {
     try {
       const result = await login(formData.email, formData.password)
       if (result?.ok) {
-        // Redirection manuelle après connexion réussie
-        redirectBasedOnRole()
+        // S'il y a un plan passé en paramètre, prioriser l'onboarding avec ce plan
+        const plan = searchParams.get("plan")
+        if (plan) {
+          router.push(`/onboarding?plan=${plan}`)
+        } else {
+          // Sinon redirection selon le rôle
+          redirectBasedOnRole()
+        }
       }
     } catch (error) {
       setMessage("Email ou mot de passe incorrect")

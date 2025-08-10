@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, ArrowRight } from 'lucide-react'
+import { Loader2, ArrowRight, CheckSquare } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 export default function CheckoutPage() {
@@ -14,6 +14,7 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(true)
   const [clientAccountId, setClientAccountId] = useState<string | null>(null)
+  const [acceptCgv, setAcceptCgv] = useState(false)
 
   const plan = searchParams.get('plan')
 
@@ -36,8 +37,6 @@ export default function CheckoutPage() {
         if (response.ok) {
           const data = await response.json()
           setClientAccountId(data.clientAccount.id)
-          // Rediriger directement vers le checkout Stripe
-          await redirectToStripeCheckout(data.clientAccount.id)
         } else {
           console.error('Erreur lors de la récupération du compte client')
           router.push('/client/subscribe')
@@ -58,7 +57,15 @@ export default function CheckoutPage() {
       const response = await fetch('/api/stripe/checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, clientAccountId: accountId })
+        body: JSON.stringify({ 
+          plan, 
+          clientAccountId: accountId,
+          cgv: {
+            accepted: true,
+            version: 'v1',
+            acceptedAt: new Date().toISOString()
+          }
+        })
       })
 
       if (!response.ok) {
@@ -96,14 +103,38 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-      <Card className="w-full max-w-md">
-        <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold mb-2">Redirection en cours</h2>
-          <p className="text-gray-600 mb-4">Vous allez être redirigé vers le paiement sécurisé...</p>
-          <Button disabled className="w-full">
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Préparation du paiement
+      <Card className="w-full max-w-lg">
+        <CardContent className="p-8">
+          <h2 className="text-2xl font-semibold mb-3 text-center">Finaliser votre paiement</h2>
+          <p className="text-gray-600 text-center mb-6">Vérifiez le plan choisi puis acceptez les CGV pour accéder au paiement sécurisé Stripe.</p>
+
+          <div className="rounded-lg border border-gray-200 p-4 mb-6 bg-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-500">Plan</div>
+                <div className="font-semibold text-gray-900">{plan}</div>
+              </div>
+            </div>
+          </div>
+
+          <label className="flex items-start gap-3 mb-6 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4"
+              checked={acceptCgv}
+              onChange={(e) => setAcceptCgv(e.target.checked)}
+            />
+            <span className="text-sm text-gray-700">
+              J’ai lu et j’accepte les <a href="/cgv" target="_blank" className="text-blue-700 underline">Conditions Générales de Vente</a>.
+            </span>
+          </label>
+
+          <Button
+            className="w-full"
+            disabled={!clientAccountId || !acceptCgv}
+            onClick={() => clientAccountId && redirectToStripeCheckout(clientAccountId)}
+          >
+            Payer avec Stripe <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </CardContent>
       </Card>

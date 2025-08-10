@@ -20,15 +20,16 @@ export default function SubscribePage() {
   useEffect(() => {
     if (status === 'loading') return
 
-    if (!session) {
-      router.push('/login')
-      return
-    }
-
-    // Récupérer le plan pré-sélectionné depuis l'URL
+    // Récupérer en amont le plan depuis l'URL pour pouvoir le propager en cas de redirection
     const planFromUrl = searchParams.get('plan')
     if (planFromUrl) {
       setPreSelectedPlan(planFromUrl)
+    }
+
+    if (!session) {
+      // Préserver le plan sélectionné à travers la page de connexion
+      router.push(`/login${planFromUrl ? `?plan=${planFromUrl}` : ''}`)
+      return
     }
 
     const fetchClientAccount = async () => {
@@ -36,6 +37,13 @@ export default function SubscribePage() {
         const response = await fetch('/api/client/account')
         if (response.ok) {
           const data = await response.json()
+
+          // Si l'onboarding n'est pas terminé, rediriger vers l'onboarding avant toute souscription
+          if (!data?.clientAccount?.onboardingCompleted) {
+            router.push(`/onboarding${planFromUrl ? `?plan=${planFromUrl}` : ''}`)
+            return
+          }
+
           setClientAccountId(data.clientAccount.id)
         } else {
           console.error('Erreur lors de la récupération du compte client')
@@ -114,6 +122,17 @@ export default function SubscribePage() {
           onPlanSelected={handlePlanSelected}
           preSelectedPlan={preSelectedPlan}
         />
+
+        <div className="text-center mt-6">
+          <a
+            href={process.env.NEXT_PUBLIC_CALENDLY_URL || "/client/request-appointment"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-700 hover:underline"
+          >
+            Pas sûr du plan ? Prendre rendez-vous d’abord
+          </a>
+        </div>
       </div>
     </div>
   )

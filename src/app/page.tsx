@@ -82,7 +82,7 @@ export default function HomePage() {
                 Parlons de votre présence en ligne <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
-            <Link href="/client/subscribe?plan=MEDIUM_BUDGET">
+            <Link href="/onboarding?plan=MEDIUM_BUDGET">
               <Button variant="outline" size="lg" className="text-lg px-8 py-3 border-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white">
                 S’abonner (sans engagement)
               </Button>
@@ -166,7 +166,7 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div className="text-center mt-10">
+            <div className="text-center mt-10">
           <Link href="#contact">
             <Button variant="outline" className="px-6">Parler à un consultant</Button>
           </Link>
@@ -202,9 +202,12 @@ export default function HomePage() {
                 <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Recommandations stratégiques</li>
                 <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Reporting mensuel</li>
               </ul>
-              <Link href="/client/subscribe?plan=SMALL_BUDGET">
+              <Link href="/onboarding?plan=SMALL_BUDGET">
                 <Button className="w-full">Souscrire</Button>
               </Link>
+              <div className="mt-2 text-center">
+                <a href={process.env.NEXT_PUBLIC_CALENDLY_URL || "/client/request-appointment"} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 hover:underline">Ou prendre rendez-vous</a>
+              </div>
             </div>
 
             {/* Chasseur */}
@@ -229,9 +232,12 @@ export default function HomePage() {
                 <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Reporting détaillé</li>
                 <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Tests A/B & stratégie</li>
               </ul>
-              <Link href="/client/subscribe?plan=MEDIUM_BUDGET">
+              <Link href="/onboarding?plan=MEDIUM_BUDGET">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700">Souscrire</Button>
               </Link>
+              <div className="mt-2 text-center">
+                <a href={process.env.NEXT_PUBLIC_CALENDLY_URL || "/client/request-appointment"} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 hover:underline">Ou prendre rendez-vous</a>
+              </div>
             </div>
 
             {/* Grand Chasseur */}
@@ -253,9 +259,12 @@ export default function HomePage() {
                 <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Stratégie personnalisée</li>
                 <li className="flex items-center"><CheckCircle className="w-5 h-5 text-green-500 mr-2" />Analytics avancées</li>
               </ul>
-              <Link href="/client/subscribe?plan=LARGE_BUDGET">
+              <Link href="/onboarding?plan=LARGE_BUDGET">
                 <Button className="w-full">Souscrire</Button>
               </Link>
+              <div className="mt-2 text-center">
+                <a href={process.env.NEXT_PUBLIC_CALENDLY_URL || "/client/request-appointment"} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 hover:underline">Ou prendre rendez-vous</a>
+              </div>
             </div>
           </div>
         </div>

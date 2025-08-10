@@ -21,7 +21,8 @@ import {
   Calendar
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 
 interface OnboardingData {
   companyName: string
@@ -122,6 +123,7 @@ const teamSizeOptions = [
 export default function OnboardingPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
@@ -139,10 +141,19 @@ export default function OnboardingPage() {
   })
 
   useEffect(() => {
+    const planFromUrl = searchParams.get("plan")
+
+    // Si non authentifié, rediriger vers la connexion en conservant le plan choisi
     if (!isAuthenticated) {
-      router.push("/login")
+      router.push(`/login${planFromUrl ? `?plan=${planFromUrl}` : ""}`)
+      return
     }
-  }, [isAuthenticated, router])
+
+    // Pré-sélectionner le plan si fourni dans l'URL et pas encore choisi
+    if (planFromUrl && !onboardingData.selectedPlan) {
+      setOnboardingData(prev => ({ ...prev, selectedPlan: planFromUrl }))
+    }
+  }, [isAuthenticated, router, searchParams])
 
   const currentStepData = onboardingSteps.find(step => step.id === currentStep)
   const progress = (currentStep / onboardingSteps.length) * 100
@@ -597,34 +608,56 @@ export default function OnboardingPage() {
                       Précédent
                     </Button>
 
-                    {currentStep === onboardingSteps.length ? (
-                      <Button
-                        onClick={handleSubmit}
-                        disabled={!canProceed() || isLoading}
-                        className="flex items-center bg-blue-600 hover:bg-blue-700"
-                      >
-                        {isLoading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Finalisation...
-                          </>
+                    <div className="flex items-center gap-2">
+                      {currentStep === onboardingSteps.length ? (
+                        <Button
+                          onClick={handleSubmit}
+                          disabled={!canProceed() || isLoading}
+                          className="flex items-center bg-blue-600 hover:bg-blue-700"
+                        >
+                          {isLoading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Finalisation...
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4 mr-2" />
+                              Terminer l&apos;onboarding
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={handleNext}
+                          disabled={!canProceed()}
+                          className="flex items-center bg-blue-600 hover:bg-blue-700"
+                        >
+                          Suivant
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      )}
+
+                      {(() => {
+                        const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || "/client/request-appointment"
+                        const isExternal = calendlyUrl.startsWith("http")
+                        return isExternal ? (
+                          <a href={calendlyUrl} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-2" />
+                              Prendre RDV
+                            </Button>
+                          </a>
                         ) : (
-                          <>
-                            <Check className="w-4 h-4 mr-2" />
-                            Terminer l&apos;onboarding
-                          </>
-                        )}
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={handleNext}
-                        disabled={!canProceed()}
-                        className="flex items-center bg-blue-600 hover:bg-blue-700"
-                      >
-                        Suivant
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    )}
+                          <Link href={calendlyUrl}>
+                            <Button variant="outline" className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-2" />
+                              Prendre RDV
+                            </Button>
+                          </Link>
+                        )
+                      })()}
+                    </div>
                   </div>
 
                   {/* Message */}

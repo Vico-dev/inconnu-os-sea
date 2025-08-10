@@ -70,6 +70,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
   const clientAccountId = (session.client_reference_id as string | null) || (session.metadata?.clientAccountId as string | undefined)
   const plan = (session.metadata?.plan as string | undefined)
+  
+  // Récupérer les données CGV depuis les métadonnées
+  const cgvAccepted = session.metadata?.cgvAccepted === 'true'
+  const cgvVersion = session.metadata?.cgvVersion
+  const cgvAcceptedAt = session.metadata?.cgvAcceptedAt
 
   if (!subscriptionId || !customerId || !clientAccountId || !plan) {
     console.warn('checkout.session.completed: données manquantes', { subscriptionId, customerId, clientAccountId, plan })
@@ -77,6 +82,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   const sub = await stripe.subscriptions.retrieve(subscriptionId)
+
+  // Mettre à jour le ClientAccount avec l'acceptation des CGV
+  if (cgvAccepted && clientAccountId) {
+    await prisma.clientAccount.update({
+      where: { id: clientAccountId },
+      data: {
+        cgvAccepted: true,
+        cgvVersion: cgvVersion || '1.0',
+        cgvAcceptedAt: cgvAcceptedAt ? new Date(cgvAcceptedAt) : new Date()
+      }
+    })
+  }
 
   await prisma.subscription.upsert({
     where: { clientAccountId },

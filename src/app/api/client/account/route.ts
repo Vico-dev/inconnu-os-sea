@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       where: { email: session.user.email },
       include: {
         clientAccount: {
-          include: { subscription: true }
+          include: { subscription: true, company: true }
         }
       }
     })

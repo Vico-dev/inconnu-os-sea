@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { plan, clientAccountId } = body as { plan?: string; clientAccountId?: string }
+    const { plan, clientAccountId, cgv } = body as { plan?: string; clientAccountId?: string; cgv?: { accepted?: boolean; version?: string; acceptedAt?: string } }
 
     const validPlans = ['SMALL_BUDGET', 'MEDIUM_BUDGET', 'LARGE_BUDGET']
     if (!plan || !validPlans.includes(plan) || !clientAccountId) {
@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
       cancel_url: `${baseUrl}/client/subscribe?checkout=cancelled`,
       customer_email: session.user.email!,
       client_reference_id: clientAccountId,
-      metadata: { clientAccountId, plan },
+      metadata: { clientAccountId, plan, cgvAccepted: cgv?.accepted ? 'true' : 'false', cgvVersion: cgv?.version || 'v1', cgvAcceptedAt: cgv?.acceptedAt || '' },
       subscription_data: {
-        metadata: { clientAccountId, plan }
+        metadata: { clientAccountId, plan, cgvAccepted: cgv?.accepted ? 'true' : 'false', cgvVersion: cgv?.version || 'v1', cgvAcceptedAt: cgv?.acceptedAt || '' }
       },
       allow_promotion_codes: false
     })
