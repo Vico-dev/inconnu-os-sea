@@ -48,9 +48,11 @@ COPY --from=base /app/.next/standalone ./
 COPY --from=base /app/.next/static ./.next/static
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/prisma ./prisma
+COPY --from=base /app/start.sh ./start.sh
 
 # Changer les permissions
 RUN chown -R nextjs:nodejs /app
+RUN chmod +x ./start.sh
 USER nextjs
 
 # Exposer le port
@@ -58,10 +60,6 @@ EXPOSE 3000
 
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
-
-# Script de démarrage pour appliquer les migrations et démarrer l'app
-COPY --from=base /app/start.sh ./start.sh
-RUN chmod +x ./start.sh
 
 # Démarrer l'application
 CMD ["./start.sh"] 
