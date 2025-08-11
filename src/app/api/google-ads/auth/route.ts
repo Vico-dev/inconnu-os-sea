@@ -1,45 +1,48 @@
 import { NextRequest, NextResponse } from "next/server"
-import { google } from "googleapis"
-import { prisma } from "@/lib/db"
-
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_ADS_CLIENT_ID,
-  process.env.GOOGLE_ADS_CLIENT_SECRET,
-  process.env.GOOGLE_ADS_REDIRECT_URI || "http://localhost:3000/api/google-ads/callback"
-)
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId")
-
-    if (!userId) {
+    // Vérifier l'authentification
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { message: "Utilisateur non identifié" },
-        { status: 400 }
+        { error: "Authentification requise" },
+        { status: 401 }
       )
     }
 
-    // Générer l&apos;URL d&apos;autorisation Google
-    const authUrl = oauth2Client.generateAuthUrl({
-      access_type: "offline",
-      scope: [
-        "https://www.googleapis.com/auth/adwords",
-        "https://www.googleapis.com/auth/userinfo.email",
-        "https://www.googleapis.com/auth/userinfo.profile"
-      ],
-      state: userId // Passer l&apos;ID utilisateur dans le state
-    })
+    // Vérifier les variables d'environnement
+    if (!process.env.GOOGLE_ADS_CLIENT_ID || 
+        !process.env.GOOGLE_ADS_CLIENT_SECRET || 
+        !process.env.GOOGLE_ADS_DEVELOPER_TOKEN ||
+        !process.env.GOOGLE_ADS_REDIRECT_URI) {
+      return NextResponse.json(
+        { error: "Configuration Google Ads manquante" },
+        { status: 500 }
+      )
+    }
+
+    // Construire l'URL d'autorisation OAuth
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
+    authUrl.searchParams.append('client_id', process.env.GOOGLE_ADS_CLIENT_ID)
+    authUrl.searchParams.append('redirect_uri', process.env.GOOGLE_ADS_REDIRECT_URI)
+    authUrl.searchParams.append('response_type', 'code')
+    authUrl.searchParams.append('scope', 'https://www.googleapis.com/auth/adwords')
+    authUrl.searchParams.append('access_type', 'offline')
+    authUrl.searchParams.append('prompt', 'consent')
+    authUrl.searchParams.append('state', session.user.id) // Pour identifier l'utilisateur
 
     return NextResponse.json({
-      authUrl,
-      message: "URL d&apos;autorisation générée"
+      success: true,
+      authUrl: authUrl.toString()
     })
 
   } catch (error) {
-    console.error("Erreur lors de la génération de l&apos;URL d&apos;autorisation:", error)
+    console.error('Erreur lors de la génération de l\'URL d\'auth:', error)
     return NextResponse.json(
-      { message: "Erreur interne du serveur" },
+      { error: "Erreur lors de la génération de l'URL d'authentification" },
       { status: 500 }
     )
   }
