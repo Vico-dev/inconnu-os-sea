@@ -419,7 +419,6 @@ export class EmailService {
         return null
       }
 
-      const { default: PasswordResetEmail } = await import('@/components/emails/PasswordResetEmail')
       const emailHtml = await render(
         PasswordResetEmail({
           firstName,
