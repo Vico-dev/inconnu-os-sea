@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, send, User, Shield, MessageSquare, Calendar, Clock } from "lucide-react"
+import { ArrowLeft, Send, User, Shield, MessageSquare, Calendar, Clock } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 
@@ -329,7 +329,7 @@ export default function TicketDetailsPage() {
                       onClick={handleSubmitResponse}
                       disabled={!newResponse.trim() || isSubmitting}
                     >
-                      <send className="w-4 h-4 mr-2" />
+                      <Send className="w-4 h-4 mr-2" />
                       {isSubmitting ? "Envoi..." : "Envoyer la réponse"}
                     </Button>
                   </div>

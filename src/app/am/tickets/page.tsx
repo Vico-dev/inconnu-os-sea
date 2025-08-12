@@ -13,7 +13,8 @@ import {
   MessageSquare, 
   Filter,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  Send
 } from "lucide-react"
 
 interface Ticket {
@@ -230,7 +231,7 @@ export default function AMTicketsPage() {
                 </CardDescription>
               </div>
               <Button onClick={() => router.push('/am/tickets/create')}>
-                <send className="w-4 h-4 mr-2" />
+                <Send className="w-4 h-4 mr-2" />
                 Créer un ticket
               </Button>
             </div>

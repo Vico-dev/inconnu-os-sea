@@ -12,7 +12,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout"
 import { useParams, useRouter } from "next/navigation"
 import { 
   ArrowLeft, 
-  send, 
+  Send, 
   User, 
   Shield, 
   MessageSquare, 
@@ -373,7 +373,7 @@ export default function AdminTicketDetailsPage() {
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       ) : (
                         <>
-                          <send className="w-4 h-4 mr-2" />
+                          <Send className="w-4 h-4 mr-2" />
                           Envoyer la réponse
                         </>
                       )}
@@ -445,7 +445,7 @@ export default function AdminTicketDetailsPage() {
                      className="w-full"
                      onClick={() => window.open(`mailto:${ticket.client.email}?subject=Re: ${ticket.subject}`)}
                    >
-                     <send className="w-4 h-4 mr-2" />
+                                           <Send className="w-4 h-4 mr-2" />
                      Contacter le client
                    </Button>
                    <Button

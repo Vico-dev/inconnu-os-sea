@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Calendar, Clock, send } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, Send } from "lucide-react"
 
 export default function RequestAppointmentPage() {
   const router = useRouter()
@@ -186,7 +186,7 @@ export default function RequestAppointmentPage() {
                     Annuler
                   </Button>
                   <Button type="submit" disabled={isLoading}>
-                    <send className="w-4 h-4 mr-2" />
+                    <Send className="w-4 h-4 mr-2" />
                     {isLoading ? "Envoi..." : "Demander le rendez-vous"}
                   </Button>
                 </div>

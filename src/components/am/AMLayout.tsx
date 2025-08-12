@@ -8,8 +8,8 @@ interface AMLayoutProps {
 }
 
 export function AMLayout({ children }: AMLayoutProps) {
-  const [ticketStats, setTicketStats] = useState(null)
-  const [appointmentStats, setAppointmentStats] = useState(null)
+  const [ticketStats, setTicketStats] = useState<any>(null)
+  const [appointmentStats, setAppointmentStats] = useState<any>(null)
 
   useEffect(() => {
     // Ici on pourrait récupérer les stats depuis l&apos;API

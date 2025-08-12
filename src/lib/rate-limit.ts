@@ -11,7 +11,7 @@ interface RateLimitConfig {
 
 export function createRateLimiter(config: RateLimitConfig) {
   return function rateLimit(request: NextRequest) {
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const now = Date.now()
     const windowStart = now - config.windowMs
 

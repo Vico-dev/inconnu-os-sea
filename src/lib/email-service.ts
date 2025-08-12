@@ -20,7 +20,7 @@ export class EmailService {
 
       const { default: EmailVerification } = await import('@/components/emails/EmailVerification')
       const emailHtml = await render(
-        EmailVerification({
+        await EmailVerification({
           firstName,
           verificationUrl
         })
@@ -58,7 +58,7 @@ export class EmailService {
 
       const { default: WelcomeEmail } = await import('@/components/emails/WelcomeEmail')
       const emailHtml = await render(
-        WelcomeEmail({
+        await WelcomeEmail({
           firstName,
           companyName,
           plan
@@ -99,7 +99,7 @@ export class EmailService {
 
       const { default: PaymentConfirmationEmail } = await import('@/components/emails/PaymentConfirmationEmail')
       const emailHtml = await render(
-        PaymentConfirmationEmail({
+        await PaymentConfirmationEmail({
           firstName,
           companyName,
           plan,
@@ -256,7 +256,7 @@ export class EmailService {
 
       const { default: EmailReminder1 } = await import('@/components/emails/EmailReminder1')
       const emailHtml = await render(
-        EmailReminder1({
+        await EmailReminder1({
           firstName,
           companyName,
           loginUrl,
@@ -298,7 +298,7 @@ export class EmailService {
 
       const { default: EmailReminder2 } = await import('@/components/emails/EmailReminder2')
       const emailHtml = await render(
-        EmailReminder2({
+        await EmailReminder2({
           firstName,
           companyName,
           loginUrl,
@@ -340,7 +340,7 @@ export class EmailService {
 
       const { default: EmailReminder3 } = await import('@/components/emails/EmailReminder3')
       const emailHtml = await render(
-        EmailReminder3({
+        await EmailReminder3({
           firstName,
           companyName,
           loginUrl,
@@ -382,7 +382,7 @@ export class EmailService {
 
       const { default: EmailReminder4 } = await import('@/components/emails/EmailReminder4')
       const emailHtml = await render(
-        EmailReminder4({
+        await EmailReminder4({
           firstName,
           companyName,
           loginUrl,
@@ -421,7 +421,7 @@ export class EmailService {
 
       const { default: PasswordResetEmail } = await import('@/components/emails/PasswordResetEmail')
       const emailHtml = await render(
-        PasswordResetEmail({
+        await PasswordResetEmail({
           firstName,
           resetUrl
         })

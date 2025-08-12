@@ -165,6 +165,7 @@ model Campaign {
 
   clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
 
+  @@unique([clientAccountId, name])
   @@map("campaigns")
 }
 

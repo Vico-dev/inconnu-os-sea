@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
       message: "Rendez-vous créé avec succès",
       appointment: {
         id: appointment.id,
-        subject: appointment.subject,
-        date: appointment.date,
+        title: appointment.title,
+        startTime: appointment.startTime,
         status: appointment.status
       }
     })

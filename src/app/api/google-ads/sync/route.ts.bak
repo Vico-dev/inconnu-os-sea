@@ -117,6 +117,8 @@ export async function POST(request: NextRequest) {
     const syncedCampaigns = []
     
     for (const row of campaignResponse) {
+      if (!row.campaign || !row.metrics || !row.campaign.name) continue;
+      
       const campaignData = {
         id: row.campaign.id,
         name: row.campaign.name,
@@ -124,25 +126,27 @@ export async function POST(request: NextRequest) {
         channelType: row.campaign.advertising_channel_type,
         startDate: row.campaign.start_date,
         endDate: row.campaign.end_date,
-        budget: row.campaign.budget_amount_micros ? parseFloat(row.campaign.budget_amount_micros) / 1000000 : null,
-        impressions: parseInt(row.metrics.impressions || "0"),
-        clicks: parseInt(row.metrics.clicks || "0"),
-        cost: parseFloat(row.metrics.cost_micros || "0") / 1000000,
-        conversions: parseFloat(row.metrics.conversions || "0"),
-        averageCpc: parseFloat(row.metrics.average_cpc || "0") / 1000000,
-        ctr: parseFloat(row.metrics.ctr || "0"),
-        averageCpm: parseFloat(row.metrics.average_cpm || "0") / 1000000,
-        conversionRate: parseFloat(row.metrics.conversions_from_interactions_rate || "0")
+        budget: 0, // TODO: Récupérer le budget depuis l'API Google Ads
+        impressions: typeof row.metrics.impressions === 'string' ? parseInt(row.metrics.impressions) : (row.metrics.impressions || 0),
+        clicks: typeof row.metrics.clicks === 'string' ? parseInt(row.metrics.clicks) : (row.metrics.clicks || 0),
+        cost: (typeof row.metrics.cost_micros === 'string' ? parseFloat(row.metrics.cost_micros) : (row.metrics.cost_micros || 0)) / 1000000,
+        conversions: typeof row.metrics.conversions === 'string' ? parseFloat(row.metrics.conversions) : (row.metrics.conversions || 0),
+        averageCpc: (typeof row.metrics.average_cpc === 'string' ? parseFloat(row.metrics.average_cpc) : (row.metrics.average_cpc || 0)) / 1000000,
+        ctr: typeof row.metrics.ctr === 'string' ? parseFloat(row.metrics.ctr) : (row.metrics.ctr || 0),
+        averageCpm: (typeof row.metrics.average_cpm === 'string' ? parseFloat(row.metrics.average_cpm) : (row.metrics.average_cpm || 0)) / 1000000,
+        conversionRate: typeof row.metrics.conversions_from_interactions_rate === 'string' ? parseFloat(row.metrics.conversions_from_interactions_rate) : (row.metrics.conversions_from_interactions_rate || 0)
       }
 
-      // Upsert la campagne en base
+      // Créer ou mettre à jour la campagne en base
       const campaign = await prisma.campaign.upsert({
         where: {
-          id: campaignData.id
+          clientAccountId_name: {
+            clientAccountId: connection.user.clientAccount!.id,
+            name: campaignData.name
+          }
         },
         update: {
-          name: campaignData.name,
-          status: campaignData.status,
+          status: campaignData.status || 'UNKNOWN',
           budget: campaignData.budget,
           metrics: JSON.stringify({
             impressions: campaignData.impressions,
@@ -157,7 +161,6 @@ export async function POST(request: NextRequest) {
           })
         },
         create: {
-          id: campaignData.id,
           clientAccountId: connection.user.clientAccount!.id,
           name: campaignData.name,
           status: campaignData.status,

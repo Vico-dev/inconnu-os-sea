@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       status: sub.status,
       amount: sub.amount || 0,
       plan: sub.plan || "standard",
-      startDate: sub.startDate,
+      startDate: sub.currentPeriodStart,
       endDate: sub.endDate,
       clientAccount: {
         user: { firstName: "Client", lastName: "Test", email: "client@test.com" },
