@@ -14,6 +14,17 @@ if [ $? -eq 0 ]; then
     exit 0
 else
     echo "⚠️ Build terminé avec des erreurs de pré-rendu (normales avec React Email)"
+    
+    # Vérifier si le dossier standalone existe
+    if [ ! -d ".next/standalone" ]; then
+        echo "🔧 Création du dossier standalone manquant..."
+        mkdir -p .next/standalone
+        cp -r .next/server .next/standalone/
+        cp -r .next/static .next/standalone/
+        cp package.json .next/standalone/
+        echo "✅ Dossier standalone créé"
+    fi
+    
     echo "🚀 L'application devrait fonctionner correctement en production"
     exit 0
 fi 

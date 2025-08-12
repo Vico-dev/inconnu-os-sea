@@ -5,7 +5,8 @@ const nextConfig = {
     // Désactiver temporairement les erreurs ESLint pour permettre le déploiement
     ignoreDuringBuilds: true,
   },
-  // Configuration pour éviter les erreurs de pré-rendu
+  // Configuration pour Railway
+  output: 'standalone',
   trailingSlash: false,
 }
 
