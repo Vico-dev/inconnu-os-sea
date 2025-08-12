@@ -5,6 +5,9 @@ import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useAuth } from "@/hooks/useAuth"
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { AdminLayout } from "@/components/admin/AdminLayout"
 import { Loader2, CheckCircle, XCircle, RefreshCw, Database, Shield, Users } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
@@ -138,32 +141,42 @@ export default function GoogleAdsTestPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Chargement...</p>
-        </div>
-      </div>
+      <ProtectedRoute allowedRoles={["ADMIN"]}>
+        <AdminLayout>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+              <p className="text-gray-600">Chargement...</p>
+            </div>
+          </div>
+        </AdminLayout>
+      </ProtectedRoute>
     )
   }
 
   if (!session || session.user.role !== 'ADMIN') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Accès refusé</h2>
-            <p className="text-gray-600">Cette page est réservée aux administrateurs.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <ProtectedRoute allowedRoles={["ADMIN"]}>
+        <AdminLayout>
+          <div className="flex items-center justify-center h-64">
+            <Card className="w-full max-w-md">
+              <CardContent className="p-6 text-center">
+                <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold mb-2">Accès refusé</h2>
+                <p className="text-gray-600">Cette page est réservée aux administrateurs.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </AdminLayout>
+      </ProtectedRoute>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <AdminLayout>
+                <div className="p-6 space-y-6">
+          <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Test d'intégration Google Ads API
@@ -298,7 +311,9 @@ export default function GoogleAdsTestPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+          </div>
+        </div>
+      </AdminLayout>
+    </ProtectedRoute>
   )
 } 

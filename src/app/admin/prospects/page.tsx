@@ -6,6 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from "@/hooks/useAuth"
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { AdminLayout } from "@/components/admin/AdminLayout"
 import { 
   Users, 
   Mail, 
@@ -155,25 +158,35 @@ export default function ProspectsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
+      <ProtectedRoute allowedRoles={["ADMIN"]}>
+        <AdminLayout>
+          <div className="flex items-center justify-center h-64">
+            <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+        </AdminLayout>
+      </ProtectedRoute>
     )
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <div className="text-red-600 mb-4">{error}</div>
-        <Button onClick={fetchProspects} variant="outline">
-          Réessayer
-        </Button>
-      </div>
+      <ProtectedRoute allowedRoles={["ADMIN"]}>
+        <AdminLayout>
+          <div className="text-center py-12">
+            <div className="text-red-600 mb-4">{error}</div>
+            <Button onClick={fetchProspects} variant="outline">
+              Réessayer
+            </Button>
+          </div>
+        </AdminLayout>
+      </ProtectedRoute>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <AdminLayout>
+        <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -424,7 +437,9 @@ export default function ProspectsPage() {
           </Card>
         </div>
       )}
-    </div>
+        </div>
+      </AdminLayout>
+    </ProtectedRoute>
   )
 }
 

@@ -5,6 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useAuth } from "@/hooks/useAuth"
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { AdminLayout } from "@/components/admin/AdminLayout"
 import { Loader2, Send, Users, Mail, Clock, CheckCircle, XCircle } from 'lucide-react'
 
 interface EmailReminderStats {
@@ -104,7 +107,9 @@ export default function EmailRemindersPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <AdminLayout>
+        <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gestion des relances email</h1>
@@ -262,6 +267,8 @@ export default function EmailRemindersPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+        </div>
+      </AdminLayout>
+    </ProtectedRoute>
   )
 } 

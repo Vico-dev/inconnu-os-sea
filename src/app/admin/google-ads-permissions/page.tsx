@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { useAuth } from "@/hooks/useAuth"
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { AdminLayout } from "@/components/admin/AdminLayout"
 import { 
   Users, 
   Settings, 
@@ -126,17 +129,23 @@ export default function GoogleAdsPermissionsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des permissions...</p>
-        </div>
-      </div>
+      <ProtectedRoute allowedRoles={["ADMIN"]}>
+        <AdminLayout>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Chargement des permissions...</p>
+            </div>
+          </div>
+        </AdminLayout>
+      </ProtectedRoute>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <AdminLayout>
+        <div className="p-6 space-y-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Permissions Google Ads</h1>
@@ -333,6 +342,8 @@ export default function GoogleAdsPermissionsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+        </div>
+      </AdminLayout>
+    </ProtectedRoute>
   )
 } 
