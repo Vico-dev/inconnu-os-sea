@@ -13,7 +13,8 @@ import {
   Users, 
   UserPlus,
   Search,
-  Settings
+  Settings,
+  BarChart3
 } from "lucide-react"
 
 export default function AdminUsersPage() {
@@ -157,6 +158,15 @@ export default function AdminUsersPage() {
                          user.role === "ACCOUNT_MANAGER" ? "Account Manager" : 
                          user.role === "ADMIN" ? "Admin" : user.role}
                       </Badge>
+                      {user.role === "CLIENT" && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.location.href = `/admin/clients/${user.id}/reporting`}
+                        >
+                          <BarChart3 className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm"
