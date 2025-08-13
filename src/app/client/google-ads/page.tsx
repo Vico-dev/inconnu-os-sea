@@ -54,6 +54,9 @@ export default function GoogleAdsPage() {
     if (successParam === 'connected') {
       setSuccess('Connexion Google Ads réussie !')
       fetchGoogleAdsData()
+    } else {
+      // Charger les données automatiquement au chargement de la page
+      fetchGoogleAdsData()
     }
   }, [searchParams])
 
@@ -129,23 +132,42 @@ export default function GoogleAdsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Google Ads</h1>
           <p className="text-gray-600">Gérez et analysez vos campagnes Google Ads</p>
         </div>
-        <Button
-          onClick={handleConnectGoogleAds}
-          disabled={isConnecting}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          {isConnecting ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Connexion...
-            </>
-          ) : (
-            <>
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Connecter Google Ads
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={fetchGoogleAdsData}
+            disabled={isLoading}
+            variant="outline"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Chargement...
+              </>
+            ) : (
+              <>
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Actualiser
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={handleConnectGoogleAds}
+            disabled={isConnecting}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isConnecting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Connexion...
+              </>
+            ) : (
+              <>
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Connecter Google Ads
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Messages d'erreur/succès */}
@@ -159,6 +181,33 @@ export default function GoogleAdsPage() {
         <Alert className="border-green-200 bg-green-50">
           <AlertDescription className="text-green-800">{success}</AlertDescription>
         </Alert>
+      )}
+
+      {/* État de chargement */}
+      {isLoading && !metrics && !error && (
+        <div className="flex justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Chargement des données Google Ads...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Message quand pas de données */}
+      {!isLoading && !metrics && !error && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune donnée Google Ads</h3>
+            <p className="text-gray-600 mb-4">
+              Connectez-vous à Google Ads pour voir vos campagnes et métriques.
+            </p>
+            <Button onClick={handleConnectGoogleAds} className="bg-blue-600 hover:bg-blue-700">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Connecter Google Ads
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Métriques globales */}
