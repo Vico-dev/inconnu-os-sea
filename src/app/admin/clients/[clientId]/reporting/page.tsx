@@ -73,6 +73,12 @@ export default function ClientReportingPage() {
   const clientId = params.clientId as string
   const { user } = useAuth()
   
+  console.log("🔍 Page de reporting - Utilisateur actuel:", {
+    userId: user?.id,
+    userRole: user?.role,
+    isAdmin: user?.role === 'ADMIN'
+  })
+  
   const [clientData, setClientData] = useState<ClientData | null>(null)
   const [googleAdsData, setGoogleAdsData] = useState<GoogleAdsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -91,7 +97,9 @@ export default function ClientReportingPage() {
       console.log("🔍 Récupération des données pour le client:", clientId)
 
       // Récupérer les données du client
+      console.log("🔗 Appel API:", `/api/admin/users/${clientId}`)
       const clientResponse = await fetch(`/api/admin/users/${clientId}`)
+      console.log("📊 Réponse API:", clientResponse.status, clientResponse.statusText)
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json()
         console.log("✅ Données client récupérées:", clientResult.user)

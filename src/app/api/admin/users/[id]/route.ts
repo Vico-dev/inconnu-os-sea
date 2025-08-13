@@ -8,14 +8,26 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log("🔍 Vérification de l'authentification admin...")
+    
     // Vérifier l'authentification admin
     const session = await getServerSession(authOptions)
+    console.log("📋 Session récupérée:", {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      userRole: session?.user?.role,
+      isAdmin: session?.user?.role === 'ADMIN'
+    })
+    
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
+      console.log("❌ Accès refusé - Session invalide ou non admin")
       return NextResponse.json(
         { error: "Accès administrateur requis" },
         { status: 403 }
       )
     }
+    
+    console.log("✅ Authentification admin validée")
 
     const { id } = await params
 
