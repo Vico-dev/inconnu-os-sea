@@ -8,9 +8,12 @@ export async function GET(
   { params }: { params: Promise<{ clientAccountId: string }> }
 ) {
   try {
+    console.log("🔍 Début de la récupération Google Ads pour clientAccountId:", await params)
+    
     // Vérifier l'authentification admin
     const session = await getServerSession(authOptions)
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
+      console.log("❌ Accès non autorisé")
       return NextResponse.json(
         { error: "Accès administrateur requis" },
         { status: 403 }
@@ -18,8 +21,10 @@ export async function GET(
     }
 
     const { clientAccountId } = await params
+    console.log("✅ clientAccountId reçu:", clientAccountId)
 
     // Vérifier les permissions Google Ads
+    console.log("🔍 Recherche des permissions Google Ads pour:", clientAccountId)
     const permission = await prisma.googleAdsPermission.findFirst({
       where: {
         clientAccountId,
@@ -28,11 +33,14 @@ export async function GET(
     })
 
     if (!permission) {
+      console.log("❌ Aucune permission Google Ads trouvée")
       return NextResponse.json(
         { error: "Aucune permission Google Ads active pour ce client" },
         { status: 404 }
       )
     }
+    
+    console.log("✅ Permission Google Ads trouvée:", permission)
 
     // Récupérer la connexion Google Ads du client
     const clientAccount = await prisma.clientAccount.findUnique({

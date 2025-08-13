@@ -88,15 +88,24 @@ export default function ClientReportingPage() {
       setIsLoading(true)
       setError(null)
 
+      console.log("🔍 Récupération des données pour le client:", clientId)
+
       // Récupérer les données du client
       const clientResponse = await fetch(`/api/admin/users/${clientId}`)
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json()
+        console.log("✅ Données client récupérées:", clientResult.user)
         setClientData(clientResult.user)
         
         // Récupérer les données Google Ads du client
-        await fetchGoogleAdsData(clientResult.user.clientAccount?.id)
+        if (clientResult.user.clientAccount?.id) {
+          console.log("🔗 ClientAccount trouvé, récupération Google Ads...")
+          await fetchGoogleAdsData(clientResult.user.clientAccount.id)
+        } else {
+          console.log("⚠️ Pas de ClientAccount pour ce client")
+        }
       } else {
+        console.log("❌ Erreur lors de la récupération du client")
         setError("Client non trouvé")
       }
     } catch (error) {
@@ -108,15 +117,22 @@ export default function ClientReportingPage() {
   }
 
   const fetchGoogleAdsData = async (clientAccountId?: string) => {
-    if (!clientAccountId) return
+    if (!clientAccountId) {
+      console.log("❌ Pas de clientAccountId fourni")
+      return
+    }
 
     try {
+      console.log("🔍 Récupération Google Ads pour clientAccountId:", clientAccountId)
       const response = await fetch(`/api/admin/clients/${clientAccountId}/google-ads-data`)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log("✅ Données Google Ads récupérées:", data)
         setGoogleAdsData(data.data)
       } else {
-        console.log("Pas de données Google Ads disponibles")
+        const errorData = await response.json()
+        console.log("❌ Erreur Google Ads:", errorData)
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des données Google Ads:", error)
