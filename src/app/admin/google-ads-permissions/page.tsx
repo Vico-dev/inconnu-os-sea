@@ -110,13 +110,15 @@ export default function GoogleAdsPermissionsPage() {
 
   const handleAddPermission = async () => {
     try {
-      const response = await fetch('/api/google-ads/mcc', {
+      const response = await fetch('/api/admin/google-ads-permissions/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(newPermission),
       })
+
+      const data = await response.json()
 
       if (response.ok) {
         setShowAddForm(false)
@@ -130,9 +132,13 @@ export default function GoogleAdsPermissionsPage() {
           }
         })
         fetchPermissions()
+        alert('Permission ajoutée avec succès !')
+      } else {
+        alert(`Erreur: ${data.error || 'Erreur lors de l\'ajout de permission'}`)
       }
     } catch (error) {
       console.error('Erreur lors de l\'ajout de permission:', error)
+      alert('Erreur de connexion lors de l\'ajout de permission')
     }
   }
 
