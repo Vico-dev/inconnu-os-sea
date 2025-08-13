@@ -19,7 +19,8 @@ import {
   FileText,
   TrendingUp,
   AlertCircle,
-  Shield
+  Shield,
+  Building
 } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
@@ -66,6 +67,12 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
       icon: Users,
       current: pathname === "/admin/users",
       badge: "Gérer"
+    },
+    {
+      name: "Entreprises",
+      href: "/admin/companies",
+      icon: Building,
+      current: pathname === "/admin/companies"
     },
     {
       name: "Tickets",
