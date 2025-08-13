@@ -56,6 +56,7 @@ interface Client {
   email: string
   company: string
   clientAccount?: {
+    id: string
     company: {
       name: string
     }
@@ -109,6 +110,11 @@ export default function GoogleAdsPermissionsPage() {
   }
 
   const handleAddPermission = async () => {
+    if (!newPermission.clientAccountId || !newPermission.googleAdsCustomerId) {
+      alert("Sélectionnez un client et renseignez l'ID Google Ads")
+      return
+    }
+
     try {
       const response = await fetch('/api/admin/google-ads-permissions/add', {
         method: 'POST',
@@ -192,7 +198,7 @@ export default function GoogleAdsPermissionsPage() {
         </Button>
       </div>
 
-      {/* Formulaire d&apos;ajout */}
+      {/* Formulaire d'ajout */}
       {showAddForm && (
         <Card className="mb-6">
           <CardHeader>
@@ -216,8 +222,8 @@ export default function GoogleAdsPermissionsPage() {
                     <SelectValue placeholder="Rechercher un client..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
+                    {clients.filter((client) => !!client.clientAccount?.id).map((client) => (
+                      <SelectItem key={client.clientAccount!.id} value={client.clientAccount!.id}>
                         <div className="flex flex-col">
                           <span className="font-medium">
                             {client.firstName || 'Prénom'} {client.lastName || 'Nom'}
@@ -294,7 +300,7 @@ export default function GoogleAdsPermissionsPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleAddPermission}>
+              <Button onClick={handleAddPermission} disabled={!newPermission.clientAccountId || !newPermission.googleAdsCustomerId}>
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Ajouter
               </Button>
@@ -382,7 +388,7 @@ export default function GoogleAdsPermissionsPage() {
             <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune permission configurée</h3>
             <p className="text-gray-600 mb-4">
-              Commencez par ajouter des permissions pour permettre aux clients d&apos;accéder à leurs comptes Google Ads.
+              Commencez par ajouter des permissions pour permettre aux clients d'accéder à leurs comptes Google Ads.
             </p>
             <Button onClick={() => setShowAddForm(true)}>
               <Plus className="w-4 h-4 mr-2" />

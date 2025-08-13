@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         }
       },
       update: {
-        permissions: permissions,
+        permissions: JSON.stringify(permissions),
         isActive: true,
         updatedAt: new Date()
       },
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         clientAccountId,
         userId: clientAccount.userId,
         googleAdsCustomerId,
-        permissions: permissions,
+        permissions: JSON.stringify(permissions),
         isActive: true
       }
     })
