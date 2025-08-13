@@ -10,7 +10,13 @@ export async function GET(request: NextRequest) {
     //   return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     // }
 
+    const { searchParams } = new URL(request.url)
+    const role = searchParams.get('role')
+
+    const whereClause = role ? { role } : {}
+
     const users = await prisma.user.findMany({
+      where: whereClause,
       include: {
         clientAccount: {
           include: {

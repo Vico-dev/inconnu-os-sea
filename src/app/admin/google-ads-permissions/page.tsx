@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AdminLayout } from "@/components/admin/AdminLayout"
@@ -48,8 +49,21 @@ interface GoogleAdsPermission {
   }
 }
 
+interface Client {
+  id: string
+  user: {
+    firstName: string
+    lastName: string
+    email: string
+  }
+  company: {
+    name: string
+  }
+}
+
 export default function GoogleAdsPermissionsPage() {
   const [permissions, setPermissions] = useState<GoogleAdsPermission[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newPermission, setNewPermission] = useState({
@@ -63,9 +77,21 @@ export default function GoogleAdsPermissionsPage() {
   })
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     fetchPermissions()
+    fetchClients()
   }, [])
+
+  const fetchClients = async () => {
+    try {
+      const response = await fetch('/api/admin/users?role=CLIENT')
+      if (response.ok) {
+        const data = await response.json()
+        setClients(data.users || [])
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des clients:', error)
+    }
+  }
 
   const fetchPermissions = async () => {
     try {
@@ -171,16 +197,32 @@ export default function GoogleAdsPermissionsPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="clientAccountId">ID Compte Client</Label>
-                <Input
-                  id="clientAccountId"
+                <Label htmlFor="clientAccountId">Sélectionner un Client</Label>
+                <Select
                   value={newPermission.clientAccountId}
-                  onChange={(e) => setNewPermission({
+                  onValueChange={(value) => setNewPermission({
                     ...newPermission,
-                    clientAccountId: e.target.value
+                    clientAccountId: value
                   })}
-                  placeholder="ID du compte client"
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Rechercher un client..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {client.user.firstName} {client.user.lastName}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {client.user.email} - {client.company.name}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="googleAdsCustomerId">ID Compte Google Ads</Label>
