@@ -51,13 +51,14 @@ interface GoogleAdsPermission {
 
 interface Client {
   id: string
-  user: {
-    firstName: string
-    lastName: string
-    email: string
-  }
-  company: {
-    name: string
+  firstName: string
+  lastName: string
+  email: string
+  company: string
+  clientAccount?: {
+    company: {
+      name: string
+    }
   }
 }
 
@@ -213,10 +214,10 @@ export default function GoogleAdsPermissionsPage() {
                       <SelectItem key={client.id} value={client.id}>
                         <div className="flex flex-col">
                           <span className="font-medium">
-                            {client.user.firstName} {client.user.lastName}
+                            {client.firstName || 'Prénom'} {client.lastName || 'Nom'}
                           </span>
                           <span className="text-sm text-gray-500">
-                            {client.user.email} - {client.company.name}
+                            {client.email || 'Email'} - {client.clientAccount?.company?.name || client.company || 'Entreprise'}
                           </span>
                         </div>
                       </SelectItem>
