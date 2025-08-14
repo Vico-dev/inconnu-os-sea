@@ -102,7 +102,13 @@ export async function GET(request: NextRequest) {
     const isMCCConnection = state.startsWith('mcc_')
     const actualUserId = isMCCConnection ? state.replace('mcc_', '') : state
     
-    console.log('🔍 Type de connexion:', { isMCCConnection, actualUserId })
+    console.log('🔍 Type de connexion:', { 
+      state, 
+      isMCCConnection, 
+      actualUserId,
+      startsWithMCC: state.startsWith('mcc_'),
+      stateLength: state.length 
+    })
 
     // Sauvegarder les informations dans la base de données
     // Utiliser les données préparées
