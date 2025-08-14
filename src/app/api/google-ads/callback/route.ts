@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
-    const state = searchParams.get('state') // ID de l'utilisateur
+    const state = searchParams.get('state') // ID de l'utilisateur ou "mcc_" + ID admin
     const error = searchParams.get('error')
 
     if (error) {
@@ -61,9 +61,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Vérifier si c'est une connexion MCC (admin) ou client
+    const isMCCConnection = state.startsWith('mcc_')
+    const actualUserId = isMCCConnection ? state.replace('mcc_', '') : state
+
     // Sauvegarder les informations dans la base de données
     await prisma.googleAdsConnection.upsert({
-      where: { userId: state },
+      where: { userId: actualUserId },
       update: {
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
@@ -73,7 +77,7 @@ export async function GET(request: NextRequest) {
         connectedAt: new Date(),
       },
       create: {
-        userId: state,
+        userId: actualUserId,
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
         tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
@@ -83,15 +87,24 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Mettre à jour le statut dans le compte client
-    await prisma.clientAccount.updateMany({
-      where: { userId: state },
-      data: { googleAdsConnected: true }
-    })
+    // Mettre à jour le statut dans le compte client (seulement si ce n'est pas MCC)
+    if (!isMCCConnection) {
+      await prisma.clientAccount.updateMany({
+        where: { userId: actualUserId },
+        data: { googleAdsConnected: true }
+      })
+    }
 
-    return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/client/google-ads?success=connected`
-    )
+    // Rediriger selon le type de connexion
+    if (isMCCConnection) {
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/admin/mcc?success=connected`
+      )
+    } else {
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/client/google-ads?success=connected`
+      )
+    }
 
   } catch (error) {
     console.error('Erreur lors du callback Google Ads:', error)

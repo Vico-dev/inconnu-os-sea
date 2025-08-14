@@ -20,7 +20,8 @@ import {
   TrendingUp,
   AlertCircle,
   Shield,
-  Building
+  Building,
+  Network
 } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
@@ -105,6 +106,12 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
       href: "/admin/google-ads-permissions",
       icon: Shield,
       current: pathname === "/admin/google-ads-permissions"
+    },
+    {
+      name: "MCC Google Ads",
+      href: "/admin/mcc",
+      icon: Network,
+      current: pathname === "/admin/mcc"
     },
     {
       name: "Prospects",
