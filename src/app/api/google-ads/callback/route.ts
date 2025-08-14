@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Appel API Google Ads - Début')
     console.log('🔍 Developer Token:', process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'Présent' : 'MANQUANT')
     
-    const accountResponse = await fetch('https://googleads.googleapis.com/v14/customers:listAccessibleCustomers', {
+    // Utiliser l'API Google Ads v15 avec la bonne URL
+    const accountResponse = await fetch('https://googleads.googleapis.com/v15/customers:listAccessibleCustomers', {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
         'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
