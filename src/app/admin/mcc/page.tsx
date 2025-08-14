@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, ExternalLink, Link, Unlink, RefreshCw } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Loader2, ExternalLink, Link, Unlink, RefreshCw, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 import { ClientSelectionModal } from '@/components/admin/ClientSelectionModal'
 
@@ -29,17 +31,25 @@ export default function MCCPage() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<MCCAccount | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [customerId, setCustomerId] = useState('')
+  const [isConfiguringCustomer, setIsConfiguringCustomer] = useState(false)
+  const [needsCustomerConfig, setNeedsCustomerConfig] = useState(false)
 
   // Vérifier la connexion MCC
   useEffect(() => {
     checkMCCConnection()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkMCCConnection = async () => {
     try {
       const response = await fetch('/api/admin/mcc/accounts')
       if (response.ok) {
+        const data = await response.json()
         setIsConnected(true)
+        // Vérifier si on a un customer ID temporaire qui nécessite une configuration
+        if (data.accounts?.[0]?.customerId === '0000000000') {
+          setNeedsCustomerConfig(true)
+        }
         loadAccounts()
       } else {
         setIsConnected(false)
@@ -135,6 +145,41 @@ export default function MCCPage() {
     }
   }
 
+  const configureCustomerId = async () => {
+    if (!customerId.trim()) {
+      toast.error('Veuillez saisir un Customer ID')
+      return
+    }
+
+    setIsConfiguringCustomer(true)
+    try {
+      const response = await fetch('/api/admin/mcc/configure-customer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerId: customerId.trim()
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success(`Customer ID configuré : ${data.customerName || data.customerId}`)
+        setNeedsCustomerConfig(false)
+        setCustomerId('')
+        loadAccounts()
+      } else {
+        toast.error(data.error || 'Erreur lors de la configuration')
+      }
+    } catch (error) {
+      toast.error('Erreur lors de la configuration du Customer ID')
+    } finally {
+      setIsConfiguringCustomer(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -183,11 +228,50 @@ export default function MCCPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          <Alert>
-            <AlertDescription>
-              ✅ Connexion MCC établie. Vous pouvez maintenant gérer les comptes clients.
-            </AlertDescription>
-          </Alert>
+          {needsCustomerConfig ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Configuration du Customer ID
+                </CardTitle>
+                <CardDescription>
+                  Veuillez saisir votre Customer ID Google Ads MCC pour terminer la configuration
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customerId">Customer ID MCC</Label>
+                  <Input
+                    id="customerId"
+                    placeholder="Ex: 123-456-7890 ou 1234567890"
+                    value={customerId}
+                    onChange={(e) => setCustomerId(e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Vous pouvez trouver votre Customer ID dans votre compte Google Ads, en haut à droite de l&apos;interface.
+                  </p>
+                </div>
+                <Button 
+                  onClick={configureCustomerId} 
+                  disabled={isConfiguringCustomer || !customerId.trim()}
+                >
+                  {isConfiguringCustomer ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Settings className="h-4 w-4 mr-2" />
+                  )}
+                  Configurer Customer ID
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Alert>
+              <AlertDescription>
+                ✅ Connexion MCC établie. Vous pouvez maintenant gérer les comptes clients.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Card>
             <CardHeader>
