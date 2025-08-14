@@ -74,9 +74,9 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Appel API Google Ads - Début')
     console.log('🔍 Developer Token:', process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'Présent' : 'MANQUANT')
     
-    // Utiliser l'API Google Ads REST avec la bonne structure selon la documentation
-    // D'abord, récupérer la liste des comptes accessibles
-    const accountResponse = await fetch('https://googleads.googleapis.com/v15/customers:listAccessibleCustomers', {
+    // Utiliser l'API Google Ads REST correcte
+    // Pour l'API REST, nous devons d'abord récupérer le customer ID du compte principal
+    const accountResponse = await fetch('https://googleads.googleapis.com/v15/customers', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
@@ -116,13 +116,16 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Type de connexion:', { isMCCConnection, actualUserId })
 
     // Sauvegarder les informations dans la base de données
+    // L'endpoint /customers retourne directement le customer ID
+    const customerId = accountData.resourceName?.replace('customers/', '') || accountData.id
+    
     await prisma.googleAdsConnection.upsert({
       where: { userId: actualUserId },
       update: {
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
         tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
-        accounts: JSON.stringify(accountData.results || []),
+        accounts: JSON.stringify([{ customerId, resourceName: accountData.resourceName }]),
         isConnected: true,
         connectedAt: new Date(),
       },
@@ -131,7 +134,7 @@ export async function GET(request: NextRequest) {
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
         tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
-        accounts: JSON.stringify(accountData.results || []),
+        accounts: JSON.stringify([{ customerId, resourceName: accountData.resourceName }]),
         isConnected: true,
         connectedAt: new Date(),
       }
