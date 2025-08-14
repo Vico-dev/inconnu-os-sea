@@ -3,6 +3,56 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
+// Endpoint POST pour configurer le Customer ID
+export async function POST(request: NextRequest) {
+  console.log('🔍 POST /api/admin/mcc/accounts appelé pour configuration Customer ID')
+  
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: "Accès administrateur requis" }, { status: 403 })
+    }
+
+    const { customerId } = await request.json()
+    console.log('🔍 Customer ID reçu:', customerId)
+
+    if (!customerId) {
+      return NextResponse.json({ error: "Customer ID requis" }, { status: 400 })
+    }
+
+    // Nettoyer le customer ID
+    const cleanCustomerId = customerId.replace(/[-\s]/g, '')
+
+    // Mettre à jour la connexion
+    const existingConnection = await prisma.googleAdsConnection.findUnique({
+      where: { userId: session.user.id }
+    })
+
+    if (!existingConnection) {
+      return NextResponse.json({ error: "Connexion Google Ads non trouvée" }, { status: 404 })
+    }
+
+    // Mettre à jour avec le nouveau customer ID
+    await prisma.googleAdsConnection.update({
+      where: { userId: session.user.id },
+      data: {
+        accounts: JSON.stringify([{
+          customerId: cleanCustomerId,
+          name: `Compte ${cleanCustomerId}`,
+          isManager: true
+        }])
+      }
+    })
+
+    console.log('✅ Customer ID configuré:', cleanCustomerId)
+    return NextResponse.json({ success: true, customerId: cleanCustomerId })
+
+  } catch (error) {
+    console.error('❌ Erreur configuration Customer ID:', error)
+    return NextResponse.json({ error: "Erreur de configuration" }, { status: 500 })
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Vérifier l'authentification admin

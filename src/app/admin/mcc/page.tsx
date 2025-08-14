@@ -155,7 +155,8 @@ export default function MCCPage() {
 
     setIsConfiguringCustomer(true)
     try {
-      const response = await fetch('/api/admin/mcc/configure-customer', {
+      console.log('🔍 Envoi de la configuration Customer ID:', customerId.trim())
+      const response = await fetch('/api/admin/mcc/accounts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,6 +165,8 @@ export default function MCCPage() {
           customerId: customerId.trim()
         })
       })
+      
+      console.log('🔍 Réponse configuration:', response.status)
 
       const data = await response.json()
 
