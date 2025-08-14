@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Récupérer tous les comptes clients du MCC
+    // Récupérer le compte MCC principal et ses comptes clients
     const accountsResponse = await fetch('https://googleads.googleapis.com/v14/customers', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -88,6 +88,13 @@ export async function GET(request: NextRequest) {
 
     const accountsData = await accountsResponse.json()
     
+    // Séparer le MCC principal des comptes clients
+    const mccAccount = accountsData.results?.find((account: any) => account.customer.manager === true)
+    const clientAccounts = accountsData.results?.filter((account: any) => account.customer.manager !== true) || []
+    
+    console.log('MCC Account:', mccAccount?.customer?.id)
+    console.log('Client Accounts:', clientAccounts.map((acc: any) => acc.customer.id))
+    
     // Récupérer les données pour chaque compte client
     const allCampaigns = []
     const allMetrics = {
@@ -97,14 +104,18 @@ export async function GET(request: NextRequest) {
       totalConversions: 0,
       totalCampaigns: 0,
       activeCampaigns: 0,
-      totalAccounts: 0
+      totalAccounts: clientAccounts.length,
+      mccAccountId: mccAccount?.customer?.id || 'unknown',
+      averageCtr: 0,
+      averageCpc: 0,
+      averageCpm: 0
     }
 
-    for (const account of accountsData.results || []) {
+    for (const account of clientAccounts) {
       const customerId = account.customer.id
       
       try {
-        // Récupérer les campagnes pour ce compte
+        // Récupérer les campagnes pour ce compte client
         const campaignsResponse = await fetch(
           `https://googleads.googleapis.com/v14/customers/${customerId}/googleAds:searchStream`,
           {
@@ -161,10 +172,9 @@ export async function GET(request: NextRequest) {
           allMetrics.totalConversions += campaigns.reduce((sum: number, c: any) => sum + c.conversions, 0)
           allMetrics.totalCampaigns += campaigns.length
           allMetrics.activeCampaigns += campaigns.filter((c: any) => c.status === 'ENABLED').length
-          allMetrics.totalAccounts++
         }
       } catch (error) {
-        console.error(`Erreur pour le compte ${customerId}:`, error)
+        console.error(`Erreur pour le compte client ${customerId}:`, error)
         // Continuer avec les autres comptes
       }
     }
@@ -181,7 +191,17 @@ export async function GET(request: NextRequest) {
       data: { 
         campaigns: allCampaigns, 
         metrics: allMetrics,
-        accounts: accountsData.results?.length || 0
+        mccAccount: mccAccount ? {
+          id: mccAccount.customer.id,
+          name: mccAccount.customer.descriptiveName || mccAccount.customer.name,
+          manager: mccAccount.customer.manager
+        } : null,
+        clientAccounts: clientAccounts.map((acc: any) => ({
+          id: acc.customer.id,
+          name: acc.customer.descriptiveName || acc.customer.name,
+          manager: acc.customer.manager,
+          testAccount: acc.customer.testAccount
+        }))
       },
       message: "Données MCC Google Ads récupérées avec succès"
     })
