@@ -38,7 +38,22 @@ export async function GET(request: NextRequest) {
       }),
     })
 
-    const tokenData = await tokenResponse.json()
+    console.log('🔍 Réponse Google OAuth - Status:', tokenResponse.status)
+    console.log('🔍 Réponse Google OAuth - Headers:', Object.fromEntries(tokenResponse.headers.entries()))
+    
+    const tokenText = await tokenResponse.text()
+    console.log('🔍 Réponse Google OAuth - Body (premiers 500 chars):', tokenText.substring(0, 500))
+    
+    let tokenData
+    try {
+      tokenData = JSON.parse(tokenText)
+    } catch (parseError) {
+      console.error('❌ Erreur parsing JSON:', parseError)
+      console.error('📋 Réponse complète de Google:', tokenText)
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/client/google-ads?error=token_parse_failed`
+      )
+    }
 
     if (!tokenResponse.ok) {
       console.error('Erreur lors de l\'échange du token:', tokenData)
