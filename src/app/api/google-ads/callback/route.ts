@@ -46,7 +46,15 @@ export async function GET(request: NextRequest) {
     
     let tokenData
     try {
-      tokenData = JSON.parse(tokenText)
+      // Nettoyer le JSON malformé de Google
+      let cleanedTokenText = tokenText
+        .replace(/,\s*}/g, '}')  // Enlever les virgules trailing
+        .replace(/,\s*]/g, ']')  // Enlever les virgules trailing dans les arrays
+        .replace(/;\s*,/g, ',')  // Remplacer ";" par ","
+        .replace(/;\s*}/g, '}')  // Enlever ";" avant }
+      
+      tokenData = JSON.parse(cleanedTokenText)
+      console.log('✅ JSON nettoyé et parsé avec succès')
     } catch (parseError) {
       console.error('❌ Erreur parsing JSON:', parseError)
       console.error('📋 Réponse complète de Google:', tokenText)
