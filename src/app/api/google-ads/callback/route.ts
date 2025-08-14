@@ -71,6 +71,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les informations du compte Google Ads
+    console.log('🔍 Appel API Google Ads - Début')
+    console.log('🔍 Developer Token:', process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'Présent' : 'MANQUANT')
+    
     const accountResponse = await fetch('https://googleads.googleapis.com/v14/customers', {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
@@ -78,7 +81,23 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    const accountData = await accountResponse.json()
+    console.log('🔍 Réponse API Google Ads - Status:', accountResponse.status)
+    console.log('🔍 Réponse API Google Ads - Headers:', Object.fromEntries(accountResponse.headers.entries()))
+    
+    const accountText = await accountResponse.text()
+    console.log('🔍 Réponse API Google Ads - Body (premiers 500 chars):', accountText.substring(0, 500))
+    
+    let accountData
+    try {
+      accountData = JSON.parse(accountText)
+      console.log('✅ API Google Ads - JSON parsé avec succès')
+    } catch (parseError) {
+      console.error('❌ Erreur parsing API Google Ads:', parseError)
+      console.error('📋 Réponse complète API Google Ads:', accountText)
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/client/google-ads?error=google_ads_api_failed`
+      )
+    }
 
     if (!accountResponse.ok) {
       console.error('Erreur lors de la récupération du compte:', accountData)
