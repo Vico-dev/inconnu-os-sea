@@ -32,20 +32,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Connexion Google Ads non trouvée" }, { status: 404 })
     }
 
-    // Mettre à jour avec le nouveau customer ID
+    // Mettre à jour avec le nouveau customer ID (sans validation API pour l'instant)
     await prisma.googleAdsConnection.update({
       where: { userId: session.user.id },
       data: {
         accounts: JSON.stringify([{
           customerId: cleanCustomerId,
-          name: `Compte ${cleanCustomerId}`,
+          name: `Compte Google Ads ${cleanCustomerId}`,
           isManager: true
         }])
       }
     })
 
-    console.log('✅ Customer ID configuré:', cleanCustomerId)
-    return NextResponse.json({ success: true, customerId: cleanCustomerId })
+    console.log('✅ Customer ID configuré sans validation:', cleanCustomerId)
+    return NextResponse.json({ 
+      success: true, 
+      customerId: cleanCustomerId,
+      customerName: `Compte Google Ads ${cleanCustomerId}`
+    })
 
   } catch (error) {
     console.error('❌ Erreur configuration Customer ID:', error)
