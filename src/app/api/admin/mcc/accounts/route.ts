@@ -70,24 +70,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Récupérer les comptes clients du MCC
-    const accountsResponse = await fetch('https://googleads.googleapis.com/v14/customers', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
-      },
-    })
-
-    if (!accountsResponse.ok) {
-      const errorData = await accountsResponse.json()
-      console.error('Erreur API Google Ads:', errorData)
-      return NextResponse.json(
-        { error: "Erreur lors de la récupération des comptes MCC" },
-        { status: 500 }
-      )
-    }
-
-    const accountsData = await accountsResponse.json()
+    // Récupérer les comptes depuis la base de données (sauvegardés lors de la connexion)
+    const storedAccounts = JSON.parse(mccConnection.accounts || '[]')
+    
+    console.log('🔍 Comptes MCC stockés:', storedAccounts)
     
     // Récupérer les liens existants
     const existingLinks = await prisma.googleAdsPermission.findMany({
@@ -103,20 +89,20 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Traiter les comptes MCC
-    const accounts = accountsData.results?.map((account: any) => {
-      const existingLink = existingLinks.find(link => link.googleAdsCustomerId === account.customer.id)
+    // Traiter les comptes MCC stockés
+    const accounts = storedAccounts.map((account: any) => {
+      const existingLink = existingLinks.find(link => link.googleAdsCustomerId === account.customerId)
       
       return {
-        customerId: account.customer.id,
-        customerName: account.customer.descriptiveName || account.customer.name,
-        manager: account.customer.manager,
-        testAccount: account.customer.testAccount,
+        customerId: account.customerId,
+        customerName: account.name || `Compte ${account.customerId}`,
+        manager: account.isManager || false,
+        testAccount: false, // Par défaut
         isLinked: !!existingLink,
         linkedClientId: existingLink?.clientAccount?.user?.id,
         linkedClientName: existingLink ? `${existingLink.clientAccount.user.firstName} ${existingLink.clientAccount.user.lastName}` : undefined
       }
-    }) || []
+    })
 
     return NextResponse.json({
       success: true,
