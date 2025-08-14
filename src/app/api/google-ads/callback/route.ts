@@ -74,14 +74,64 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Appel API Google Ads - Début')
     console.log('🔍 Developer Token:', process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'Présent' : 'MANQUANT')
     
-    // Utiliser l'API Google Ads REST correcte
-    // Pour l'API REST, nous devons d'abord récupérer le customer ID du compte principal
-    const accountResponse = await fetch('https://googleads.googleapis.com/v15/customers', {
+    // Étape 1: Récupérer la liste des comptes accessibles
+    const listCustomersResponse = await fetch('https://googleads.googleapis.com/v15/customers:listAccessibleCustomers', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
         'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
       },
+    })
+
+    console.log('🔍 Réponse listAccessibleCustomers - Status:', listCustomersResponse.status)
+    console.log('🔍 Réponse listAccessibleCustomers - Headers:', Object.fromEntries(listCustomersResponse.headers.entries()))
+    
+    const listCustomersText = await listCustomersResponse.text()
+    console.log('🔍 Réponse listAccessibleCustomers - Body:', listCustomersText.substring(0, 500))
+
+    let listCustomersData
+    try {
+      listCustomersData = JSON.parse(listCustomersText)
+      console.log('✅ listAccessibleCustomers - JSON parsé avec succès')
+    } catch (parseError) {
+      console.error('❌ Erreur parsing listAccessibleCustomers:', parseError)
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/client/google-ads?error=list_customers_failed`
+      )
+    }
+
+    if (!listCustomersResponse.ok) {
+      console.error('Erreur lors de la récupération des comptes:', listCustomersData)
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/client/google-ads?error=list_customers_failed`
+      )
+    }
+
+    // Étape 2: Prendre le premier customer ID et récupérer ses détails
+    const customerIds = listCustomersData.resourceNames || []
+    if (customerIds.length === 0) {
+      console.error('Aucun compte Google Ads accessible trouvé')
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/client/google-ads?error=no_accounts_found`
+      )
+    }
+
+    const firstCustomerResource = customerIds[0] // Format: customers/1234567890
+    const customerId = firstCustomerResource.replace('customers/', '')
+    
+    console.log('🔍 Premier customer ID:', customerId)
+
+    // Étape 3: Récupérer les détails du customer
+    const accountResponse = await fetch(`https://googleads.googleapis.com/v15/customers/${customerId}/googleAds:search`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: "SELECT customer.id, customer.descriptive_name, customer.manager FROM customer LIMIT 1"
+      })
     })
 
     console.log('🔍 Réponse API Google Ads - Status:', accountResponse.status)
@@ -116,8 +166,12 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Type de connexion:', { isMCCConnection, actualUserId })
 
     // Sauvegarder les informations dans la base de données
-    // L'endpoint /customers retourne directement le customer ID
-    const customerId = accountData.resourceName?.replace('customers/', '') || accountData.id
+    // L'API search retourne un tableau de résultats avec customer.id
+    const results = accountData.results || []
+    const customerInfo = results.length > 0 ? results[0].customer : null
+    const customerIdFromAPI = customerInfo?.id || customerId // Utiliser l'ID de l'API ou celui récupéré plus tôt
+    const customerName = customerInfo?.descriptiveName || 'Unknown Account'
+    const isManager = customerInfo?.manager || false
     
     await prisma.googleAdsConnection.upsert({
       where: { userId: actualUserId },
@@ -125,7 +179,7 @@ export async function GET(request: NextRequest) {
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
         tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
-        accounts: JSON.stringify([{ customerId, resourceName: accountData.resourceName }]),
+        accounts: JSON.stringify([{ customerId: customerIdFromAPI, name: customerName, isManager }]),
         isConnected: true,
         connectedAt: new Date(),
       },
@@ -134,7 +188,7 @@ export async function GET(request: NextRequest) {
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
         tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
-        accounts: JSON.stringify([{ customerId, resourceName: accountData.resourceName }]),
+        accounts: JSON.stringify([{ customerId: customerIdFromAPI, name: customerName, isManager }]),
         isConnected: true,
         connectedAt: new Date(),
       }
