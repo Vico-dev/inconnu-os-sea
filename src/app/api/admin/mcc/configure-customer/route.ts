@@ -4,10 +4,15 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
+  console.log('🔍 Endpoint configure-customer appelé')
+  
   try {
     // Vérifier la session admin
     const session = await getServerSession(authOptions)
+    console.log('🔍 Session:', session?.user?.id)
+    
     if (!session?.user?.id) {
+      console.log('❌ Session manquante')
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
     }
 
@@ -102,4 +107,10 @@ export async function POST(request: NextRequest) {
       error: "Erreur lors de la configuration du customer ID" 
     }, { status: 500 })
   }
+}
+
+// Endpoint GET pour tester
+export async function GET() {
+  console.log('🔍 GET configure-customer appelé')
+  return NextResponse.json({ message: "Endpoint configure-customer fonctionne" })
 }

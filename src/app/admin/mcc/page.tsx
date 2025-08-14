@@ -146,6 +146,8 @@ export default function MCCPage() {
   }
 
   const configureCustomerId = async () => {
+    console.log('🔍 Configuration Customer ID - Début', { customerId })
+    
     if (!customerId.trim()) {
       toast.error('Veuillez saisir un Customer ID')
       return
