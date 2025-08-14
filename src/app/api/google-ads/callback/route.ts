@@ -3,10 +3,13 @@ import { prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Callback Google Ads - Début')
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
     const state = searchParams.get('state') // ID de l'utilisateur ou "mcc_" + ID admin
     const error = searchParams.get('error')
+    
+    console.log('📋 Paramètres reçus:', { code: code ? 'présent' : 'manquant', state, error })
 
     if (error) {
       return NextResponse.redirect(
@@ -64,6 +67,8 @@ export async function GET(request: NextRequest) {
     // Vérifier si c'est une connexion MCC (admin) ou client
     const isMCCConnection = state.startsWith('mcc_')
     const actualUserId = isMCCConnection ? state.replace('mcc_', '') : state
+    
+    console.log('🔍 Type de connexion:', { isMCCConnection, actualUserId })
 
     // Sauvegarder les informations dans la base de données
     await prisma.googleAdsConnection.upsert({
@@ -107,7 +112,12 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Erreur lors du callback Google Ads:', error)
+    console.error('❌ Erreur lors du callback Google Ads:', error)
+    console.error('📋 Détails de l\'erreur:', {
+      message: error instanceof Error ? error.message : 'Erreur inconnue',
+      stack: error instanceof Error ? error.stack : 'Pas de stack trace',
+      state: request.nextUrl.searchParams.get('state')
+    })
     return NextResponse.redirect(
       `${process.env.NEXTAUTH_URL}/client/google-ads?error=callback_failed`
     )
