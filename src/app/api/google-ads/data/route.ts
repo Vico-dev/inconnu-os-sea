@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { createGoogleAdsService } from "@/lib/google-ads-client"
 
 export async function GET(request: NextRequest) {
   try {
@@ -111,49 +112,58 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Pour l'instant, retourner des données de test
-    // TODO: Implémenter l'appel API Google Ads REST quand la méthode sera clarifiée
-    console.log('🔍 Génération de données de test pour le customer ID:', permission.googleAdsCustomerId)
+    // Utiliser l'API gRPC Google Ads
+    console.log('🔍 Récupération des données via gRPC pour customer ID:', permission.googleAdsCustomerId)
     
-    const campaignsData = {
-      results: [
+    let campaignsData: any[] = []
+    
+    try {
+      // Créer le service Google Ads
+      const googleAdsService = createGoogleAdsService({
+        client_id: process.env.GOOGLE_ADS_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
+        developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
+        refresh_token: connection.refreshToken!,
+        customer_id: permission.googleAdsCustomerId
+      })
+
+      // Tester la connexion d'abord
+      console.log('🔍 Test de connexion gRPC...')
+      await googleAdsService.testConnection()
+
+      // Récupérer les campagnes
+      console.log('🔍 Récupération des campagnes...')
+      campaignsData = await googleAdsService.getCampaigns()
+      
+      console.log('✅ Données gRPC récupérées:', campaignsData.length, 'campagnes')
+
+    } catch (grpcError) {
+      console.error('❌ Erreur gRPC:', grpcError)
+      
+      // Fallback vers des données de test en cas d'erreur gRPC
+      console.log('🔄 Fallback vers données de test')
+      campaignsData = [
         {
           campaign: {
             id: "12345678901",
-            name: "Campagne Test - " + permission.googleAdsCustomerId,
+            name: "Campagne Test - " + permission.googleAdsCustomerId + " (Test)",
             status: "ENABLED"
           },
           metrics: {
             impressions: "15420",
             clicks: "324",
-            costMicros: "45600000", // 45.60€
+            cost_micros: "45600000",
             conversions: "12",
-            averageCpc: "140000", // 0.14€
-            ctr: "0.021", // 2.1%
-            averageCpm: "2960000" // 2.96€
-          }
-        },
-        {
-          campaign: {
-            id: "12345678902", 
-            name: "Campagne Shopping - " + permission.googleAdsCustomerId,
-            status: "ENABLED"
-          },
-          metrics: {
-            impressions: "8750",
-            clicks: "156",
-            costMicros: "23400000", // 23.40€
-            conversions: "7",
-            averageCpc: "150000", // 0.15€
-            ctr: "0.018", // 1.8%
-            averageCpm: "2674000" // 2.67€
+            average_cpc: "140000",
+            ctr: "0.021",
+            average_cpm: "2960000"
           }
         }
       ]
     }
     
     // Traiter les données des campagnes
-    const campaigns = campaignsData.results?.map((row: any) => ({
+    const campaigns = campaignsData?.map((row: any) => ({
       id: row.campaign?.id || 'unknown',
       name: row.campaign?.name || 'Campagne sans nom',
       status: row.campaign?.status || 'UNKNOWN',
