@@ -282,6 +282,13 @@ export default function GoogleAdsPage() {
         </div>
       )}
 
+      {/* Graphiques */}
+      {campaigns.length > 0 && (
+        <div className="mt-8">
+          <GoogleAdsCharts campaigns={campaigns} />
+        </div>
+      )}
+
       {/* Campagnes */}
       <Card>
         <CardHeader>
