@@ -14,6 +14,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Récupérer les paramètres de date depuis l'URL
+    const { searchParams } = new URL(request.url)
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
+    
+    console.log('🔍 Paramètres de date:', { startDate, endDate })
+
     // Vérifier que l'utilisateur a un compte client
     const clientAccount = await prisma.clientAccount.findFirst({
       where: { userId: session.user.id }
@@ -133,7 +140,9 @@ export async function GET(request: NextRequest) {
 
       // Récupérer les campagnes
       console.log('🔍 Récupération des campagnes...')
-      campaignsData = await googleAdsService.getCampaigns()
+      const startDateObj = startDate ? new Date(startDate) : undefined
+      const endDateObj = endDate ? new Date(endDate) : undefined
+      campaignsData = await googleAdsService.getCampaigns(startDateObj, endDateObj)
       
       console.log('✅ Données gRPC récupérées:', campaignsData.length, 'campagnes')
 

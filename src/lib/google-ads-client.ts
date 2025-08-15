@@ -30,9 +30,18 @@ export class GoogleAdsService {
   /**
    * Récupérer les campagnes avec métriques
    */
-  async getCampaigns() {
+  async getCampaigns(startDate?: Date, endDate?: Date) {
     try {
       console.log('🔍 Récupération des campagnes via gRPC')
+      
+      let dateFilter = 'WHERE segments.date DURING LAST_30_DAYS'
+      
+      if (startDate && endDate) {
+        const startStr = startDate.toISOString().split('T')[0]
+        const endStr = endDate.toISOString().split('T')[0]
+        dateFilter = `WHERE segments.date BETWEEN '${startStr}' AND '${endStr}'`
+        console.log('🔍 Filtre de date:', dateFilter)
+      }
       
       const campaigns = await this.customer.query(`
         SELECT 
@@ -47,7 +56,7 @@ export class GoogleAdsService {
           metrics.ctr,
           metrics.average_cpm
         FROM campaign 
-        WHERE segments.date DURING LAST_30_DAYS
+        ${dateFilter}
       `)
 
       console.log('✅ Campagnes récupérées:', campaigns.length)

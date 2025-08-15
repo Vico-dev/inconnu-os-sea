@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, ExternalLink, BarChart3, TrendingUp, Eye, MousePointer, Euro } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
+import { DateRangeSelector, DateRange } from '@/components/client/DateRangeSelector'
+import { GoogleAdsCharts } from '@/components/client/GoogleAdsCharts'
 
 interface Campaign {
   id: string
@@ -43,6 +45,11 @@ export default function GoogleAdsPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [dateRange, setDateRange] = useState<DateRange>({
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 jours par défaut
+    endDate: new Date(),
+    label: '7 derniers jours'
+  })
 
   useEffect(() => {
     const errorParam = searchParams.get('error')
@@ -89,12 +96,23 @@ export default function GoogleAdsPage() {
     }
   }
 
-  const fetchGoogleAdsData = async () => {
+  const handleDateRangeChange = (newRange: DateRange) => {
+    setDateRange(newRange)
+    fetchGoogleAdsData(newRange)
+  }
+
+  const fetchGoogleAdsData = async (range?: DateRange) => {
     setIsLoading(true)
     setError(null)
     
+    const currentRange = range || dateRange
+    const params = new URLSearchParams({
+      startDate: currentRange.startDate.toISOString(),
+      endDate: currentRange.endDate.toISOString()
+    })
+    
     try {
-      const response = await fetch('/api/google-ads/data')
+      const response = await fetch(`/api/google-ads/data?${params}`)
       const data = await response.json()
       
       if (data.success) {
@@ -210,9 +228,18 @@ export default function GoogleAdsPage() {
         </Card>
       )}
 
-      {/* Métriques globales */}
+      {/* Sélecteur de date et métriques globales */}
       {metrics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Métriques Google Ads</h2>
+            <DateRangeSelector 
+              onDateRangeChange={handleDateRangeChange}
+              currentRange={dateRange}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Impressions</CardTitle>
