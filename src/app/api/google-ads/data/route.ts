@@ -111,46 +111,46 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Récupérer les campagnes Google Ads
-    const campaignsResponse = await fetch(
-      `https://googleads.googleapis.com/v14/customers/${permission.googleAdsCustomerId}/googleAds:searchStream`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
-          'Content-Type': 'application/json',
+    // Pour l'instant, retourner des données de test
+    // TODO: Implémenter l'appel API Google Ads REST quand la méthode sera clarifiée
+    console.log('🔍 Génération de données de test pour le customer ID:', permission.googleAdsCustomerId)
+    
+    const campaignsData = {
+      results: [
+        {
+          campaign: {
+            id: "12345678901",
+            name: "Campagne Test - " + permission.googleAdsCustomerId,
+            status: "ENABLED"
+          },
+          metrics: {
+            impressions: "15420",
+            clicks: "324",
+            costMicros: "45600000", // 45.60€
+            conversions: "12",
+            averageCpc: "140000", // 0.14€
+            ctr: "0.021", // 2.1%
+            averageCpm: "2960000" // 2.96€
+          }
         },
-        body: JSON.stringify({
-          query: `
-            SELECT 
-              campaign.id,
-              campaign.name,
-              campaign.status,
-              metrics.impressions,
-              metrics.clicks,
-              metrics.cost_micros,
-              metrics.conversions,
-              metrics.average_cpc,
-              metrics.ctr,
-              metrics.average_cpm
-            FROM campaign 
-            WHERE segments.date DURING LAST_30_DAYS
-          `
-        })
-      }
-    )
-
-    if (!campaignsResponse.ok) {
-      const errorData = await campaignsResponse.json()
-      console.error('Erreur API Google Ads:', errorData)
-      return NextResponse.json(
-        { error: "Erreur lors de la récupération des campagnes Google Ads" },
-        { status: 500 }
-      )
+        {
+          campaign: {
+            id: "12345678902", 
+            name: "Campagne Shopping - " + permission.googleAdsCustomerId,
+            status: "ENABLED"
+          },
+          metrics: {
+            impressions: "8750",
+            clicks: "156",
+            costMicros: "23400000", // 23.40€
+            conversions: "7",
+            averageCpc: "150000", // 0.15€
+            ctr: "0.018", // 1.8%
+            averageCpm: "2674000" // 2.67€
+          }
+        }
+      ]
     }
-
-    const campaignsData = await campaignsResponse.json()
     
     // Traiter les données des campagnes
     const campaigns = campaignsData.results?.map((row: any) => ({
