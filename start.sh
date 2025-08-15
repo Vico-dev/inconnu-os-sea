@@ -1,16 +1,12 @@
 #!/bin/bash
 
-# Appliquer les migrations Prisma
+# Appliquer les migrations Prisma (optionnel)
 echo "🔧 Application des migrations Prisma..."
-npx prisma migrate deploy
+npx prisma migrate deploy || echo "⚠️ Migrations non appliquées, continuation..."
 
-# Vérifier si les migrations ont été appliquées avec succès
-if [ $? -eq 0 ]; then
-    echo "✅ Migrations appliquées avec succès"
-else
-    echo "❌ Erreur lors de l'application des migrations"
-    exit 1
-fi
+# Générer le client Prisma
+echo "🔧 Génération du client Prisma..."
+npx prisma generate
 
 # Démarrer l'application
 echo "🚀 Démarrage de l'application..."
