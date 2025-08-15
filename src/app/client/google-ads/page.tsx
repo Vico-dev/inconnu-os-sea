@@ -152,7 +152,7 @@ export default function GoogleAdsPage() {
         </div>
         <div className="flex gap-2">
           <Button
-            onClick={fetchGoogleAdsData}
+            onClick={() => fetchGoogleAdsData()}
             disabled={isLoading}
             variant="outline"
           >
@@ -280,6 +280,7 @@ export default function GoogleAdsPage() {
             </CardContent>
           </Card>
         </div>
+        </>
       )}
 
       {/* Graphiques */}

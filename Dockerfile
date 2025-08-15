@@ -43,6 +43,7 @@ RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 nextjs
 
 # Copier les fichiers nécessaires
+COPY --from=base /app/package.json ./package.json
 COPY --from=base /app/public ./public
 COPY --from=base /app/.next ./.next
 COPY --from=base /app/node_modules ./node_modules
