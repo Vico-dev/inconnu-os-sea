@@ -40,17 +40,35 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Récupérer la connexion Google Ads
-    const connection = await prisma.googleAdsConnection.findFirst({
-      where: { userId: session.user.id }
+    // Récupérer la connexion Google Ads depuis l'admin MCC
+    // Le client n'a pas sa propre connexion, il utilise celle de l'admin via les permissions
+    const adminConnection = await prisma.googleAdsConnection.findFirst({
+      where: { 
+        isConnected: true,
+        // Chercher une connexion admin (pas celle du client actuel)
+        user: {
+          role: 'ADMIN'
+        }
+      },
+      include: {
+        user: true
+      }
     })
 
-    if (!connection || !connection.isConnected) {
+    if (!adminConnection) {
       return NextResponse.json(
-        { error: "Connexion Google Ads non établie. Veuillez vous connecter d'abord." },
+        { error: "Aucune connexion MCC Google Ads trouvée. Contactez votre administrateur." },
         { status: 403 }
       )
     }
+
+    console.log('🔍 Connexion MCC trouvée pour le client:', {
+      clientId: session.user.id,
+      adminId: adminConnection.user.id,
+      customerId: permission.googleAdsCustomerId
+    })
+
+    const connection = adminConnection
 
     // Vérifier si le token est expiré et le rafraîchir si nécessaire
     let accessToken = connection.accessToken
