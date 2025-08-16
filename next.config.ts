@@ -1,4 +1,8 @@
 import type { NextConfig } from "next"
+import path from 'path'
+// Importer dynamiquement webpack pour éviter les types en build local
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const webpackAny: any = require('webpack')
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -23,6 +27,21 @@ const nextConfig: NextConfig = {
   },
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+  webpack: (config, { isServer, dev }) => {
+    if (isServer && !dev) {
+      // Remplacer toute importation des templates emails par un stub
+      // On match la requête telle qu'écrite dans le code: '@/components/emails/...'
+      const emailsRequest = /^@\/components\/emails\/.+$/
+      config.plugins = config.plugins || []
+      config.plugins.push(
+        new webpackAny.NormalModuleReplacementPlugin(
+          emailsRequest as any,
+          path.resolve(__dirname, 'src/components/emails/__stub__.tsx')
+        )
+      )
+    }
+    return config
   },
   async headers() {
     return [

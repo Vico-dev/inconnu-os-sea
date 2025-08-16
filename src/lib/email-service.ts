@@ -18,13 +18,8 @@ export class EmailService {
         return null
       }
 
-      const { default: EmailVerification } = await import('@/components/emails/EmailVerification')
-      const emailHtml = await render(
-        await EmailVerification({
-          firstName,
-          verificationUrl
-        })
-      )
+      const { default: EmailVerification } = await import('@/components/emails/__stub__')
+      const emailHtml = await render(EmailVerification())
 
       const result = await resend.emails.send({
         from: this.from,
@@ -56,14 +51,8 @@ export class EmailService {
         return null
       }
 
-      const { default: WelcomeEmail } = await import('@/components/emails/WelcomeEmail')
-      const emailHtml = await render(
-        await WelcomeEmail({
-          firstName,
-          companyName,
-          plan
-        })
-      )
+      const { default: WelcomeEmail } = await import('@/components/emails/__stub__')
+      const emailHtml = await render(WelcomeEmail())
 
       const result = await resend.emails.send({
         from: this.from,
@@ -97,16 +86,8 @@ export class EmailService {
         return null
       }
 
-      const { default: PaymentConfirmationEmail } = await import('@/components/emails/PaymentConfirmationEmail')
-      const emailHtml = await render(
-        await PaymentConfirmationEmail({
-          firstName,
-          companyName,
-          plan,
-          amount,
-          invoiceUrl
-        })
-      )
+      const { default: PaymentConfirmationEmail } = await import('@/components/emails/__stub__')
+      const emailHtml = await render(PaymentConfirmationEmail())
 
       const result = await resend.emails.send({
         from: this.from,
@@ -254,15 +235,8 @@ export class EmailService {
       const loginUrl = `${process.env.NEXTAUTH_URL}/login`
       const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
 
-      const { default: EmailReminder1 } = await import('@/components/emails/EmailReminder1')
-      const emailHtml = await render(
-        await EmailReminder1({
-          firstName,
-          companyName,
-          loginUrl,
-          unsubscribeUrl
-        })
-      )
+      const { default: EmailReminder1 } = await import('@/components/emails/__stub__')
+      const emailHtml = await render(EmailReminder1())
 
       const result = await resend.emails.send({
         from: this.from,
@@ -296,15 +270,8 @@ export class EmailService {
       const loginUrl = `${process.env.NEXTAUTH_URL}/login`
       const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
 
-      const { default: EmailReminder2 } = await import('@/components/emails/EmailReminder2')
-      const emailHtml = await render(
-        await EmailReminder2({
-          firstName,
-          companyName,
-          loginUrl,
-          unsubscribeUrl
-        })
-      )
+      const { default: EmailReminder2 } = await import('@/components/emails/__stub__')
+      const emailHtml = await render(EmailReminder2())
 
       const result = await resend.emails.send({
         from: this.from,
@@ -338,15 +305,8 @@ export class EmailService {
       const loginUrl = `${process.env.NEXTAUTH_URL}/login`
       const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
 
-      const { default: EmailReminder3 } = await import('@/components/emails/EmailReminder3')
-      const emailHtml = await render(
-        await EmailReminder3({
-          firstName,
-          companyName,
-          loginUrl,
-          unsubscribeUrl
-        })
-      )
+      const { default: EmailReminder3 } = await import('@/components/emails/__stub__')
+      const emailHtml = await render(EmailReminder3())
 
       const result = await resend.emails.send({
         from: this.from,
@@ -380,15 +340,8 @@ export class EmailService {
       const loginUrl = `${process.env.NEXTAUTH_URL}/login`
       const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
 
-      const { default: EmailReminder4 } = await import('@/components/emails/EmailReminder4')
-      const emailHtml = await render(
-        await EmailReminder4({
-          firstName,
-          companyName,
-          loginUrl,
-          unsubscribeUrl
-        })
-      )
+      const { default: EmailReminder4 } = await import('@/components/emails/__stub__')
+      const emailHtml = await render(EmailReminder4())
 
       const result = await resend.emails.send({
         from: this.from,
@@ -419,13 +372,8 @@ export class EmailService {
         return null
       }
 
-      const { default: PasswordResetEmail } = await import('@/components/emails/PasswordResetEmail')
-      const emailHtml = await render(
-        await PasswordResetEmail({
-          firstName,
-          resetUrl
-        })
-      )
+      const { default: PasswordResetEmail } = await import('@/components/emails/__stub__')
+      const emailHtml = await render(PasswordResetEmail())
 
       const result = await resend.emails.send({
         from: this.from,

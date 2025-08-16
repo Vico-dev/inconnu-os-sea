@@ -89,7 +89,7 @@ export class GoogleAdsService {
 
       const map: Record<string, number> = {}
       for (const r of rows) {
-        const cat = r.segments?.conversionActionCategory || 'UNSPECIFIED'
+        const cat = (r.segments?.conversion_action_category as string) || 'UNSPECIFIED'
         const raw = r.metrics?.conversions
         const val = typeof raw === 'string' ? parseFloat(raw) : Number(raw || 0)
         map[cat] = (map[cat] || 0) + val
