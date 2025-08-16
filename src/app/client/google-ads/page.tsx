@@ -10,6 +10,8 @@ import { Loader2, ExternalLink, BarChart3, TrendingUp, Eye, MousePointer, Euro }
 import { useSearchParams } from 'next/navigation'
 import { DateRangeSelector, DateRange } from '@/components/client/DateRangeSelector'
 import { GoogleAdsCharts } from '@/components/client/GoogleAdsCharts'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 interface Campaign {
   id: string
@@ -47,6 +49,7 @@ export default function GoogleAdsPage() {
   const [conversionsByType, setConversionsByType] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [includeInactive, setIncludeInactive] = useState(false)
   const [dateRange, setDateRange] = useState<DateRange>({
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 jours par défaut
     endDate: new Date(),
@@ -146,6 +149,8 @@ export default function GoogleAdsPage() {
   const formatPercentage = (num: number) => {
     return `${num.toFixed(2)}%`
   }
+
+  const visibleCampaigns = includeInactive ? campaigns : campaigns.filter((c) => c.status === 'ENABLED')
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -298,7 +303,13 @@ export default function GoogleAdsPage() {
       {/* Campagnes */}
       <Card>
         <CardHeader>
-          <CardTitle>Campagnes</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Campagnes</CardTitle>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="toggle-inactive">Inclure inactives</Label>
+              <Switch id="toggle-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
+            </div>
+          </div>
           <CardDescription>
             {campaigns.length} campagne{campaigns.length > 1 ? 's' : ''} trouvée{campaigns.length > 1 ? 's' : ''}
           </CardDescription>
@@ -308,9 +319,9 @@ export default function GoogleAdsPage() {
             <div className="flex justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
-          ) : campaigns.length > 0 ? (
+          ) : visibleCampaigns.length > 0 ? (
             <div className="space-y-4">
-              {campaigns.map((campaign) => (
+              {visibleCampaigns.map((campaign) => (
                 <div key={campaign.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold">{campaign.name}</h3>
