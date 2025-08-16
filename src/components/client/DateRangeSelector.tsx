@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Calendar, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { format, subDays, subMonths, subYears } from 'date-fns'
+import { format, subDays, subYears } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
 export type DateRange = {
@@ -19,6 +19,7 @@ export type DateRange = {
 interface DateRangeSelectorProps {
   onDateRangeChange: (range: DateRange) => void
   currentRange: DateRange
+  storageKey?: string // pour mémoriser la préférence par utilisateur
 }
 
 const PRESET_RANGES = [
@@ -56,11 +57,29 @@ const PRESET_RANGES = [
   }
 ]
 
-export function DateRangeSelector({ onDateRangeChange, currentRange }: DateRangeSelectorProps) {
+export function DateRangeSelector({ onDateRangeChange, currentRange, storageKey }: DateRangeSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [customStart, setCustomStart] = useState<string>("")
+  const [customEnd, setCustomEnd] = useState<string>("")
+
+  // Charger préférence sauvegardée
+  useEffect(() => {
+    if (!storageKey) return
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw) {
+        const saved = JSON.parse(raw) as { startDate: string; endDate: string; label: string }
+        onDateRangeChange({ startDate: new Date(saved.startDate), endDate: new Date(saved.endDate), label: saved.label })
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey])
 
   const handleRangeSelect = (range: DateRange) => {
     onDateRangeChange(range)
+    if (storageKey) {
+      try { localStorage.setItem(storageKey, JSON.stringify(range)) } catch {}
+    }
     setIsOpen(false)
   }
 
@@ -94,6 +113,36 @@ export function DateRangeSelector({ onDateRangeChange, currentRange }: DateRange
             </div>
           </DropdownMenuItem>
         ))}
+
+        <div className="px-3 py-2 border-t mt-1">
+          <div className="text-xs text-muted-foreground mb-1">Personnalisé</div>
+          <div className="flex flex-col gap-2">
+            <input
+              type="date"
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="border rounded px-2 py-1 text-sm"
+            />
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="border rounded px-2 py-1 text-sm"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!customStart || !customEnd}
+              onClick={() => {
+                const start = new Date(customStart)
+                const end = new Date(customEnd)
+                handleRangeSelect({ startDate: start, endDate: end, label: 'Personnalisé' })
+              }}
+            >
+              Appliquer
+            </Button>
+          </div>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )

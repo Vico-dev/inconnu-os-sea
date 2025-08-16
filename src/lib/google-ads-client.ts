@@ -28,6 +28,78 @@ export class GoogleAdsService {
   }
 
   /**
+   * Récupérer les métriques journalières agrégées au niveau du compte
+   */
+  async getDailyMetrics(startDate?: Date, endDate?: Date) {
+    try {
+      let dateFilter = 'WHERE segments.date DURING LAST_7_DAYS'
+      if (startDate && endDate) {
+        const startStr = startDate.toISOString().split('T')[0]
+        const endStr = endDate.toISOString().split('T')[0]
+        dateFilter = `WHERE segments.date BETWEEN '${startStr}' AND '${endStr}'`
+      }
+
+      const rows = await this.customer.query(`
+        SELECT
+          segments.date,
+          metrics.impressions,
+          metrics.clicks,
+          metrics.cost_micros,
+          metrics.conversions
+        FROM customer
+        ${dateFilter}
+        ORDER BY segments.date ASC
+      `)
+
+      return rows.map((r: any) => ({
+        date: r.segments?.date,
+        impressions: parseInt(r.metrics?.impressions || '0'),
+        clicks: parseInt(r.metrics?.clicks || '0'),
+        cost: (parseInt(r.metrics?.cost_micros || '0') || 0) / 1_000_000,
+        conversions: parseFloat(r.metrics?.conversions || '0'),
+      }))
+    } catch (error) {
+      console.error('❌ Erreur getDailyMetrics:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Récupérer le détail des conversions par catégorie (achat, ajout au panier, formulaire, etc.)
+   */
+  async getConversionBreakdown(startDate?: Date, endDate?: Date) {
+    try {
+      let dateFilter = 'WHERE segments.date DURING LAST_7_DAYS'
+      if (startDate && endDate) {
+        const startStr = startDate.toISOString().split('T')[0]
+        const endStr = endDate.toISOString().split('T')[0]
+        dateFilter = `WHERE segments.date BETWEEN '${startStr}' AND '${endStr}'`
+      }
+
+      const rows = await this.customer.query(`
+        SELECT
+          conversion_action.category,
+          metrics.conversions
+        FROM customer
+        ${dateFilter}
+        AND segments.conversion_action IS NOT NULL
+      `)
+
+      const map: Record<string, number> = {}
+      for (const r of rows) {
+        const cat = r.conversion_action?.category || 'UNSPECIFIED'
+        const raw = r.metrics?.conversions
+        const val = typeof raw === 'string' ? parseFloat(raw) : Number(raw || 0)
+        map[cat] = (map[cat] || 0) + val
+      }
+
+      return Object.entries(map).map(([category, conversions]) => ({ category, conversions }))
+    } catch (error) {
+      console.error('❌ Erreur getConversionBreakdown:', error)
+      throw error
+    }
+  }
+  /**
    * Récupérer les campagnes avec métriques
    */
   async getCampaigns(startDate?: Date, endDate?: Date) {

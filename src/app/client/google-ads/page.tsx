@@ -43,6 +43,8 @@ export default function GoogleAdsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [metrics, setMetrics] = useState<Metrics | null>(null)
+  const [daily, setDaily] = useState<any[]>([])
+  const [conversionsByType, setConversionsByType] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -118,6 +120,8 @@ export default function GoogleAdsPage() {
       if (data.success) {
         setCampaigns(data.data.campaigns)
         setMetrics(data.data.metrics)
+        setDaily(data.data.daily || [])
+        setConversionsByType(data.data.conversionsByType || [])
       } else {
         setError(data.error || 'Erreur lors de la récupération des données')
       }
@@ -236,6 +240,7 @@ export default function GoogleAdsPage() {
             <DateRangeSelector 
               onDateRangeChange={handleDateRangeChange}
               currentRange={dateRange}
+              storageKey="ga_date_range"
             />
           </div>
           
@@ -284,9 +289,9 @@ export default function GoogleAdsPage() {
       )}
 
       {/* Graphiques */}
-      {campaigns.length > 0 && (
+      {(campaigns.length > 0 || daily.length > 0 || conversionsByType.length > 0) && (
         <div className="mt-8">
-          <GoogleAdsCharts campaigns={campaigns} />
+          <GoogleAdsCharts campaigns={campaigns} daily={daily} conversionsByType={conversionsByType} />
         </div>
       )}
 

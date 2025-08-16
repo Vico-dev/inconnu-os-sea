@@ -123,6 +123,8 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Récupération des données via gRPC pour customer ID:', permission.googleAdsCustomerId)
     
     let campaignsData: any[] = []
+    let daily: any[] = []
+    let conversionsByType: any[] = []
     
     try {
       // Créer le service Google Ads
@@ -138,11 +140,20 @@ export async function GET(request: NextRequest) {
       console.log('🔍 Test de connexion gRPC...')
       await googleAdsService.testConnection()
 
-      // Récupérer les campagnes
-      console.log('🔍 Récupération des campagnes...')
       const startDateObj = startDate ? new Date(startDate) : undefined
       const endDateObj = endDate ? new Date(endDate) : undefined
+      
+      // Récupérer les campagnes
+      console.log('🔍 Récupération des campagnes...')
       campaignsData = await googleAdsService.getCampaigns(startDateObj, endDateObj)
+
+      // Récupérer tendances quotidiennes
+      console.log('🔍 Récupération des tendances quotidiennes...')
+      daily = await googleAdsService.getDailyMetrics(startDateObj, endDateObj)
+
+      // Récupérer détail conversions
+      console.log('🔍 Récupération des conversions par type...')
+      conversionsByType = await googleAdsService.getConversionBreakdown(startDateObj, endDateObj)
       
       console.log('✅ Données gRPC récupérées:', campaignsData.length, 'campagnes')
 
@@ -168,6 +179,20 @@ export async function GET(request: NextRequest) {
             average_cpm: "2960000"
           }
         }
+      ]
+
+      daily = [
+        { date: '2025-08-10', impressions: 200, clicks: 20, cost: 18.5, conversions: 1 },
+        { date: '2025-08-11', impressions: 250, clicks: 22, cost: 20.1, conversions: 0 },
+        { date: '2025-08-12', impressions: 300, clicks: 25, cost: 22.4, conversions: 1 },
+        { date: '2025-08-13', impressions: 290, clicks: 18, cost: 16.0, conversions: 0 },
+        { date: '2025-08-14', impressions: 320, clicks: 30, cost: 24.7, conversions: 2 }
+      ]
+
+      conversionsByType = [
+        { category: 'PURCHASE', conversions: 2 },
+        { category: 'ADD_TO_CART', conversions: 1 },
+        { category: 'SUBMIT_LEAD_FORM', conversions: 1 }
       ]
     }
     
@@ -200,7 +225,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { campaigns, metrics },
+      data: { campaigns, metrics, daily, conversionsByType },
       message: "Données Google Ads récupérées avec succès"
     })
 

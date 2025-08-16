@@ -13,11 +13,16 @@ interface Campaign {
   conversions: number
 }
 
+interface DailyPoint { date: string; impressions: number; clicks: number; cost: number; conversions: number }
+interface ConversionType { category: string; conversions: number }
+
 interface GoogleAdsChartsProps {
   campaigns: Campaign[]
+  daily?: DailyPoint[]
+  conversionsByType?: ConversionType[]
 }
 
-export function GoogleAdsCharts({ campaigns }: GoogleAdsChartsProps) {
+export function GoogleAdsCharts({ campaigns, daily = [], conversionsByType = [] }: GoogleAdsChartsProps) {
   // Préparer les données pour les graphiques
   const chartData = campaigns.map(campaign => ({
     name: campaign.name.length > 20 ? campaign.name.substring(0, 20) + '...' : campaign.name,
@@ -35,6 +40,47 @@ export function GoogleAdsCharts({ campaigns }: GoogleAdsChartsProps) {
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
+      {/* Tendance quotidienne */}
+      {daily.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">Tendance quotidienne</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={daily}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" angle={-45} textAnchor="end" height={80} />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="clicks" stroke="#3b82f6" name="Clics" />
+                <Line type="monotone" dataKey="conversions" stroke="#8b5cf6" name="Conversions" />
+                <Line type="monotone" dataKey="cost" stroke="#10b981" name="Coût (€)" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Conversions par type */}
+      {conversionsByType.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">Conversions par type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={conversionsByType}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="category" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="conversions" fill="#8b5cf6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
       {/* Graphique des clics */}
       <Card>
         <CardHeader>
