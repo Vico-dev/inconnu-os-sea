@@ -1,4 +1,5 @@
 #!/bin/bash
 
 echo "🚀 Démarrage de l'application..."
-exec npx next start 
+# Utiliser le serveur standalone généré par Next
+exec node server.js
