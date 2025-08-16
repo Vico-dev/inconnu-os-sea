@@ -78,18 +78,18 @@ export class GoogleAdsService {
         dateFilter = `WHERE segments.date BETWEEN '${startStr}' AND '${endStr}'`
       }
 
+      // Utiliser la dimension de segment "conversion_action_category" depuis la vue customer
       const rows = await this.customer.query(`
         SELECT
-          conversion_action.category,
+          segments.conversion_action_category,
           metrics.conversions
         FROM customer
         ${dateFilter}
-        AND segments.conversion_action IS NOT NULL
       `)
 
       const map: Record<string, number> = {}
       for (const r of rows) {
-        const cat = r.conversion_action?.category || 'UNSPECIFIED'
+        const cat = r.segments?.conversionActionCategory || 'UNSPECIFIED'
         const raw = r.metrics?.conversions
         const val = typeof raw === 'string' ? parseFloat(raw) : Number(raw || 0)
         map[cat] = (map[cat] || 0) + val
