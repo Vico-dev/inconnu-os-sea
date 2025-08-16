@@ -85,6 +85,8 @@ export async function GET(request: NextRequest) {
       const manager = accounts.find((a: any) => a.isManager) || accounts[0]
       if (manager?.customerId) loginCustomerId = String(manager.customerId).replace(/[-\s]/g, '')
     } catch {}
+    const sanitizedCustomerId = String(permission.googleAdsCustomerId).replace(/[-\s]/g, '')
+    if (loginCustomerId === sanitizedCustomerId) loginCustomerId = undefined
 
     // Vérifier si le token est expiré et le rafraîchir si nécessaire
     let accessToken = connection.accessToken
@@ -141,7 +143,7 @@ export async function GET(request: NextRequest) {
         client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
         developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
         refresh_token: connection.refreshToken!,
-        customer_id: String(permission.googleAdsCustomerId).replace(/[-\s]/g, ''),
+        customer_id: sanitizedCustomerId,
         loginCustomerId
       })
 
