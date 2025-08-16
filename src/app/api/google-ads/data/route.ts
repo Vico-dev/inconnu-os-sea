@@ -169,42 +169,11 @@ export async function GET(request: NextRequest) {
       console.log('✅ Données gRPC récupérées:', campaignsData.length, 'campagnes')
 
     } catch (grpcError) {
-      console.error('❌ Erreur gRPC:', grpcError)
-      
-      // Fallback vers des données de test en cas d'erreur gRPC
-      console.log('🔄 Fallback vers données de test')
-      campaignsData = [
-        {
-          campaign: {
-            id: "12345678901",
-            name: "Campagne Test - " + permission.googleAdsCustomerId + " (Test)",
-            status: "ENABLED"
-          },
-          metrics: {
-            impressions: "15420",
-            clicks: "324",
-            cost_micros: "45600000",
-            conversions: "12",
-            average_cpc: "140000",
-            ctr: "0.021",
-            average_cpm: "2960000"
-          }
-        }
-      ]
-
-      daily = [
-        { date: '2025-08-10', impressions: 200, clicks: 20, cost: 18.5, conversions: 1 },
-        { date: '2025-08-11', impressions: 250, clicks: 22, cost: 20.1, conversions: 0 },
-        { date: '2025-08-12', impressions: 300, clicks: 25, cost: 22.4, conversions: 1 },
-        { date: '2025-08-13', impressions: 290, clicks: 18, cost: 16.0, conversions: 0 },
-        { date: '2025-08-14', impressions: 320, clicks: 30, cost: 24.7, conversions: 2 }
-      ]
-
-      conversionsByType = [
-        { category: 'PURCHASE', conversions: 2 },
-        { category: 'ADD_TO_CART', conversions: 1 },
-        { category: 'SUBMIT_LEAD_FORM', conversions: 1 }
-      ]
+      console.error('❌ Erreur gRPC (aucun fallback):', grpcError)
+      return NextResponse.json(
+        { error: 'Google Ads API indisponible. Veuillez réessayer plus tard.' },
+        { status: 502 }
+      )
     }
     
     // Traiter les données des campagnes
