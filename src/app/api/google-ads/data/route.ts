@@ -168,10 +168,22 @@ export async function GET(request: NextRequest) {
       
       console.log('✅ Données gRPC récupérées:', campaignsData.length, 'campagnes')
 
-    } catch (grpcError) {
-      console.error('❌ Erreur gRPC (aucun fallback):', grpcError)
+    } catch (grpcError: any) {
+      const errMsg = grpcError?.message || 'unknown'
+      const errName = grpcError?.name || 'Error'
+      const errStack = grpcError?.stack?.split('\n').slice(0, 3).join(' | ')
+      console.error('❌ Erreur gRPC (aucun fallback):', { errName, errMsg, loginCustomerId, customerId: sanitizedCustomerId, stack: errStack })
+
       return NextResponse.json(
-        { error: 'Google Ads API indisponible. Veuillez réessayer plus tard.' },
+        { 
+          error: 'Google Ads API indisponible',
+          details: errMsg,
+          context: {
+            loginCustomerId: loginCustomerId || null,
+            customerId: sanitizedCustomerId,
+            developerToken: process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'present' : 'missing'
+          }
+        },
         { status: 502 }
       )
     }
