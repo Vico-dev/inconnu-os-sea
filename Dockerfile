@@ -42,11 +42,10 @@ RUN apt-get update && apt-get install -y \
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 nextjs
 
-# Copier les fichiers nécessaires (mode standalone)
+# Copier les fichiers nécessaires (mode next start)
 COPY --from=base /app/package.json ./package.json
 COPY --from=base /app/public ./public
-COPY --from=base /app/.next/standalone ./
-COPY --from=base /app/.next/static ./.next/static
+COPY --from=base /app/.next ./.next
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/prisma ./prisma
 COPY --from=base /app/start.sh ./start.sh
