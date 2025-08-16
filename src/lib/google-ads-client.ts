@@ -6,6 +6,7 @@ export interface GoogleAdsConfig {
   developer_token: string
   refresh_token: string
   customer_id: string
+  loginCustomerId?: string
 }
 
 export class GoogleAdsService {
@@ -24,6 +25,7 @@ export class GoogleAdsService {
     this.customer = this.client.Customer({
       customer_id: config.customer_id,
       refresh_token: config.refresh_token,
+      login_customer_id: config.loginCustomerId,
     })
   }
 

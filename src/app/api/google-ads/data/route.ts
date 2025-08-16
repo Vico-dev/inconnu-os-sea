@@ -133,7 +133,8 @@ export async function GET(request: NextRequest) {
         client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
         developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
         refresh_token: connection.refreshToken!,
-        customer_id: permission.googleAdsCustomerId
+        customer_id: permission.googleAdsCustomerId,
+        loginCustomerId: JSON.parse(connection.accounts || '[]')[0]?.customerId || undefined
       })
 
       // Tester la connexion d'abord
