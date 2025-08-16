@@ -2,6 +2,15 @@ import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  experimental: {
+    swcPlugins: [
+      [
+        // Neutraliser les templates emails durant le build pour éviter le pre-render
+        require.resolve('./scripts/swc-null-email-plugin'),
+        {}
+      ]
+    ]
+  },
   serverExternalPackages: ['@prisma/client'],
   eslint: {
     ignoreDuringBuilds: true,
