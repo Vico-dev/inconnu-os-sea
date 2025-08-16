@@ -78,6 +78,14 @@ export async function GET(request: NextRequest) {
 
     const connection = adminConnection
 
+    // Déterminer loginCustomerId (MCC) proprement depuis la connexion admin
+    let loginCustomerId: string | undefined
+    try {
+      const accounts = JSON.parse(connection.accounts || '[]')
+      const manager = accounts.find((a: any) => a.isManager) || accounts[0]
+      if (manager?.customerId) loginCustomerId = String(manager.customerId).replace(/[-\s]/g, '')
+    } catch {}
+
     // Vérifier si le token est expiré et le rafraîchir si nécessaire
     let accessToken = connection.accessToken
     if (connection.tokenExpiry && new Date() > connection.tokenExpiry) {
@@ -133,8 +141,8 @@ export async function GET(request: NextRequest) {
         client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
         developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
         refresh_token: connection.refreshToken!,
-        customer_id: permission.googleAdsCustomerId,
-        loginCustomerId: JSON.parse(connection.accounts || '[]')[0]?.customerId || undefined
+        customer_id: String(permission.googleAdsCustomerId).replace(/[-\s]/g, ''),
+        loginCustomerId
       })
 
       // Tester la connexion d'abord
