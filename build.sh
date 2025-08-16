@@ -19,10 +19,21 @@ else
     if [ ! -d ".next/standalone" ]; then
         echo "🔧 Création du dossier standalone manquant..."
         mkdir -p .next/standalone
-        cp -r .next/server .next/standalone/
-        cp -r .next/static .next/standalone/
-        cp package.json .next/standalone/
+        # Copier ce qui est disponible
+        if [ -d ".next/server" ]; then
+          cp -r .next/server .next/standalone/
+        fi
+        # S'assurer que le dossier static existe pour éviter les erreurs de COPY Docker
+        mkdir -p .next/static
+        # Copier un static si présent à côté du standalone (facultatif)
+        if [ -d ".next/static" ]; then
+          cp -r .next/static .next/standalone/ 2>/dev/null || true
+        fi
+        cp package.json .next/standalone/ 2>/dev/null || true
         echo "✅ Dossier standalone créé"
+    else
+        # Toujours garantir l'existence de .next/static
+        mkdir -p .next/static
     fi
     
     echo "🚀 L'application devrait fonctionner correctement en production"
