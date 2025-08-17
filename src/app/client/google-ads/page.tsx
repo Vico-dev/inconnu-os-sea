@@ -48,6 +48,8 @@ export default function GoogleAdsPage() {
   const [daily, setDaily] = useState<any[]>([])
   const [conversionsByType, setConversionsByType] = useState<any[]>([])
   const [topKeywords, setTopKeywords] = useState<any[]>([])
+  const [sortField, setSortField] = useState<'clicks' | 'ctr' | 'cpc' | 'conversions'>('clicks')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [includeInactive, setIncludeInactive] = useState(false)
@@ -153,6 +155,23 @@ export default function GoogleAdsPage() {
   }
 
   const visibleCampaigns = includeInactive ? campaigns : campaigns.filter((c) => c.status === 'ENABLED')
+
+  const sortedKeywords = [...topKeywords].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1
+    const av = Number(a[sortField] || 0)
+    const bv = Number(b[sortField] || 0)
+    if (av === bv) return 0
+    return av > bv ? dir : -dir
+  })
+
+  const sortToggle = (field: 'clicks' | 'ctr' | 'cpc' | 'conversions') => {
+    if (sortField === field) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('desc')
+    }
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -329,6 +348,50 @@ export default function GoogleAdsPage() {
           </Card>
         </div>
         </>
+      )}
+
+      {/* Top mots-clés (Search) */}
+      {topKeywords.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Top 10 mots-clés (réseau de recherche)</CardTitle>
+            <CardDescription>Cliques, CTR, CPC et conversions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b">
+                    <th className="py-2 pr-4">Mot-clé</th>
+                    <th className="py-2 pr-4 cursor-pointer select-none" onClick={() => sortToggle('clicks')}>
+                      Clics {sortField==='clicks' ? (sortDir==='asc' ? '▲' : '▼') : ''}
+                    </th>
+                    <th className="py-2 pr-4 cursor-pointer select-none" onClick={() => sortToggle('ctr')}>
+                      CTR {sortField==='ctr' ? (sortDir==='asc' ? '▲' : '▼') : ''}
+                    </th>
+                    <th className="py-2 pr-4 cursor-pointer select-none" onClick={() => sortToggle('cpc')}>
+                      CPC {sortField==='cpc' ? (sortDir==='asc' ? '▲' : '▼') : ''}
+                    </th>
+                    <th className="py-2 pr-4 cursor-pointer select-none" onClick={() => sortToggle('conversions')}>
+                      Conversions {sortField==='conversions' ? (sortDir==='asc' ? '▲' : '▼') : ''}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedKeywords.map((k, idx) => (
+                    <tr key={idx} className="border-b last:border-0">
+                      <td className="py-2 pr-4 font-medium">{k.keyword}</td>
+                      <td className="py-2 pr-4">{formatNumber(k.clicks)}</td>
+                      <td className="py-2 pr-4">{formatPercentage(k.ctr)}</td>
+                      <td className="py-2 pr-4">{formatCurrency(k.cpc)}</td>
+                      <td className="py-2 pr-4">{formatNumber(k.conversions)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Graphiques */}
