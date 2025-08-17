@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y \
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 nextjs
 
-# Copier les fichiers nécessaires (mode next start)
+# Copier les fichiers nécessaires (mode next start). On copie uniquement si le build a réussi
 COPY --from=base /app/package.json ./package.json
 COPY --from=base /app/public ./public
 COPY --from=base /app/.next ./.next

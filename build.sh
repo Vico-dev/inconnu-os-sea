@@ -13,12 +13,6 @@ if [ $? -eq 0 ]; then
     echo "✅ Build réussi !"
     exit 0
 else
-    echo "⚠️ Build terminé avec des erreurs de pré-rendu (normales avec React Email)"
-    
-    # Toujours garantir l'existence de .next et .next/static
-    mkdir -p .next
-    mkdir -p .next/static
-    
-    echo "🚀 L'application devrait fonctionner correctement en production"
-    exit 0
-fi 
+    echo "❌ Échec du build Next.js. Arrêt du déploiement pour éviter un runtime sans .next"
+    exit 1
+fi
