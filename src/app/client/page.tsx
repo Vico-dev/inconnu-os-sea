@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Users, DollarSign, FileText, Calendar, MessageSquare, CreditCard, Settings, Zap, CheckCircle } from "lucide-react"
+import { TrendingUp, Users, DollarSign, FileText, Calendar, MessageSquare, CreditCard, Settings, Zap, CheckCircle, Eye, MousePointer, Euro, Info } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ClientLayout } from "@/components/client/ClientLayout"
 
 interface Ticket {
@@ -33,6 +34,18 @@ export default function ClientPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [isLoadingTickets, setIsLoadingTickets] = useState(true)
   const [subscriptionStatus, setSubscriptionStatus] = useState<{ status?: string; plan?: string } | null>(null)
+  const [gaMetrics, setGaMetrics] = useState<{
+    totalImpressions: number
+    totalClicks: number
+    totalCost: number
+    totalConversions: number
+    averageCtr: number
+    averageCpc: number
+    averageCpm: number
+    totalCampaigns: number
+    activeCampaigns: number
+  } | null>(null)
+  const [connectedCustomerId, setConnectedCustomerId] = useState<string | null>(null)
 
   // Charger statut abonnement
   useEffect(() => {
@@ -57,6 +70,24 @@ export default function ClientPage() {
       fetchTickets()
     }
   }, [user?.id])
+
+  // Charger les métriques Google Ads réelles
+  useEffect(() => {
+    const loadGoogleAds = async () => {
+      try {
+        const resp = await fetch('/api/google-ads/data')
+        if (!resp.ok) return
+        const data = await resp.json()
+        if (data?.success) {
+          setGaMetrics(data.data.metrics)
+          setConnectedCustomerId(data.data.customerId || null)
+        }
+      } catch (e) {
+        // ignorer en cas d'absence de connexion GA
+      }
+    }
+    loadGoogleAds()
+  }, [])
 
   const fetchTickets = async () => {
     try {
@@ -134,15 +165,25 @@ export default function ClientPage() {
                 </div>
               </div>
             )}
-            {/* Stats Overview */}
+            {/* Stats Overview (réelles si disponibles) */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center">
-                    <TrendingUp className="w-8 h-8 text-blue-600 mr-4" />
+                    <Eye className="w-8 h-8 text-blue-600 mr-4" />
                     <div>
-                      <p className="text-sm text-gray-600">ROAS</p>
-                      <p className="text-2xl font-bold text-gray-900">4.2x</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-600">Impressions</p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-gray-400" />
+                            </TooltipTrigger>
+                            <TooltipContent>Nombre total d’affichages de vos annonces.</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900">{gaMetrics ? new Intl.NumberFormat('fr-FR').format(gaMetrics.totalImpressions) : '--'}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -151,10 +192,20 @@ export default function ClientPage() {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center">
-                    <Users className="w-8 h-8 text-green-600 mr-4" />
+                    <MousePointer className="w-8 h-8 text-green-600 mr-4" />
                     <div>
-                      <p className="text-sm text-gray-600">Conversions</p>
-                      <p className="text-2xl font-bold text-gray-900">156</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-600">Clics</p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-gray-400" />
+                            </TooltipTrigger>
+                            <TooltipContent>Nombre d’interactions (clics) sur vos annonces.</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900">{gaMetrics ? new Intl.NumberFormat('fr-FR').format(gaMetrics.totalClicks) : '--'}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -163,10 +214,20 @@ export default function ClientPage() {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center">
-                    <DollarSign className="w-8 h-8 text-yellow-600 mr-4" />
+                    <Euro className="w-8 h-8 text-yellow-600 mr-4" />
                     <div>
-                      <p className="text-sm text-gray-600">Budget</p>
-                      <p className="text-2xl font-bold text-gray-900">€2,847</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-600">Coût total</p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-gray-400" />
+                            </TooltipTrigger>
+                            <TooltipContent>Dépenses totales sur la période sélectionnée.</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900">{gaMetrics ? new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(gaMetrics.totalCost) : '--'}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -175,10 +236,20 @@ export default function ClientPage() {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center">
-                    <FileText className="w-8 h-8 text-purple-600 mr-4" />
+                    <TrendingUp className="w-8 h-8 text-purple-600 mr-4" />
                     <div>
-                      <p className="text-sm text-gray-600">Factures</p>
-                      <p className="text-2xl font-bold text-gray-900">3</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-600">Conversions</p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-gray-400" />
+                            </TooltipTrigger>
+                            <TooltipContent>Actions précieuses enregistrées (achat, lead...).</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900">{gaMetrics ? new Intl.NumberFormat('fr-FR').format(gaMetrics.totalConversions) : '--'}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -212,7 +283,8 @@ export default function ClientPage() {
               </CardContent>
             </Card>
 
-            {/* Google Ads Connection Banner */}
+            {/* Google Ads Connection Banner (affiché si non connecté) */}
+            {!connectedCustomerId && (
             <Card className="mb-8 border-blue-200 bg-blue-50">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -246,6 +318,7 @@ export default function ClientPage() {
                 </div>
               </CardContent>
             </Card>
+            )}
 
             {/* Main Content */}
             <Tabs defaultValue="overview" className="space-y-6">
