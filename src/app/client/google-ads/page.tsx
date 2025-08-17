@@ -225,41 +225,7 @@ export default function GoogleAdsPage() {
         </Alert>
       )}
 
-      {/* Top mots-clés (Search) */}
-      {topKeywords.length > 0 && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Top 10 mots-clés (réseau de recherche)</CardTitle>
-            <CardDescription>Cliques, CTR, CPC et conversions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="py-2 pr-4">Mot-clé</th>
-                    <th className="py-2 pr-4">Clics</th>
-                    <th className="py-2 pr-4">CTR</th>
-                    <th className="py-2 pr-4">CPC</th>
-                    <th className="py-2 pr-4">Conversions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topKeywords.map((k, idx) => (
-                    <tr key={idx} className="border-b last:border-0">
-                      <td className="py-2 pr-4 font-medium">{k.keyword}</td>
-                      <td className="py-2 pr-4">{formatNumber(k.clicks)}</td>
-                      <td className="py-2 pr-4">{formatPercentage(k.ctr)}</td>
-                      <td className="py-2 pr-4">{formatCurrency(k.cpc)}</td>
-                      <td className="py-2 pr-4">{formatNumber(k.conversions)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Top mots-clés (Search) – supprimé ici (déplacé plus bas) */}
 
       {success && (
         <Alert className="border-green-200 bg-green-50">
