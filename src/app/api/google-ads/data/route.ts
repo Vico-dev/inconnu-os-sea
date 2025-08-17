@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
-    
+
     console.log('🔍 Paramètres de date:', { startDate, endDate })
 
     // Vérifier que l'utilisateur a un compte client
@@ -135,6 +135,7 @@ export async function GET(request: NextRequest) {
     let campaignsData: any[] = []
     let daily: any[] = []
     let conversionsByType: any[] = []
+    let topKeywords: any[] = []
     
     try {
       // Créer le service Google Ads
@@ -165,6 +166,10 @@ export async function GET(request: NextRequest) {
       // Récupérer détail conversions
       console.log('🔍 Récupération des conversions par type...')
       conversionsByType = await googleAdsService.getConversionBreakdown(startDateObj, endDateObj)
+      
+      // Récupérer top mots-clés (Search)
+      console.log('🔍 Récupération top mots-clés...')
+      topKeywords = await googleAdsService.getTopKeywords(startDateObj, endDateObj)
       
       console.log('✅ Données gRPC récupérées:', campaignsData.length, 'campagnes')
 
@@ -217,7 +222,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { campaigns, metrics, daily, conversionsByType },
+      data: { campaigns, metrics, daily, conversionsByType, topKeywords },
       message: "Données Google Ads récupérées avec succès"
     })
 

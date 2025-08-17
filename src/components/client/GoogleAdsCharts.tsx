@@ -50,6 +50,19 @@ export function GoogleAdsCharts({ campaigns, daily = [], conversionsByType = [] 
 
   const formatNumber = (n: number) => new Intl.NumberFormat('fr-FR').format(n)
 
+  const mapCategory = (cat: string) => {
+    switch (cat) {
+      case 'PURCHASE': return 'Achat'
+      case 'ADD_TO_CART': return 'Ajout au panier'
+      case 'SUBMIT_LEAD_FORM': return 'Lead/Formulaire'
+      case 'PAGE_VIEW': return 'Vue de page'
+      case 'PHONE_CALL_LEAD': return 'Appel'
+      default: return cat
+    }
+  }
+
+  const convData = conversionsByType.map((d) => ({ ...d, label: mapCategory(d.category) }))
+
   const DailyTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null
     const p: Record<string, any> = {}
@@ -111,19 +124,20 @@ export function GoogleAdsCharts({ campaigns, daily = [], conversionsByType = [] 
         </Card>
       )}
 
-      {/* Conversions par type */}
+      {/* Détail des conversions */}
       {conversionsByType.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">Conversions par type</CardTitle>
+            <CardTitle className="flex items-center gap-2">Détail des conversions</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={conversionsByType} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+              <BarChart data={convData} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="category" tick={{ fontSize: 12 }} />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip content={<BarTooltip />} />
+                <Legend />
                 <Bar dataKey="conversions" fill={COLORS.conversions} radius={[6,6,0,0]}>
                   <LabelList dataKey="conversions" position="top" formatter={(v: number)=>formatNumber(Number(v))} />
                 </Bar>

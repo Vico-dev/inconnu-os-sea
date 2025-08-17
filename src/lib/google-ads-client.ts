@@ -30,6 +30,47 @@ export class GoogleAdsService {
   }
 
   /**
+   * Top 10 mots-clés (réseau de recherche)
+   */
+  async getTopKeywords(startDate?: Date, endDate?: Date) {
+    try {
+      let dateFilter = 'WHERE segments.date DURING LAST_7_DAYS'
+      if (startDate && endDate) {
+        const startStr = startDate.toISOString().split('T')[0]
+        const endStr = endDate.toISOString().split('T')[0]
+        dateFilter = `WHERE segments.date BETWEEN '${startStr}' AND '${endStr}'`
+      }
+
+      const rows = await this.customer.query(`
+        SELECT
+          ad_group_criterion.keyword.text,
+          metrics.impressions,
+          metrics.clicks,
+          metrics.cost_micros,
+          metrics.ctr,
+          metrics.conversions
+        FROM keyword_view
+        ${dateFilter}
+        AND ad_group_criterion.status = 'ENABLED'
+        AND campaign.advertising_channel_type = 'SEARCH'
+        ORDER BY metrics.clicks DESC
+        LIMIT 10
+      `)
+
+      return rows.map((r: any) => ({
+        keyword: r.ad_group_criterion?.keyword?.text || '(not set)',
+        impressions: parseInt(r.metrics?.impressions || '0'),
+        clicks: parseInt(r.metrics?.clicks || '0'),
+        ctr: parseFloat(r.metrics?.ctr || '0') * 100,
+        cpc: (parseFloat(r.metrics?.cost_micros || '0') / Math.max(parseInt(r.metrics?.clicks || '0'), 1)) / 1_000_000,
+        conversions: parseFloat(r.metrics?.conversions || '0')
+      }))
+    } catch (error) {
+      console.error('❌ Erreur getTopKeywords:', error)
+      throw error
+    }
+  }
+  /**
    * Récupérer les métriques journalières agrégées au niveau du compte
    */
   async getDailyMetrics(startDate?: Date, endDate?: Date) {
