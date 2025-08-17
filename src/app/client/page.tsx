@@ -152,7 +152,6 @@ export default function ClientPage() {
   return (
     <ProtectedRoute allowedRoles={["CLIENT"]}>
       <OnboardingCheck>
-        <ClientLayout>
           <div className="p-6">
             {subscriptionStatus && subscriptionStatus.status !== 'ACTIVE' && (
               <div className="mb-6 p-4 rounded-lg border border-red-200 bg-red-50">
@@ -602,7 +601,6 @@ export default function ClientPage() {
               </TabsContent>
             </Tabs>
           </div>
-        </ClientLayout>
       </OnboardingCheck>
     </ProtectedRoute>
   )
