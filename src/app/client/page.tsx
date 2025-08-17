@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, Users, DollarSign, FileText, Calendar, MessageSquare, CreditCard, Settings, Zap, CheckCircle, Eye, MousePointer, Euro, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { ClientLayout } from "@/components/client/ClientLayout"
+// ClientLayout est déjà appliqué via src/app/client/layout.tsx
 
 interface Ticket {
   id: string

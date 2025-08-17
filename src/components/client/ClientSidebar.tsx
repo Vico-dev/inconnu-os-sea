@@ -66,7 +66,7 @@ export function ClientSidebar() {
     },
     {
       name: "Paramètres",
-      href: "/client",
+      href: "/client/settings",
       icon: Settings,
       current: false
     }
