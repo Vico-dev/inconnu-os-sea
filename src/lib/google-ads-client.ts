@@ -57,14 +57,18 @@ export class GoogleAdsService {
         LIMIT 10
       `)
 
-      return rows.map((r: any) => ({
-        keyword: r.ad_group_criterion?.keyword?.text || '(not set)',
-        impressions: parseInt(r.metrics?.impressions || '0'),
-        clicks: parseInt(r.metrics?.clicks || '0'),
-        ctr: parseFloat(r.metrics?.ctr || '0') * 100,
-        cpc: (parseFloat(r.metrics?.cost_micros || '0') / Math.max(parseInt(r.metrics?.clicks || '0'), 1)) / 1_000_000,
-        conversions: parseFloat(r.metrics?.conversions || '0')
-      }))
+      return rows.map((r: any) => {
+        const clicks = parseInt(r.metrics?.clicks ?? '0')
+        const costMicros = Number(r.metrics?.cost_micros ?? r.metrics?.costMicros ?? 0)
+        return {
+          keyword: r.ad_group_criterion?.keyword?.text || '(not set)',
+          impressions: parseInt(r.metrics?.impressions ?? '0'),
+          clicks,
+          ctr: parseFloat(r.metrics?.ctr ?? '0') * 100,
+          cpc: (costMicros / Math.max(clicks, 1)) / 1_000_000,
+          conversions: parseFloat(r.metrics?.conversions ?? '0')
+        }
+      })
     } catch (error) {
       console.error('❌ Erreur getTopKeywords:', error)
       throw error
@@ -94,13 +98,20 @@ export class GoogleAdsService {
         ORDER BY segments.date ASC
       `)
 
-      return rows.map((r: any) => ({
-        date: r.segments?.date,
-        impressions: parseInt(r.metrics?.impressions || '0'),
-        clicks: parseInt(r.metrics?.clicks || '0'),
-        cost: (parseInt(r.metrics?.cost_micros || '0') || 0) / 1_000_000,
-        conversions: parseFloat(r.metrics?.conversions || '0'),
-      }))
+      return rows.map((r: any) => {
+        const impressions = parseInt(r.metrics?.impressions ?? '0')
+        const clicks = parseInt(r.metrics?.clicks ?? '0')
+        const conversions = parseFloat(r.metrics?.conversions ?? '0')
+        const costMicrosRaw = r.metrics?.cost_micros ?? r.metrics?.costMicros ?? 0
+        const cost = Number(costMicrosRaw) / 1_000_000
+        return {
+          date: r.segments?.date,
+          impressions,
+          clicks,
+          cost,
+          conversions,
+        }
+      })
     } catch (error) {
       console.error('❌ Erreur getDailyMetrics:', error)
       throw error
