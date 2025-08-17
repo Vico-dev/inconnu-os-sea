@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { DateRangeSelector, DateRange } from "@/components/client/DateRangeSelector"
 import { TrendingUp, Users, DollarSign, FileText, Calendar, MessageSquare, CreditCard, Settings, Zap, CheckCircle, Eye, MousePointer, Euro, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 // ClientLayout est déjà appliqué via src/app/client/layout.tsx
@@ -46,6 +47,11 @@ export default function ClientPage() {
     activeCampaigns: number
   } | null>(null)
   const [connectedCustomerId, setConnectedCustomerId] = useState<string | null>(null)
+  const [dateRange, setDateRange] = useState<DateRange>({
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    endDate: new Date(),
+    label: '7 derniers jours'
+  })
 
   // Charger statut abonnement
   useEffect(() => {
@@ -75,7 +81,11 @@ export default function ClientPage() {
   useEffect(() => {
     const loadGoogleAds = async () => {
       try {
-        const resp = await fetch('/api/google-ads/data')
+        const params = new URLSearchParams({
+          startDate: dateRange.startDate.toISOString(),
+          endDate: dateRange.endDate.toISOString()
+        })
+        const resp = await fetch(`/api/google-ads/data?${params}`)
         if (!resp.ok) return
         const data = await resp.json()
         if (data?.success) {
@@ -87,7 +97,7 @@ export default function ClientPage() {
       }
     }
     loadGoogleAds()
-  }, [])
+  }, [dateRange])
 
   const fetchTickets = async () => {
     try {
@@ -165,6 +175,10 @@ export default function ClientPage() {
               </div>
             )}
             {/* Stats Overview (réelles si disponibles) */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">KPI Google Ads</h2>
+              <DateRangeSelector onDateRangeChange={setDateRange} currentRange={dateRange} storageKey="ga_dash_range" />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card>
                 <CardContent className="p-6">
