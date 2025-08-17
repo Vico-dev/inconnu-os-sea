@@ -52,6 +52,7 @@ export default function GoogleAdsPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [connectedCustomerId, setConnectedCustomerId] = useState<string | null>(null)
   const [includeInactive, setIncludeInactive] = useState(false)
   const [dateRange, setDateRange] = useState<DateRange>({
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 jours par défaut
@@ -129,6 +130,7 @@ export default function GoogleAdsPage() {
         setDaily(data.data.daily || [])
         setConversionsByType(data.data.conversionsByType || [])
         setTopKeywords(data.data.topKeywords || [])
+        setConnectedCustomerId(data.data.customerId || null)
       } else {
         setError(data.error || 'Erreur lors de la récupération des données')
       }
@@ -227,9 +229,11 @@ export default function GoogleAdsPage() {
 
       {/* Top mots-clés (Search) – supprimé ici (déplacé plus bas) */}
 
-      {success && (
+      {connectedCustomerId && (
         <Alert className="border-green-200 bg-green-50">
-          <AlertDescription className="text-green-800">{success}</AlertDescription>
+          <AlertDescription className="text-green-800">
+            Connexion active Google Ads — Compte n° {connectedCustomerId}
+          </AlertDescription>
         </Alert>
       )}
 

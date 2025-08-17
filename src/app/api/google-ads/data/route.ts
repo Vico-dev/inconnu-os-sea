@@ -222,7 +222,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { campaigns, metrics, daily, conversionsByType, topKeywords },
+      data: { campaigns, metrics, daily, conversionsByType, topKeywords, customerId: sanitizedCustomerId },
       message: "Données Google Ads récupérées avec succès"
     })
 
