@@ -10,11 +10,15 @@ function generateSignatureCode(): string {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Début demande de code de signature')
     const session = await getServerSession(authOptions)
     
     if (!session?.user) {
+      console.log('❌ Pas de session utilisateur')
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
+
+    console.log('✅ Session utilisateur trouvée:', session.user.email)
 
     const mandate = await prisma.advertisingMandate.findFirst({
       where: {
@@ -35,15 +39,21 @@ export async function POST(request: NextRequest) {
     })
 
     if (!mandate) {
+      console.log('❌ Aucun mandat trouvé pour l\'utilisateur:', session.user.id)
       return NextResponse.json({ error: 'Aucun mandat trouvé' }, { status: 404 })
     }
 
+    console.log('✅ Mandat trouvé:', mandate.mandateNumber)
+
     if (mandate.signatureVerified) {
+      console.log('❌ Mandat déjà signé')
       return NextResponse.json({ error: 'Le mandat est déjà signé' }, { status: 400 })
     }
 
     const signatureCode = generateSignatureCode()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
+
+    console.log('🔐 Code généré:', signatureCode, 'Expire:', expiresAt)
 
     await prisma.advertisingMandate.update({
       where: { id: mandate.id },
@@ -54,6 +64,9 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    console.log('✅ Code sauvegardé en base')
+
+    console.log('📧 Envoi email à:', mandate.clientAccount.user.email)
     await EmailService.sendSignatureCode(
       mandate.clientAccount.user.email,
       mandate.clientAccount.user.firstName,
@@ -61,6 +74,8 @@ export async function POST(request: NextRequest) {
       signatureCode,
       expiresAt.toISOString()
     )
+
+    console.log('✅ Email envoyé avec succès')
 
     return NextResponse.json({ 
       message: 'Code de signature envoyé par email',
