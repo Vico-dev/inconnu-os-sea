@@ -15,28 +15,21 @@ export class PDFService {
     const getPaymentConditions = () => {
       if (data.treasuryManagement) {
         return `
-          <div style="background-color: #f0fdf4; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #059669;">
-            <h4 style="color: #059669; margin: 0 0 10px 0;">Gestion de Trésorerie par l'Agence</h4>
-            <ul style="margin: 0; padding-left: 20px;">
-              <li>L'agence avance les dépenses publicitaires</li>
-              <li>Frais de gestion : 20% des dépenses (minimum 50€/mois)</li>
-              <li>Paiement : 30 jours fin de mois</li>
-              <li>Facturation mensuelle : dépenses + frais de gestion</li>
-            </ul>
+          <div class="section">
+            <div class="section-title">Conditions de paiement</div>
+            <div style="background-color: #f0fdf4; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #059669;">
+              <h4 style="color: #059669; margin: 0 0 10px 0;">Gestion de Trésorerie par l'Agence</h4>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>L'agence avance les dépenses publicitaires</li>
+                <li>Frais de gestion : 20% des dépenses (minimum 50€/mois)</li>
+                <li>Paiement : 30 jours fin de mois</li>
+                <li>Facturation mensuelle : dépenses + frais de gestion</li>
+              </ul>
+            </div>
           </div>
         `
       } else {
-        return `
-          <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #d97706;">
-            <h4 style="color: #d97706; margin: 0 0 10px 0;">Paiement Direct par le Client</h4>
-            <ul style="margin: 0; padding-left: 20px;">
-              <li>Le client paie directement les dépenses publicitaires</li>
-              <li>Frais d'agence selon devis en vigueur</li>
-              <li>Paiement des frais d'agence : 30 jours fin de mois</li>
-              <li><strong>⚠️ Important :</strong> Un retard de paiement peut entraîner une suspension des services</li>
-            </ul>
-          </div>
-        `
+        return '' // Pas de section conditions de paiement pour les clients qui paient directement
       }
     }
     
@@ -171,10 +164,7 @@ export class PDFService {
         </div>
         ` : ''}
 
-        <div class="section">
-          <div class="section-title">Conditions de paiement</div>
-          ${getPaymentConditions()}
-        </div>
+        ${getPaymentConditions()}
 
         <div class="section">
           <div class="section-title">Objet du mandat</div>
