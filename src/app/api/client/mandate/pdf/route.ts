@@ -54,11 +54,11 @@ export async function GET(request: NextRequest) {
     // Générer le PDF
     const pdfBuffer = await PDFService.generateMandatePDF(pdfData)
 
-    // Retourner le PDF
+    // Retourner le HTML
     return new NextResponse(pdfBuffer, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="mandat-${mandate.mandateNumber}.pdf"`,
+        'Content-Type': 'text/html',
+        'Content-Disposition': `attachment; filename="mandat-${mandate.mandateNumber}.html"`,
         'Content-Length': pdfBuffer.length.toString()
       }
     })

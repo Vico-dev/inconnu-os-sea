@@ -293,6 +293,11 @@ model AdvertisingMandate {
   monthlyBudgets   Json?    // Budgets mensuels détaillés [{"month": 1, "amount": 1000}, ...]
   budgetType       String?  // "FIXED" (montant fixe) ou "VARIABLE" (montants variables par mois)
   
+  // Gestion de trésorerie
+  treasuryManagement Boolean @default(false) // L'agence paie les dépenses publicitaires
+  managementFees    Float?  // Frais de gestion (20% avec minimum 50€)
+  paymentTerms      String? // Conditions de paiement (ex: "30 jours fin de mois")
+  
   // Traçabilité juridique renforcée
   consentData      Json?    // Données de consentement: IP, User-Agent, timestamps, etc.
   scrollTracking   Json?    // Données de scroll et temps passé sur la page
