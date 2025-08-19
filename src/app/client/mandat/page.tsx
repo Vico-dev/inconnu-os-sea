@@ -190,6 +190,19 @@ export default function MandatePage() {
 
   const totalFromMonthly = () => monthlyBudgets.reduce((acc, b) => acc + (parseFloat(b.amount) || 0), 0)
 
+  const lowBudgetMonths = monthlyBudgets
+    .filter(b => {
+      const v = parseFloat(b.amount)
+      return !isNaN(v) && v > 0 && v < 200
+    })
+    .map(b => b.month)
+
+  const isLow = (month: number) => {
+    const found = monthlyBudgets.find(b => b.month === month)
+    const v = found ? parseFloat(found.amount) : NaN
+    return !isNaN(v) && v > 0 && v < 200
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -362,10 +375,10 @@ export default function MandatePage() {
                     id="totalAnnualBudget"
                     type="number"
                     min="0"
-                    step="100"
+                    step="1"
                     value={totalAnnualBudget}
                     onChange={(e) => setTotalAnnualBudget(e.target.value)}
-                    placeholder="Ex: 12000"
+                    placeholder="Ex: 12540"
                     required
                   />
                   <p className="text-sm text-gray-500 mt-1">
@@ -389,11 +402,12 @@ export default function MandatePage() {
                               id={`month-${month.value}`}
                               type="number"
                               min="0"
-                              step="100"
+                              step="1"
                               value={b?.amount || ''}
                               onChange={(e) => handleMonthlyBudgetChange(month.value, e.target.value)}
                               placeholder="0"
                               required
+                              className={isLow(month.value) ? 'border-yellow-400 focus-visible:ring-yellow-500' : ''}
                             />
                           </div>
                         )
@@ -402,6 +416,13 @@ export default function MandatePage() {
                     <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                       <p className="text-sm font-medium text-blue-900">Total annuel: {totalFromMonthly().toLocaleString('fr-FR')} €</p>
                     </div>
+                    {lowBudgetMonths.length > 0 && (
+                      <div className="mt-3 p-3 rounded-md bg-yellow-50 border border-yellow-200">
+                        <p className="text-sm text-yellow-800">
+                          Avertissement: certains budgets mensuels sont &lt; 200€ ({lowBudgetMonths.map(m => MONTHS.find(mm => mm.value === m)?.label).filter(Boolean).join(', ')}). Les performances peuvent ne pas être au niveau attendu.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
