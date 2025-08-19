@@ -187,28 +187,16 @@ export default function MandatePage() {
     return formData.monthlyBudgets.reduce((sum, mb) => sum + mb.amount, 0)
   }
 
-  const downloadPDF = async () => {
+  const openPDF = async () => {
     if (!mandate) return
     
     try {
-      const response = await fetch('/api/client/mandate/pdf')
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `mandat-${mandate.mandateNumber}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-        toast.success('PDF téléchargé avec succès')
-      } else {
-        toast.error('Erreur lors du téléchargement du PDF')
-      }
+      // Ouvrir le PDF dans un nouvel onglet
+      window.open('/api/client/mandate/pdf', '_blank')
+      toast.success('PDF ouvert dans un nouvel onglet')
     } catch (error) {
-      console.error('Erreur téléchargement PDF:', error)
-      toast.error('Erreur lors du téléchargement du PDF')
+      console.error('Erreur ouverture PDF:', error)
+      toast.error('Erreur lors de l\'ouverture du PDF')
     }
   }
 
@@ -337,13 +325,13 @@ export default function MandatePage() {
               <div className="flex items-center gap-2">
                 {getStatusBadge(mandate.status)}
                 <Button
-                  onClick={downloadPDF}
+                  onClick={openPDF}
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-2"
                 >
                   <Download className="w-4 h-4" />
-                  Télécharger PDF
+                  Voir le PDF
                 </Button>
               </div>
             </CardTitle>
