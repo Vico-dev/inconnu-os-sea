@@ -48,7 +48,10 @@ export async function GET(request: NextRequest) {
       validUntil: mandate.validUntil?.toISOString() || '',
       budgetType: mandate.budgetType || 'FIXED',
       totalAnnualBudget: mandate.totalAnnualBudget || 0,
-      monthlyBudgets: mandate.monthlyBudgets ? JSON.parse(mandate.monthlyBudgets as string) : null
+      monthlyBudgets: mandate.monthlyBudgets ? JSON.parse(mandate.monthlyBudgets as string) : null,
+      treasuryManagement: mandate.treasuryManagement || false,
+      managementFees: mandate.managementFees || 0,
+      paymentTerms: mandate.paymentTerms || ''
     }
 
     // Générer le PDF
