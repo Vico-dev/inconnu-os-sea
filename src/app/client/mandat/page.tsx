@@ -101,12 +101,27 @@ export default function MandatePage() {
 
       if (result.success && result.data) {
         setMandate(result.data)
+        
+        // Parser monthlyBudgets si c'est un string JSON
+        let parsedMonthlyBudgets = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 }))
+        if (result.data.monthlyBudgets) {
+          try {
+            if (typeof result.data.monthlyBudgets === 'string') {
+              parsedMonthlyBudgets = JSON.parse(result.data.monthlyBudgets)
+            } else if (Array.isArray(result.data.monthlyBudgets)) {
+              parsedMonthlyBudgets = result.data.monthlyBudgets
+            }
+          } catch (e) {
+            console.error('Erreur parsing monthlyBudgets:', e)
+          }
+        }
+
         setFormData({
           signedByName: result.data.signedByName || '',
           signedByEmail: result.data.signedByEmail || '',
           budgetType: result.data.budgetType || 'FIXED',
           totalAnnualBudget: result.data.totalAnnualBudget ? result.data.totalAnnualBudget.toString() : '',
-          monthlyBudgets: result.data.monthlyBudgets || Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 }))
+          monthlyBudgets: parsedMonthlyBudgets
         })
         setTermsAccepted(result.data.termsAccepted || false)
         setGdprAccepted(result.data.gdprAccepted || false)
