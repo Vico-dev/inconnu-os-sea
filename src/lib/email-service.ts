@@ -581,25 +581,24 @@ export class EmailService {
     to: string,
     firstName: string,
     mandateNumber: string,
-    daysUntilExpiry: number,
+    expirationDate: string,
     renewalUrl: string
   ) {
     try {
       if (!resend) {
-        console.log('Resend non configuré, email de rappel ignoré')
+        console.log('Resend non configuré, email de rappel d\'expiration ignoré')
         return null
       }
-
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1f2937;">Agence Inconnu</h2>
-          <h3 style="color: #dc2626;">Rappel : Votre mandat expire bientôt</h3>
+          <h3 style="color: #dc2626;">⚠️ Votre mandat publicitaire expire bientôt</h3>
           <p>Bonjour ${firstName},</p>
-          <p>Votre mandat publicitaire <strong>${mandateNumber}</strong> expire dans <strong>${daysUntilExpiry} jours</strong>.</p>
+          <p>Votre mandat publicitaire <strong>${mandateNumber}</strong> expire le <strong>${new Date(expirationDate).toLocaleDateString('fr-FR')}</strong>.</p>
           
           <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
-            <strong>⚠️ Action requise :</strong><br>
-            Pour maintenir vos services de publicité en ligne, vous devez renouveler votre mandat avant l'expiration.
+            <strong>Action requise :</strong><br>
+            Pour maintenir vos services de publicité, vous devez renouveler votre mandat avant l'expiration.
           </div>
           
           <a href="${renewalUrl}" 
@@ -609,22 +608,78 @@ export class EmailService {
           
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
           <p style="color: #6b7280; font-size: 14px; text-align: center;">
-            Agence Inconnu - Spécialiste Google Ads
+            Agence Inconnu - Spécialiste Google Ads<br>
+            Ce rappel automatique a été envoyé 30 jours avant l'expiration
           </p>
         </div>
       `
-
       const result = await resend.emails.send({
         from: this.from,
         to: [to],
-        subject: `Rappel : Mandat expire dans ${daysUntilExpiry} jours`,
+        subject: `⚠️ Expiration mandat publicitaire - ${mandateNumber}`,
         html: emailHtml,
       })
-
       console.log('Email de rappel d\'expiration envoyé:', result)
       return result
     } catch (error) {
-      console.error('Erreur envoi email de rappel:', error)
+      console.error('Erreur envoi email de rappel d\'expiration:', error)
+      throw error
+    }
+  }
+
+  static async sendSignatureCode(
+    to: string,
+    firstName: string,
+    mandateNumber: string,
+    signatureCode: string,
+    expiresAt: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de code de signature ignoré')
+        return null
+      }
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #059669;">Code de signature électronique</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Vous avez demandé à signer électroniquement votre mandat publicitaire <strong>${mandateNumber}</strong>.</p>
+          
+          <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
+            <strong>Votre code de signature :</strong><br>
+            <div style="font-size: 32px; font-weight: bold; color: #059669; text-align: center; padding: 20px; background-color: white; border-radius: 8px; margin: 10px 0; letter-spacing: 8px;">
+              ${signatureCode}
+            </div>
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">
+              Ce code expire le ${new Date(expiresAt).toLocaleString('fr-FR')}
+            </p>
+          </div>
+          
+          <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d97706;">
+            <strong>⚠️ Sécurité :</strong><br>
+            • Ce code est valable 15 minutes uniquement<br>
+            • Ne partagez jamais ce code avec quiconque<br>
+            • Si vous n'avez pas demandé cette signature, ignorez cet email
+          </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 14px; text-align: center;">
+            Agence Inconnu - Spécialiste Google Ads<br>
+            Signature électronique sécurisée - Code à usage unique
+          </p>
+        </div>
+      `
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `Code de signature - Mandat ${mandateNumber}`,
+        html: emailHtml,
+      })
+      console.log('Email de code de signature envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de code de signature:', error)
       throw error
     }
   }

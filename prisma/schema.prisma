@@ -306,6 +306,11 @@ model AdvertisingMandate {
   termsAccepted    Boolean  @default(false)
   gdprAccepted     Boolean  @default(false)
   
+  // Signature électronique sécurisée
+  signatureCode    String?  // Code de vérification envoyé par email
+  signatureVerified Boolean @default(false) // Signature validée par code
+  signatureExpiresAt DateTime? // Expiration du code de signature
+  
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

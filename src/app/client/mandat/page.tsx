@@ -12,6 +12,7 @@ import { format, addMonths, isAfter, startOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import MandateLegalTerms from '@/components/client/MandateLegalTerms'
 import { Download } from 'lucide-react'
+import SignatureModal from '@/components/client/SignatureModal'
 
 interface MonthlyBudget {
   month: number
@@ -62,6 +63,9 @@ export default function MandatePage() {
     timeSpent: 0,
     scrollEvents: 0
   })
+
+  // État pour la signature électronique
+  const [showSignatureModal, setShowSignatureModal] = useState(false)
 
   // Générer les mois relatifs à la date de signature
   const generateMonthlyBudgets = (startDate: Date = new Date()) => {
@@ -630,8 +634,17 @@ export default function MandatePage() {
             />
 
             <Button 
-              type="submit" 
-              disabled={isSubmitting}
+              type="button"
+              onClick={() => {
+                if (mandate) {
+                  // Si le mandat existe, on peut le modifier directement
+                  handleSubmit(new Event('submit') as any)
+                } else {
+                  // Si c'est un nouveau mandat, on ouvre le modal de signature
+                  setShowSignatureModal(true)
+                }
+              }}
+              disabled={isSubmitting || !termsAccepted || !gdprAccepted}
               className="w-full"
             >
               {isSubmitting ? 'Traitement...' : mandate ? 'Modifier le Mandat' : 'Signer le Mandat'}
@@ -639,6 +652,17 @@ export default function MandatePage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Modal de signature électronique */}
+      <SignatureModal
+        isOpen={showSignatureModal}
+        onClose={() => setShowSignatureModal(false)}
+        onSuccess={() => {
+          fetchMandate()
+          setShowSignatureModal(false)
+        }}
+        mandateNumber={mandate?.mandateNumber || 'N/A'}
+      />
     </div>
   )
 }
