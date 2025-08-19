@@ -201,6 +201,8 @@ export async function POST(request: NextRequest) {
       // On continue même si l'email échoue
     }
 
+    
+
     console.log('✅ POST /api/client/mandate - Succès')
 
     return NextResponse.json({ 

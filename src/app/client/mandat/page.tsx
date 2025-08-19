@@ -259,12 +259,15 @@ export default function MandatePage() {
       if (result.success) {
         toast.success(result.message)
         await fetchMandate()
+        return true // Indique que la création/modification a réussi
       } else {
         toast.error(result.error || 'Erreur lors de la sauvegarde')
+        return false // Indique que la création/modification a échoué
       }
     } catch (error) {
       console.error('❌ Erreur lors de la sauvegarde:', error)
       toast.error('Erreur lors de la sauvegarde du mandat')
+      return false // Indique que la création/modification a échoué
     } finally {
       setIsSubmitting(false)
     }
@@ -579,13 +582,56 @@ export default function MandatePage() {
 
             <Button 
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 if (mandate) {
                   // Si le mandat existe, on peut le modifier directement
                   handleSubmit(new Event('submit') as any)
                 } else {
-                  // Si c'est un nouveau mandat, on ouvre le modal de signature
-                  setShowSignatureModal(true)
+                  // Si c'est un nouveau mandat, on utilise l'API de création et signature
+                  try {
+                    setIsSubmitting(true)
+                    
+                    const response = await fetch('/api/client/mandate/create-and-sign', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        signedByName: formData.signedByName,
+                        signedByEmail: formData.signedByEmail,
+                        budgetType: formData.budgetType,
+                        totalAnnualBudget: formData.totalAnnualBudget,
+                        monthlyBudgets: formData.monthlyBudgets,
+                        treasuryManagement: formData.treasuryManagement,
+                        managementFees: formData.treasuryManagement ? 20 : 0,
+                        paymentTerms: formData.paymentTerms,
+                        termsAccepted,
+                        gdprAccepted,
+                        consentData: {
+                          ip: 'capturé côté serveur',
+                          userAgent: 'capturé côté serveur',
+                          timestamp: new Date().toISOString(),
+                          sessionId: Math.random().toString(36).substring(2)
+                        },
+                        scrollTracking: scrollData
+                      })
+                    })
+
+                    const result = await response.json()
+
+                    if (response.ok) {
+                      toast.success('Mandat créé ! Vérifiez votre email pour le code de signature.')
+                      await fetchMandate()
+                      setShowSignatureModal(true)
+                    } else {
+                      toast.error(result.error || 'Erreur lors de la création du mandat')
+                    }
+                  } catch (error) {
+                    console.error('Erreur création mandat:', error)
+                    toast.error('Erreur lors de la création du mandat')
+                  } finally {
+                    setIsSubmitting(false)
+                  }
                 }
               }}
               disabled={isSubmitting || !termsAccepted || !gdprAccepted}
