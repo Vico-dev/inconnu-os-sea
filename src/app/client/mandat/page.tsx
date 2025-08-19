@@ -102,17 +102,22 @@ export default function MandatePage() {
       if (result.success && result.data) {
         setMandate(result.data)
         
-        // Parser monthlyBudgets si c'est un string JSON
+        // Parser monthlyBudgets de manière plus robuste
         let parsedMonthlyBudgets = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 }))
+        
         if (result.data.monthlyBudgets) {
           try {
             if (typeof result.data.monthlyBudgets === 'string') {
-              parsedMonthlyBudgets = JSON.parse(result.data.monthlyBudgets)
+              const parsed = JSON.parse(result.data.monthlyBudgets)
+              if (Array.isArray(parsed)) {
+                parsedMonthlyBudgets = parsed
+              }
             } else if (Array.isArray(result.data.monthlyBudgets)) {
               parsedMonthlyBudgets = result.data.monthlyBudgets
             }
           } catch (e) {
             console.error('Erreur parsing monthlyBudgets:', e)
+            // Garder l'array par défaut en cas d'erreur
           }
         }
 
@@ -312,18 +317,32 @@ export default function MandatePage() {
               <p className="font-medium">
                 {mandate.budgetType === 'FIXED' && mandate.totalAnnualBudget ? 
                   `Annuel fixe: ${mandate.totalAnnualBudget.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}` :
-                  mandate.budgetType === 'VARIABLE' && mandate.monthlyBudgets ?
-                  `Mensuel variable (Total annuel: ${mandate.totalAnnualBudget?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || 'N/A'})` :
+                  mandate.budgetType === 'VARIABLE' && mandate.totalAnnualBudget ?
+                  `Mensuel variable (Total annuel: ${mandate.totalAnnualBudget.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })})` :
                   'Non défini'
                 }
               </p>
               {mandate.budgetType === 'VARIABLE' && mandate.monthlyBudgets && (
                 <div className="mt-2 text-sm text-gray-700 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {mandate.monthlyBudgets.map((mb, index) => (
-                    <div key={mb.month}>
-                      {months[index]}: {mb.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                    </div>
-                  ))}
+                  {(() => {
+                    try {
+                      const monthlyData = typeof mandate.monthlyBudgets === 'string' 
+                        ? JSON.parse(mandate.monthlyBudgets) 
+                        : mandate.monthlyBudgets
+                      
+                      if (Array.isArray(monthlyData)) {
+                        return monthlyData.map((mb, index) => (
+                          <div key={mb.month}>
+                            {months[index]}: {mb.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                          </div>
+                        ))
+                      }
+                      return null
+                    } catch (e) {
+                      console.error('Erreur affichage budgets mensuels:', e)
+                      return null
+                    }
+                  })()}
                 </div>
               )}
             </div>
