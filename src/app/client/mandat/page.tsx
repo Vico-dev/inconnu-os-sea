@@ -10,6 +10,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import MandateLegalTerms from '@/components/client/MandateLegalTerms'
+
+interface MonthlyBudget {
+  month: number
+  amount: number
+}
 
 interface AdvertisingMandate {
   id: string
@@ -22,28 +28,14 @@ interface AdvertisingMandate {
   validFrom: string | null
   validUntil: string | null
   documentUrl: string | null
-  // nouveaux champs potentiels côté API/DB
-  totalAnnualBudget?: number | null
-  monthlyBudgets?: { month: number; amount: number }[] | null
-  budgetType?: 'FIXED' | 'VARIABLE' | null
+  totalAnnualBudget: number | null
+  monthlyBudgets: MonthlyBudget[] | null
+  budgetType: string | null
+  termsAccepted: boolean
+  gdprAccepted: boolean
   createdAt: string
   updatedAt: string
 }
-
-const MONTHS = [
-  { value: 1, label: 'Janvier' },
-  { value: 2, label: 'Février' },
-  { value: 3, label: 'Mars' },
-  { value: 4, label: 'Avril' },
-  { value: 5, label: 'Mai' },
-  { value: 6, label: 'Juin' },
-  { value: 7, label: 'Juillet' },
-  { value: 8, label: 'Août' },
-  { value: 9, label: 'Septembre' },
-  { value: 10, label: 'Octobre' },
-  { value: 11, label: 'Novembre' },
-  { value: 12, label: 'Décembre' }
-]
 
 export default function MandatePage() {
   const [mandate, setMandate] = useState<AdvertisingMandate | null>(null)
@@ -51,20 +43,55 @@ export default function MandatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     signedByName: '',
-    signedByEmail: ''
+    signedByEmail: '',
+    budgetType: 'FIXED' as 'FIXED' | 'VARIABLE',
+    totalAnnualBudget: '',
+    monthlyBudgets: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 })) as MonthlyBudget[]
   })
 
-  // états UI budget
-  const [budgetType, setBudgetType] = useState<'FIXED' | 'VARIABLE'>('FIXED')
-  const [totalAnnualBudget, setTotalAnnualBudget] = useState<string>('')
-  const [monthlyBudgets, setMonthlyBudgets] = useState<{ month: number; amount: string }[]>(
-    MONTHS.map(m => ({ month: m.value, amount: '' }))
-  )
+  // États juridiques
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [gdprAccepted, setGdprAccepted] = useState(false)
+  const [scrollData, setScrollData] = useState({
+    maxScroll: 0,
+    timeSpent: 0,
+    scrollEvents: 0
+  })
 
   // Charger le mandat actuel
   useEffect(() => {
     fetchMandate()
+    startTracking()
   }, [])
+
+  const startTracking = () => {
+    let startTime = Date.now()
+    let maxScroll = 0
+    let scrollEvents = 0
+
+    const trackScroll = () => {
+      const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
+      maxScroll = Math.max(maxScroll, scrollPercent)
+      scrollEvents++
+    }
+
+    const trackTime = () => {
+      const timeSpent = Math.floor((Date.now() - startTime) / 1000)
+      setScrollData({
+        maxScroll,
+        timeSpent,
+        scrollEvents
+      })
+    }
+
+    window.addEventListener('scroll', trackScroll)
+    const timeInterval = setInterval(trackTime, 1000)
+
+    return () => {
+      window.removeEventListener('scroll', trackScroll)
+      clearInterval(timeInterval)
+    }
+  }
 
   const fetchMandate = async () => {
     try {
@@ -73,24 +100,16 @@ export default function MandatePage() {
       const result = await response.json()
 
       if (result.success && result.data) {
-        const m: AdvertisingMandate = result.data
-        setMandate(m)
+        setMandate(result.data)
         setFormData({
-          signedByName: m.signedByName || '',
-          signedByEmail: m.signedByEmail || ''
+          signedByName: result.data.signedByName || '',
+          signedByEmail: result.data.signedByEmail || '',
+          budgetType: result.data.budgetType || 'FIXED',
+          totalAnnualBudget: result.data.totalAnnualBudget ? result.data.totalAnnualBudget.toString() : '',
+          monthlyBudgets: result.data.monthlyBudgets || Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 }))
         })
-        // init budgets depuis mandat si dispo
-        const bt = (m.budgetType || 'FIXED') as 'FIXED' | 'VARIABLE'
-        setBudgetType(bt)
-        if (bt === 'FIXED') {
-          setTotalAnnualBudget(m.totalAnnualBudget != null ? String(m.totalAnnualBudget) : '')
-        } else {
-          const byMonth = MONTHS.map(month => {
-            const found = (m.monthlyBudgets || []).find((b) => b.month === month.value)
-            return { month: month.value, amount: found ? String(found.amount) : '' }
-          })
-          setMonthlyBudgets(byMonth)
-        }
+        setTermsAccepted(result.data.termsAccepted || false)
+        setGdprAccepted(result.data.gdprAccepted || false)
       }
     } catch (error) {
       console.error('❌ Erreur lors du chargement du mandat:', error)
@@ -100,25 +119,38 @@ export default function MandatePage() {
     }
   }
 
+  const handleMonthlyBudgetChange = (month: number, value: string) => {
+    const newMonthlyBudgets = formData.monthlyBudgets.map(mb =>
+      mb.month === month ? { ...mb, amount: parseFloat(value) || 0 } : mb
+    )
+    setFormData(prev => ({ ...prev, monthlyBudgets: newMonthlyBudgets }))
+  }
+
+  const calculateTotalMonthlyBudget = () => {
+    return formData.monthlyBudgets.reduce((sum, mb) => sum + mb.amount, 0)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!formData.signedByName || !formData.signedByEmail) {
-      toast.error('Veuillez remplir tous les champs')
+      toast.error('Veuillez remplir tous les champs obligatoires (Nom, Email).')
       return
     }
 
-    if (budgetType === 'FIXED') {
-      if (!totalAnnualBudget) {
-        toast.error('Veuillez indiquer le budget annuel total')
-        return
-      }
-    } else {
-      const hasEmpty = monthlyBudgets.some(b => !b.amount)
-      if (hasEmpty) {
-        toast.error('Veuillez renseigner tous les budgets mensuels')
-        return
-      }
+    if (!termsAccepted || !gdprAccepted) {
+      toast.error('Vous devez accepter les conditions et le traitement des données.')
+      return
+    }
+
+    if (formData.budgetType === 'FIXED' && (!formData.totalAnnualBudget || parseFloat(formData.totalAnnualBudget) <= 0)) {
+      toast.error('Veuillez indiquer un budget annuel valide.')
+      return
+    }
+
+    if (formData.budgetType === 'VARIABLE' && calculateTotalMonthlyBudget() <= 0) {
+      toast.error('Veuillez indiquer des budgets mensuels valides.')
+      return
     }
 
     setIsSubmitting(true)
@@ -126,15 +158,23 @@ export default function MandatePage() {
     try {
       const url = '/api/client/mandate'
       const method = mandate ? 'PUT' : 'POST'
-      const body: any = mandate 
-        ? { mandateId: mandate.id, ...formData }
-        : { ...formData }
-
-      body.budgetType = budgetType
-      body.totalAnnualBudget = budgetType === 'FIXED' ? totalAnnualBudget : null
-      body.monthlyBudgets = budgetType === 'VARIABLE' 
-        ? monthlyBudgets.map(b => ({ month: b.month, amount: parseFloat(b.amount) }))
-        : null
+      const body = {
+        mandateId: mandate?.id, // Only for PUT
+        signedByName: formData.signedByName,
+        signedByEmail: formData.signedByEmail,
+        budgetType: formData.budgetType,
+        totalAnnualBudget: formData.budgetType === 'FIXED' ? parseFloat(formData.totalAnnualBudget) : calculateTotalMonthlyBudget(),
+        monthlyBudgets: formData.budgetType === 'VARIABLE' ? formData.monthlyBudgets : null,
+        termsAccepted,
+        gdprAccepted,
+        consentData: {
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          language: navigator.language,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        },
+        scrollTracking: scrollData
+      }
 
       const response = await fetch(url, {
         method,
@@ -145,7 +185,7 @@ export default function MandatePage() {
       const result = await response.json()
 
       if (result.success) {
-        toast.success(result.message || 'Enregistré')
+        toast.success(result.message)
         await fetchMandate()
       } else {
         toast.error(result.error || 'Erreur lors de la sauvegarde')
@@ -184,24 +224,10 @@ export default function MandatePage() {
     return new Date(validUntil) < new Date()
   }
 
-  const handleMonthlyBudgetChange = (month: number, amount: string) => {
-    setMonthlyBudgets(prev => prev.map(b => b.month === month ? { ...b, amount } : b))
-  }
-
-  const totalFromMonthly = () => monthlyBudgets.reduce((acc, b) => acc + (parseFloat(b.amount) || 0), 0)
-
-  const lowBudgetMonths = monthlyBudgets
-    .filter(b => {
-      const v = parseFloat(b.amount)
-      return !isNaN(v) && v > 0 && v < 200
-    })
-    .map(b => b.month)
-
-  const isLow = (month: number) => {
-    const found = monthlyBudgets.find(b => b.month === month)
-    const v = found ? parseFloat(found.amount) : NaN
-    return !isNaN(v) && v > 0 && v < 200
-  }
+  const months = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+  ]
 
   if (loading) {
     return (
@@ -266,32 +292,26 @@ export default function MandatePage() {
                 )}
               </div>
             </div>
-
-            {(mandate.totalAnnualBudget != null || (mandate.monthlyBudgets && mandate.monthlyBudgets.length)) && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h3 className="font-medium text-blue-900 mb-2">Budget Média</h3>
-                {mandate.totalAnnualBudget != null && (
-                  <p className="text-blue-800">
-                    Budget annuel: <span className="font-semibold">{mandate.totalAnnualBudget.toLocaleString('fr-FR')} €</span>
-                    {mandate.budgetType === 'FIXED' && (
-                      <span className="text-sm text-blue-700"> — soit ~{Math.round((mandate.totalAnnualBudget || 0) / 12).toLocaleString('fr-FR')} € / mois</span>
-                    )}
-                  </p>
-                )}
-                {mandate.monthlyBudgets && mandate.budgetType === 'VARIABLE' && (
-                  <div className="mt-2">
-                    <p className="text-sm text-blue-700">Répartition mensuelle :</p>
-                    <div className="grid grid-cols-3 gap-2 mt-1">
-                      {mandate.monthlyBudgets.map((b) => (
-                        <div key={b.month} className="text-xs text-blue-600">
-                          {MONTHS.find(m => m.value === b.month)?.label}: {b.amount.toLocaleString('fr-FR')} €
-                        </div>
-                      ))}
+            <div className="mt-4">
+              <p className="text-sm text-gray-600">Budget Média</p>
+              <p className="font-medium">
+                {mandate.budgetType === 'FIXED' && mandate.totalAnnualBudget ? 
+                  `Annuel fixe: ${mandate.totalAnnualBudget.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}` :
+                  mandate.budgetType === 'VARIABLE' && mandate.monthlyBudgets ?
+                  `Mensuel variable (Total annuel: ${mandate.totalAnnualBudget?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || 'N/A'})` :
+                  'Non défini'
+                }
+              </p>
+              {mandate.budgetType === 'VARIABLE' && mandate.monthlyBudgets && (
+                <div className="mt-2 text-sm text-gray-700 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {mandate.monthlyBudgets.map((mb, index) => (
+                    <div key={mb.month}>
+                      {months[index]}: {mb.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -353,90 +373,71 @@ export default function MandatePage() {
               </div>
             </div>
 
-            {/* Budget média */}
             <div className="space-y-4">
-              <h3 className="font-medium text-gray-900">Budget Média Annuel</h3>
-
-              <RadioGroup value={budgetType} onValueChange={(v) => setBudgetType(v as 'FIXED' | 'VARIABLE')} className="space-y-3">
+              <h3 className="font-medium text-gray-900">Budget Média Annuel *</h3>
+              <RadioGroup 
+                defaultValue="FIXED" 
+                value={formData.budgetType} 
+                onValueChange={(value: string) => setFormData(prev => ({ ...prev, budgetType: value as 'FIXED' | 'VARIABLE', totalAnnualBudget: '', monthlyBudgets: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 })) }))}
+                className="flex space-x-4"
+              >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="FIXED" id="fixed" />
-                  <Label htmlFor="fixed" className="font-medium">Budget annuel fixe</Label>
+                  <RadioGroupItem value="FIXED" id="budget-fixed" />
+                  <Label htmlFor="budget-fixed">Montant fixe annuel</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="VARIABLE" id="variable" />
-                  <Label htmlFor="variable" className="font-medium">Budget variable par mois (saisonnalité)</Label>
+                  <RadioGroupItem value="VARIABLE" id="budget-variable" />
+                  <Label htmlFor="budget-variable">Montant variable par mois</Label>
                 </div>
               </RadioGroup>
 
-              {budgetType === 'FIXED' && (
+              {formData.budgetType === 'FIXED' && (
                 <div>
-                  <Label htmlFor="totalAnnualBudget">Budget annuel total (€) *</Label>
+                  <Label htmlFor="totalAnnualBudget">Budget Annuel Total (€) *</Label>
                   <Input
                     id="totalAnnualBudget"
                     type="number"
+                    value={formData.totalAnnualBudget}
+                    onChange={(e) => setFormData(prev => ({ ...prev, totalAnnualBudget: e.target.value }))}
+                    placeholder="Ex: 12000"
                     min="0"
-                    step="1"
-                    value={totalAnnualBudget}
-                    onChange={(e) => setTotalAnnualBudget(e.target.value)}
-                    placeholder="Ex: 12540"
                     required
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Montant mensuel moyen: {totalAnnualBudget ? `${Math.round((parseFloat(totalAnnualBudget) || 0) / 12).toLocaleString('fr-FR')} €` : '0 €'}
+                </div>
+              )}
+
+              {formData.budgetType === 'VARIABLE' && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-700">Indiquez le budget pour chaque mois :</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {months.map((monthName, index) => (
+                      <div key={index}>
+                        <Label htmlFor={`month-${index + 1}`}>{monthName}</Label>
+                        <Input
+                          id={`month-${index + 1}`}
+                          type="number"
+                          value={formData.monthlyBudgets.find(mb => mb.month === index + 1)?.amount || ''}
+                          onChange={(e) => handleMonthlyBudgetChange(index + 1, e.target.value)}
+                          placeholder="0"
+                          min="0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-right font-medium mt-2">
+                    Total Annuel Estimé: {calculateTotalMonthlyBudget().toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                   </p>
                 </div>
               )}
-
-              {budgetType === 'VARIABLE' && (
-                <div className="space-y-4">
-                  <div>
-                    <Label>Budgets mensuels (€) *</Label>
-                    <p className="text-sm text-gray-500 mb-3">Définissez le montant pour chaque mois selon votre saisonnalité</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {MONTHS.map(month => {
-                        const b = monthlyBudgets.find(x => x.month === month.value)
-                        return (
-                          <div key={month.value}>
-                            <Label htmlFor={`month-${month.value}`} className="text-sm">{month.label}</Label>
-                            <Input
-                              id={`month-${month.value}`}
-                              type="number"
-                              min="0"
-                              step="1"
-                              value={b?.amount || ''}
-                              onChange={(e) => handleMonthlyBudgetChange(month.value, e.target.value)}
-                              placeholder="0"
-                              required
-                              className={isLow(month.value) ? 'border-yellow-400 focus-visible:ring-yellow-500' : ''}
-                            />
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                      <p className="text-sm font-medium text-blue-900">Total annuel: {totalFromMonthly().toLocaleString('fr-FR')} €</p>
-                    </div>
-                    {lowBudgetMonths.length > 0 && (
-                      <div className="mt-3 p-3 rounded-md bg-yellow-50 border border-yellow-200">
-                        <p className="text-sm text-yellow-800">
-                          Avertissement: certains budgets mensuels sont &lt; 200€ ({lowBudgetMonths.map(m => MONTHS.find(mm => mm.value === m)?.label).filter(Boolean).join(', ')}). Les performances peuvent ne pas être au niveau attendu.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-2">Conditions du mandat</h3>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>• Le mandat est valable pour une durée d'un an à compter de la signature</li>
-                <li>• Il autorise l'agence à gérer vos campagnes publicitaires en ligne</li>
-                <li>• Le renouvellement annuel est obligatoire pour maintenir les services</li>
-                <li>• Vous recevrez un rappel 30 jours avant l'expiration</li>
-              </ul>
-            </div>
+            {/* Conditions légales */}
+            <MandateLegalTerms
+              onTermsAccepted={setTermsAccepted}
+              onGdprAccepted={setGdprAccepted}
+              termsAccepted={termsAccepted}
+              gdprAccepted={gdprAccepted}
+            />
 
             <Button 
               type="submit" 

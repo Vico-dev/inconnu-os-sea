@@ -446,4 +446,186 @@ export class EmailService {
       throw error
     }
   }
+
+  /**
+   * Envoyer un email de confirmation de mandat publicitaire
+   */
+  static async sendMandateConfirmation(
+    to: string,
+    firstName: string,
+    mandateNumber: string,
+    signedAt: string,
+    budgetInfo: string,
+    mandateUrl: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de confirmation de mandat ignoré')
+        return null
+      }
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #059669;">Confirmation de votre mandat publicitaire</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Nous confirmons la signature de votre mandat publicitaire avec les informations suivantes :</p>
+          
+          <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
+            <strong>Détails du mandat :</strong><br>
+            Numéro de mandat: <strong>${mandateNumber}</strong><br>
+            Date de signature: ${new Date(signedAt).toLocaleDateString('fr-FR')}<br>
+            Budget média: ${budgetInfo}
+          </div>
+          
+          <p>Ce mandat est valable pour une durée d'un an et autorise l'Agence Inconnu à gérer vos campagnes publicitaires en ligne.</p>
+          
+          <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d97706;">
+            <strong>⚠️ Important :</strong><br>
+            • Vous recevrez un rappel 30 jours avant l'expiration<br>
+            • Le renouvellement annuel est obligatoire pour maintenir les services<br>
+            • Conservez cet email comme preuve de votre consentement
+          </div>
+          
+          <a href="${mandateUrl}" 
+             style="background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+            Voir mon mandat
+          </a>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 14px; text-align: center;">
+            Agence Inconnu - Spécialiste Google Ads<br>
+            Ce mandat a été signé électroniquement et est juridiquement valide
+          </p>
+        </div>
+      `
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `Confirmation de mandat publicitaire - ${mandateNumber}`,
+        html: emailHtml,
+      })
+
+      console.log('Email de confirmation de mandat envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de confirmation de mandat:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Envoyer une notification admin/AM pour nouveau mandat
+   */
+  static async sendMandateNotificationToAdmin(
+    adminEmail: string,
+    clientName: string,
+    companyName: string,
+    mandateNumber: string,
+    budgetInfo: string,
+    adminUrl: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de notification admin ignoré')
+        return null
+      }
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu - Notification Admin</h2>
+          <h3 style="color: #1d4ed8;">Nouveau mandat publicitaire signé</h3>
+          
+          <div style="background-color: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1d4ed8;">
+            <strong>Nouveau mandat :</strong><br>
+            Client: <strong>${clientName}</strong><br>
+            Entreprise: ${companyName}<br>
+            Numéro de mandat: <strong>${mandateNumber}</strong><br>
+            Budget média: ${budgetInfo}
+          </div>
+          
+          <p>Le client a signé son mandat publicitaire et peut maintenant accéder aux services de publicité en ligne.</p>
+          
+          <a href="${adminUrl}" 
+             style="background-color: #1d4ed8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+            Voir le mandat
+          </a>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 14px; text-align: center;">
+            Agence Inconnu - Système de notification automatique
+          </p>
+        </div>
+      `
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [adminEmail],
+        subject: `Nouveau mandat signé - ${clientName} (${mandateNumber})`,
+        html: emailHtml,
+      })
+
+      console.log('Email de notification admin envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de notification admin:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Envoyer un rappel d'expiration de mandat
+   */
+  static async sendMandateExpirationReminder(
+    to: string,
+    firstName: string,
+    mandateNumber: string,
+    daysUntilExpiry: number,
+    renewalUrl: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de rappel ignoré')
+        return null
+      }
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #dc2626;">Rappel : Votre mandat expire bientôt</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Votre mandat publicitaire <strong>${mandateNumber}</strong> expire dans <strong>${daysUntilExpiry} jours</strong>.</p>
+          
+          <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+            <strong>⚠️ Action requise :</strong><br>
+            Pour maintenir vos services de publicité en ligne, vous devez renouveler votre mandat avant l'expiration.
+          </div>
+          
+          <a href="${renewalUrl}" 
+             style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+            Renouveler mon mandat
+          </a>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 14px; text-align: center;">
+            Agence Inconnu - Spécialiste Google Ads
+          </p>
+        </div>
+      `
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `Rappel : Mandat expire dans ${daysUntilExpiry} jours`,
+        html: emailHtml,
+      })
+
+      console.log('Email de rappel d\'expiration envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de rappel:', error)
+      throw error
+    }
+  }
 } 

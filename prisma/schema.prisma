@@ -293,6 +293,14 @@ model AdvertisingMandate {
   monthlyBudgets   Json?    // Budgets mensuels détaillés [{"month": 1, "amount": 1000}, ...]
   budgetType       String?  // "FIXED" (montant fixe) ou "VARIABLE" (montants variables par mois)
   
+  // Traçabilité juridique renforcée
+  consentData      Json?    // Données de consentement: IP, User-Agent, timestamps, etc.
+  scrollTracking   Json?    // Données de scroll et temps passé sur la page
+  emailConfirmation Json?   // Données de confirmation email (envoyé, ouvert, etc.)
+  legalVersion     String   @default("v1.0") // Version des conditions légales
+  termsAccepted    Boolean  @default(false)
+  gdprAccepted     Boolean  @default(false)
+  
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
