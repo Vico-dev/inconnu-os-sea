@@ -60,14 +60,14 @@ export function AMSidebar({ ticketStats, appointmentStats }: AMSidebarProps) {
       name: "Mes Tickets",
       href: "/am/tickets",
       icon: MessageSquare,
-      current: pathname === "/am/tickets" || pathname.startsWith("/am/tickets/"),
+      current: pathname === "/am/tickets" || pathname?.startsWith("/am/tickets/"),
       badge: ticketStats?.open ? `${ticketStats.open} ouverts` : undefined
     },
     {
       name: "Rendez-vous",
       href: "/am/appointments",
       icon: Calendar,
-      current: pathname === "/am/appointments" || pathname.startsWith("/am/appointments/"),
+      current: pathname === "/am/appointments" || pathname?.startsWith("/am/appointments/"),
       badge: appointmentStats?.scheduled ? `${appointmentStats.scheduled} programmés` : undefined
     },
     {

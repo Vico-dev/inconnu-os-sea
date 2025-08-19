@@ -46,7 +46,7 @@ export default function AdminTicketEditPage() {
     category: ""
   })
 
-  const ticketId = params.ticketId as string
+  const ticketId = params?.ticketId as string
 
   useEffect(() => {
     if (ticketId) {

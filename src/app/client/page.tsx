@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { DateRangeSelector, DateRange } from "@/components/client/DateRangeSelector"
-import { TrendingUp, Users, DollarSign, FileText, Calendar, MessageSquare, CreditCard, Settings, Zap, CheckCircle, Eye, MousePointer, Euro, Info } from "lucide-react"
+import { TrendingUp, Users, DollarSign, FileText, Calendar, MessageSquare, CreditCard, Settings, Zap, CheckCircle, Eye, MousePointer, Euro, Info, AlertTriangle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 // ClientLayout est déjà appliqué via src/app/client/layout.tsx
 
@@ -47,6 +47,12 @@ export default function ClientPage() {
     activeCampaigns: number
   } | null>(null)
   const [connectedCustomerId, setConnectedCustomerId] = useState<string | null>(null)
+  const [mandateAlert, setMandateAlert] = useState<{
+    show: boolean
+    type: 'missing' | 'expiring' | 'expired'
+    message: string
+    daysUntilExpiry?: number
+  } | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>({
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     endDate: new Date(),
@@ -98,6 +104,55 @@ export default function ClientPage() {
     }
     loadGoogleAds()
   }, [dateRange])
+
+  // Vérifier le statut du mandat publicitaire
+  useEffect(() => {
+    const checkMandateStatus = async () => {
+      try {
+        const response = await fetch('/api/client/mandate')
+        if (!response.ok) return
+
+        const result = await response.json()
+        
+        if (!result.success || !result.data) {
+          // Aucun mandat trouvé
+          setMandateAlert({
+            show: true,
+            type: 'missing',
+            message: 'Mandat publicitaire requis - Signez votre mandat pour utiliser nos services de publicité.'
+          })
+          return
+        }
+
+        const mandate = result.data
+        if (mandate.status === 'EXPIRED' || (mandate.validUntil && new Date(mandate.validUntil) < new Date())) {
+          // Mandat expiré
+          setMandateAlert({
+            show: true,
+            type: 'expired',
+            message: 'Votre mandat publicitaire a expiré - Renouvelez-le pour continuer à utiliser nos services.'
+          })
+        } else if (mandate.validUntil) {
+          // Vérifier si le mandat expire bientôt (30 jours)
+          const daysUntilExpiry = Math.ceil((new Date(mandate.validUntil).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+          if (daysUntilExpiry <= 30 && daysUntilExpiry > 0) {
+            setMandateAlert({
+              show: true,
+              type: 'expiring',
+              message: `Votre mandat publicitaire expire dans ${daysUntilExpiry} jours - Pensez à le renouveler.`,
+              daysUntilExpiry
+            })
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erreur lors de la vérification du mandat:', error)
+      }
+    }
+
+    if (user?.id) {
+      checkMandateStatus()
+    }
+  }, [user?.id])
 
   const fetchTickets = async () => {
     try {
@@ -174,6 +229,51 @@ export default function ClientPage() {
                 </div>
               </div>
             )}
+            
+            {/* Bannière d'alerte pour le mandat publicitaire */}
+            {mandateAlert?.show && (
+              <div className={`mb-6 p-4 rounded-lg border flex items-center justify-between ${
+                mandateAlert.type === 'expired' || mandateAlert.type === 'missing' 
+                  ? 'border-red-200 bg-red-50' 
+                  : 'border-orange-200 bg-orange-50'
+              }`}>
+                <div className="flex items-center">
+                  <AlertTriangle className={`w-5 h-5 mr-3 ${
+                    mandateAlert.type === 'expired' || mandateAlert.type === 'missing' 
+                      ? 'text-red-600' 
+                      : 'text-orange-600'
+                  }`} />
+                  <div>
+                    <p className={`font-semibold ${
+                      mandateAlert.type === 'expired' || mandateAlert.type === 'missing' 
+                        ? 'text-red-800' 
+                        : 'text-orange-800'
+                    }`}>
+                      {mandateAlert.type === 'missing' && 'Mandat publicitaire manquant'}
+                      {mandateAlert.type === 'expired' && 'Mandat publicitaire expiré'}
+                      {mandateAlert.type === 'expiring' && 'Mandat publicitaire à renouveler'}
+                    </p>
+                    <p className={`text-sm ${
+                      mandateAlert.type === 'expired' || mandateAlert.type === 'missing' 
+                        ? 'text-red-700' 
+                        : 'text-orange-700'
+                    }`}>
+                      {mandateAlert.message}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => router.push('/client/mandat')}
+                  className={`${
+                    mandateAlert.type === 'expired' || mandateAlert.type === 'missing' 
+                      ? 'bg-red-600 hover:bg-red-700' 
+                      : 'bg-orange-600 hover:bg-orange-700'
+                  } text-white`}
+                >
+                  {mandateAlert.type === 'missing' ? 'Signer le mandat' : 'Renouveler le mandat'}
+                </Button>
+              </div>
+            )}
             {/* Stats Overview (réelles si disponibles) */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">KPI Google Ads</h2>
@@ -190,9 +290,11 @@ export default function ClientPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Info className="w-3.5 h-3.5 text-gray-400" />
+                              <span tabIndex={0} role="button" aria-label="Info impressions" className="inline-flex">
+                                <Info className="w-3.5 h-3.5 text-gray-400" />
+                              </span>
                             </TooltipTrigger>
-                            <TooltipContent>Nombre total d’affichages de vos annonces.</TooltipContent>
+                            <TooltipContent>Nombre total d’affichages de vos annonces (toutes campagnes confondues) sur la période.</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </div>
@@ -212,9 +314,11 @@ export default function ClientPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Info className="w-3.5 h-3.5 text-gray-400" />
+                              <span tabIndex={0} role="button" aria-label="Info clics" className="inline-flex">
+                                <Info className="w-3.5 h-3.5 text-gray-400" />
+                              </span>
                             </TooltipTrigger>
-                            <TooltipContent>Nombre d’interactions (clics) sur vos annonces.</TooltipContent>
+                            <TooltipContent>Nombre d’interactions (clics) enregistrées sur vos annonces.</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </div>
@@ -234,9 +338,11 @@ export default function ClientPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Info className="w-3.5 h-3.5 text-gray-400" />
+                              <span tabIndex={0} role="button" aria-label="Info coût" className="inline-flex">
+                                <Info className="w-3.5 h-3.5 text-gray-400" />
+                              </span>
                             </TooltipTrigger>
-                            <TooltipContent>Dépenses totales sur la période sélectionnée.</TooltipContent>
+                            <TooltipContent>Dépenses publicitaires cumulées sur la période (toutes campagnes).</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </div>
@@ -256,9 +362,11 @@ export default function ClientPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Info className="w-3.5 h-3.5 text-gray-400" />
+                              <span tabIndex={0} role="button" aria-label="Info conversions" className="inline-flex">
+                                <Info className="w-3.5 h-3.5 text-gray-400" />
+                              </span>
                             </TooltipTrigger>
-                            <TooltipContent>Actions précieuses enregistrées (achat, lead...).</TooltipContent>
+                            <TooltipContent>Actions précieuses suivies (commande, formulaire, appel…) attribuées aux annonces.</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </div>

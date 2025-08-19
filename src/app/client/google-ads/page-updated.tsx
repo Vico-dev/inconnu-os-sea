@@ -52,8 +52,8 @@ export default function GoogleAdsPage() {
   })
 
   useEffect(() => {
-    const errorParam = searchParams.get('error')
-    const successParam = searchParams.get('success')
+    const errorParam = searchParams?.get('error')
+    const successParam = searchParams?.get('success')
 
     if (errorParam) {
       setError(getErrorMessage(errorParam))

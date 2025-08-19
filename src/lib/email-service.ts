@@ -1,5 +1,4 @@
 import resend from './resend'
-import { render } from '@react-email/components'
 
 export class EmailService {
   private static from = 'Agence Inconnu <noreply@agence-inconnu.fr>'
@@ -18,8 +17,17 @@ export class EmailService {
         return null
       }
 
-      const { default: EmailVerification } = await import('@/components/emails/__stub__')
-      const emailHtml = await render(EmailVerification())
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #1d4ed8;">Validez votre compte</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Cliquez sur le lien ci-dessous pour valider votre compte :</p>
+          <a href="${verificationUrl}" style="background-color: #1d4ed8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+            Valider mon compte
+          </a>
+        </div>
+      `
 
       const result = await resend.emails.send({
         from: this.from,
@@ -51,8 +59,14 @@ export class EmailService {
         return null
       }
 
-      const { default: WelcomeEmail } = await import('@/components/emails/__stub__')
-      const emailHtml = await render(WelcomeEmail())
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #1d4ed8;">Bienvenue ! 🎉</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Bienvenue chez ${companyName} ! Votre plan ${plan} est maintenant actif.</p>
+        </div>
+      `
 
       const result = await resend.emails.send({
         from: this.from,
@@ -86,8 +100,15 @@ export class EmailService {
         return null
       }
 
-      const { default: PaymentConfirmationEmail } = await import('@/components/emails/__stub__')
-      const emailHtml = await render(PaymentConfirmationEmail())
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #16a34a;">Paiement confirmé ✅</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Votre paiement de ${amount} pour ${companyName} (plan ${plan}) a été confirmé.</p>
+          ${invoiceUrl ? `<a href="${invoiceUrl}">Télécharger la facture</a>` : ''}
+        </div>
+      `
 
       const result = await resend.emails.send({
         from: this.from,
@@ -235,8 +256,17 @@ export class EmailService {
       const loginUrl = `${process.env.NEXTAUTH_URL}/login`
       const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
 
-      const { default: EmailReminder1 } = await import('@/components/emails/__stub__')
-      const emailHtml = await render(EmailReminder1())
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #1d4ed8;">Votre compte vous attend ! 🚀</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Vous avez créé un compte pour ${companyName}. Connectez-vous pour commencer !</p>
+          <a href="${loginUrl}" style="background-color: #1d4ed8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+            Se connecter
+          </a>
+        </div>
+      `
 
       const result = await resend.emails.send({
         from: this.from,
@@ -270,8 +300,14 @@ export class EmailService {
       const loginUrl = `${process.env.NEXTAUTH_URL}/login`
       const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
 
-      const { default: EmailReminder2 } = await import('@/components/emails/__stub__')
-      const emailHtml = await render(EmailReminder2())
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #1d4ed8;">Découvrez nos témoignages ! 💬</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Nos clients parlent de nous ! Découvrez leurs témoignages.</p>
+        </div>
+      `
 
       const result = await resend.emails.send({
         from: this.from,
@@ -305,8 +341,14 @@ export class EmailService {
       const loginUrl = `${process.env.NEXTAUTH_URL}/login`
       const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
 
-      const { default: EmailReminder3 } = await import('@/components/emails/__stub__')
-      const emailHtml = await render(EmailReminder3())
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #1d4ed8;">Ne manquez pas ces opportunités ! ⏰</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Votre compte ${companyName} vous attend toujours.</p>
+        </div>
+      `
 
       const result = await resend.emails.send({
         from: this.from,
@@ -340,8 +382,14 @@ export class EmailService {
       const loginUrl = `${process.env.NEXTAUTH_URL}/login`
       const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?email=${encodeURIComponent(to)}`
 
-      const { default: EmailReminder4 } = await import('@/components/emails/__stub__')
-      const emailHtml = await render(EmailReminder4())
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #1d4ed8;">Dernière chance !</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Votre dernière chance de transformer vos campagnes Google Ads pour ${companyName}.</p>
+        </div>
+      `
 
       const result = await resend.emails.send({
         from: this.from,
@@ -372,8 +420,17 @@ export class EmailService {
         return null
       }
 
-      const { default: PasswordResetEmail } = await import('@/components/emails/__stub__')
-      const emailHtml = await render(PasswordResetEmail())
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #1d4ed8;">Réinitialisation du mot de passe</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe :</p>
+          <a href="${resetUrl}" style="background-color: #1d4ed8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+            Réinitialiser mon mot de passe
+          </a>
+        </div>
+      `
 
       const result = await resend.emails.send({
         from: this.from,

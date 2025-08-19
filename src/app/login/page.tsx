@@ -24,8 +24,8 @@ function LoginContent() {
   const router = useRouter()
 
   useEffect(() => {
-    const messageParam = searchParams.get("message")
-    const errorParam = searchParams.get("error")
+      const messageParam = searchParams?.get("message")
+  const errorParam = searchParams?.get("error")
     
     if (messageParam) {
       if (messageParam === "password_reset_success") {
@@ -56,7 +56,7 @@ function LoginContent() {
       const result = await login(formData.email, formData.password)
       if (result?.ok) {
         // S'il y a un plan passé en paramètre, prioriser l'onboarding avec ce plan
-        const plan = searchParams.get("plan")
+        const plan = searchParams?.get("plan")
         if (plan) {
           router.push(`/onboarding?plan=${plan}`)
         } else {

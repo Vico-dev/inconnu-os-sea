@@ -54,7 +54,7 @@ export default function TicketDetailsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const ticketId = params.ticketId as string
+  const ticketId = params?.ticketId as string
 
   useEffect(() => {
     if (ticketId) {

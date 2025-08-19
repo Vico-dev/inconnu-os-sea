@@ -17,7 +17,7 @@ export default function RegistrationConfirmationPage() {
   const [resendSuccess, setResendSuccess] = useState(false)
 
   useEffect(() => {
-    const emailParam = searchParams.get('email')
+    const emailParam = searchParams?.get('email')
     if (emailParam) {
       setEmail(emailParam)
     }

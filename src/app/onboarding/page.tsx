@@ -141,7 +141,7 @@ export default function OnboardingPage() {
   })
 
   useEffect(() => {
-    const planFromUrl = searchParams.get("plan")
+    const planFromUrl = searchParams?.get("plan")
 
     // Si non authentifié, rediriger vers la connexion en conservant le plan choisi
     if (!isAuthenticated) {

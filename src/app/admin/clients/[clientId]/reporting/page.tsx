@@ -70,7 +70,7 @@ interface GoogleAdsData {
 
 export default function ClientReportingPage() {
   const params = useParams()
-  const clientId = params.clientId as string
+  const clientId = params?.clientId as string
   const { user } = useAuth()
   
   console.log("🔍 Page de reporting - Utilisateur actuel:", {

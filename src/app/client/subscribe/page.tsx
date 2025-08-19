@@ -21,7 +21,7 @@ export default function SubscribePage() {
     if (status === 'loading') return
 
     // Récupérer en amont le plan depuis l'URL pour pouvoir le propager en cas de redirection
-    const planFromUrl = searchParams.get('plan')
+    const planFromUrl = searchParams?.get('plan')
     if (planFromUrl) {
       setPreSelectedPlan(planFromUrl)
     }

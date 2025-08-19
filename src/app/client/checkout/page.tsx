@@ -16,7 +16,7 @@ export default function CheckoutPage() {
   const [clientAccountId, setClientAccountId] = useState<string | null>(null)
   const [acceptCgv, setAcceptCgv] = useState(false)
 
-  const plan = searchParams.get('plan')
+  const plan = searchParams?.get('plan')
 
   useEffect(() => {
     if (status === 'loading') return

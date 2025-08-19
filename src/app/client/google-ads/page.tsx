@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, ExternalLink, BarChart3, TrendingUp, Eye, MousePointer, Euro } from 'lucide-react'
+import { Loader2, ExternalLink, BarChart3, TrendingUp, Eye, MousePointer, Euro, Info } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSearchParams } from 'next/navigation'
 import { DateRangeSelector, DateRange } from '@/components/client/DateRangeSelector'
 import { GoogleAdsCharts } from '@/components/client/GoogleAdsCharts'
@@ -61,8 +62,8 @@ export default function GoogleAdsPage() {
   })
 
   useEffect(() => {
-    const errorParam = searchParams.get('error')
-    const successParam = searchParams.get('success')
+      const errorParam = searchParams?.get('error')
+  const successParam = searchParams?.get('success')
 
     if (errorParam) {
       setError(getErrorMessage(errorParam))
@@ -156,7 +157,9 @@ export default function GoogleAdsPage() {
     return `${num.toFixed(2)}%`
   }
 
-  const visibleCampaigns = includeInactive ? campaigns : campaigns.filter((c) => c.status === 'ENABLED')
+  const visibleCampaigns = includeInactive 
+    ? campaigns 
+    : campaigns.filter((c) => String(c.status).toUpperCase() === 'ENABLED')
 
   const sortedKeywords = [...topKeywords].sort((a, b) => {
     const dir = sortDir === 'asc' ? 1 : -1
@@ -227,8 +230,6 @@ export default function GoogleAdsPage() {
         </Alert>
       )}
 
-      {/* Top mots-clés (Search) – supprimé ici (déplacé plus bas) */}
-
       {connectedCustomerId && (
         <Alert className="border-green-200 bg-green-50">
           <AlertDescription className="text-green-800">
@@ -279,7 +280,19 @@ export default function GoogleAdsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Impressions</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                Impressions
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0} role="button" className="inline-flex">
+                        <Info className="h-3.5 w-3.5 text-gray-400" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Affichages de vos annonces sur la période.</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -289,7 +302,19 @@ export default function GoogleAdsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Clics</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                Clics
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0} role="button" className="inline-flex">
+                        <Info className="h-3.5 w-3.5 text-gray-400" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Nombre d'interactions enregistrées sur vos annonces.</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardTitle>
               <MousePointer className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -299,7 +324,19 @@ export default function GoogleAdsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Coût total</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                Coût total
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0} role="button" className="inline-flex">
+                        <Info className="h-3.5 w-3.5 text-gray-400" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Dépenses publicitaires cumulées sur la période.</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardTitle>
               <Euro className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -309,7 +346,19 @@ export default function GoogleAdsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conversions</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                Conversions
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0} role="button" className="inline-flex">
+                        <Info className="h-3.5 w-3.5 text-gray-400" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Actions précieuses (commande, lead…) attribuées aux annonces.</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -392,7 +441,7 @@ export default function GoogleAdsPage() {
             </div>
           ) : visibleCampaigns.length > 0 ? (
             <div className="space-y-4">
-              {visibleCampaigns.map((campaign) => (
+              {(visibleCampaigns || []).map((campaign) => (
                 <div key={campaign.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold">{campaign.name}</h3>
@@ -430,4 +479,4 @@ export default function GoogleAdsPage() {
       </Card>
     </div>
   )
-} 
+}

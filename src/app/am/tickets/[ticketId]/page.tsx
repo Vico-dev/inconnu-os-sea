@@ -62,7 +62,7 @@ export default function AMTicketDetailsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
 
-  const ticketId = params.ticketId as string
+  const ticketId = params?.ticketId as string
 
   useEffect(() => {
     if (ticketId) {

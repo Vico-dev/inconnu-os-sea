@@ -25,8 +25,8 @@ function ConnectGoogleAdsContent() {
     }
 
     // Vérifier les paramètres d&apos;URL pour les messages de succès/erreur
-    const success = searchParams.get("success")
-    const error = searchParams.get("error")
+    const success = searchParams?.get("success")
+    const error = searchParams?.get("error")
 
     if (success === "google_ads_connected") {
       setConnectionStatus("success")

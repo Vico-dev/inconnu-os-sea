@@ -15,7 +15,8 @@ import {
   Settings,
   Menu,
   X,
-  LogOut
+  LogOut,
+  FileText
 } from "lucide-react"
 
 export function ClientSidebar() {
@@ -65,10 +66,16 @@ export function ClientSidebar() {
       current: pathname === "/client/google-ads"
     },
     {
+      name: "Mandat",
+      href: "/client/mandat",
+      icon: FileText,
+      current: pathname === "/client/mandat"
+    },
+    {
       name: "Paramètres",
       href: "/client/settings",
       icon: Settings,
-      current: false
+      current: pathname === "/client/settings"
     }
   ]
 

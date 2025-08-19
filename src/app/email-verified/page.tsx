@@ -15,8 +15,8 @@ export default function EmailVerifiedPage() {
   const [countdown, setCountdown] = useState(5)
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    const error = searchParams.get('error')
+      const token = searchParams?.get('token')
+  const error = searchParams?.get('error')
 
     if (error) {
       setStatus('error')
@@ -61,7 +61,7 @@ export default function EmailVerifiedPage() {
   }
 
   const handleResendEmail = () => {
-    router.push('/register/confirmation?email=' + searchParams.get('email'))
+    router.push('/register/confirmation?email=' + searchParams?.get('email'))
   }
 
   return (
