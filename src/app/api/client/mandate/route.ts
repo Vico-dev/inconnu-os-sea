@@ -39,13 +39,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 POST /api/client/mandate - Début')
     const session = await getServerSession(authOptions)
     
     if (!session?.user) {
+      console.log('❌ Non autorisé')
       return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
     }
 
     const body = await request.json()
+    console.log('📋 Body reçu:', JSON.stringify(body, null, 2))
+    
     const { 
       signedByName, 
       signedByEmail, 
@@ -60,6 +64,7 @@ export async function POST(request: NextRequest) {
 
     // Validation juridique
     if (!termsAccepted || !gdprAccepted) {
+      console.log('❌ Conditions non acceptées')
       return NextResponse.json({ 
         success: false, 
         error: 'Vous devez accepter les conditions et le traitement des données' 
@@ -76,8 +81,11 @@ export async function POST(request: NextRequest) {
     })
 
     if (!clientAccount) {
+      console.log('❌ Compte client non trouvé')
       return NextResponse.json({ success: false, error: 'Compte client non trouvé' }, { status: 404 })
     }
+
+    console.log('✅ Compte client trouvé:', clientAccount.id)
 
     // Générer un numéro de mandat unique
     const mandateNumber = `MND-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
@@ -99,6 +107,8 @@ export async function POST(request: NextRequest) {
         openedAt: null
       }
     }
+
+    console.log('📝 Création du mandat...')
 
     // Créer le mandat
     const mandate = await prisma.advertisingMandate.create({
@@ -124,11 +134,15 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    console.log('✅ Mandat créé:', mandate.id)
+
     // Envoyer email de confirmation au client
     try {
       const budgetInfo = budgetType === 'FIXED' 
         ? `${totalAnnualBudget} € (annuel fixe)`
-        : `${monthlyBudgets?.reduce((sum: number, mb: any) => sum + (mb.amount || 0), 0)} € (annuel variable)`
+        : `${monthlyBudgets?.reduce((sum: number, mb: any) => sum + (mb.amount || 0), 0) || 0} € (annuel variable)`
+
+      console.log('📧 Envoi email de confirmation...')
 
       await EmailService.sendMandateConfirmation(
         clientAccount.user.email,
@@ -151,6 +165,8 @@ export async function POST(request: NextRequest) {
           })
         }
       })
+
+      console.log('✅ Email de confirmation envoyé')
     } catch (emailError) {
       console.error('❌ Erreur envoi email de confirmation:', emailError)
       // On continue même si l'email échoue
@@ -164,7 +180,9 @@ export async function POST(request: NextRequest) {
 
       const budgetInfo = budgetType === 'FIXED' 
         ? `${totalAnnualBudget} € (annuel fixe)`
-        : `${monthlyBudgets?.reduce((sum: number, mb: any) => sum + (mb.amount || 0), 0)} € (annuel variable)`
+        : `${monthlyBudgets?.reduce((sum: number, mb: any) => sum + (mb.amount || 0), 0) || 0} € (annuel variable)`
+
+      console.log('📧 Envoi notifications admin...')
 
       for (const admin of adminUsers) {
         await EmailService.sendMandateNotificationToAdmin(
@@ -176,10 +194,14 @@ export async function POST(request: NextRequest) {
           `${process.env.NEXTAUTH_URL}/admin/clients/${clientAccount.id}`
         )
       }
+
+      console.log('✅ Notifications admin envoyées')
     } catch (adminEmailError) {
       console.error('❌ Erreur envoi notification admin:', adminEmailError)
       // On continue même si l'email échoue
     }
+
+    console.log('✅ POST /api/client/mandate - Succès')
 
     return NextResponse.json({ 
       success: true, 
