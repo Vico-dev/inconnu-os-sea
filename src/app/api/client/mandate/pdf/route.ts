@@ -7,20 +7,36 @@ import { PDFService } from '@/lib/pdf-service'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
+    
     if (!session?.user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    // Récupérer le mandat du client
     const mandate = await prisma.advertisingMandate.findFirst({
-      where: { clientAccount: { userId: session.user.id } },
-      include: { clientAccount: { include: { user: true, company: true } } },
-      orderBy: { createdAt: 'desc' }
+      where: {
+        clientAccount: {
+          userId: session.user.id
+        }
+      },
+      include: {
+        clientAccount: {
+          include: {
+            user: true,
+            company: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
     })
 
     if (!mandate) {
       return NextResponse.json({ error: 'Aucun mandat trouvé' }, { status: 404 })
     }
 
+    // Préparer les données pour le PDF
     const pdfData = {
       mandateNumber: mandate.mandateNumber,
       clientName: mandate.clientAccount.user.firstName + ' ' + mandate.clientAccount.user.lastName,
@@ -35,17 +51,22 @@ export async function GET(request: NextRequest) {
       monthlyBudgets: mandate.monthlyBudgets ? JSON.parse(mandate.monthlyBudgets as string) : null
     }
 
+    // Générer le PDF
     const pdfBuffer = await PDFService.generateMandatePDF(pdfData)
 
+    // Retourner le PDF
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="mandat-${mandate.mandateNumber}.pdf"`
+        'Content-Disposition': `attachment; filename="mandat-${mandate.mandateNumber}.pdf"`,
+        'Content-Length': pdfBuffer.length.toString()
       }
     })
 
   } catch (error) {
-    console.error('❌ Erreur PDF:', error)
-    return NextResponse.json({ error: 'Erreur génération PDF' }, { status: 500 })
+    console.error('❌ Erreur lors de la génération du PDF:', error)
+    return NextResponse.json({ 
+      error: 'Erreur lors de la génération du PDF' 
+    }, { status: 500 })
   }
 } 

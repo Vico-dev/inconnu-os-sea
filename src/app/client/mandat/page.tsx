@@ -8,13 +8,16 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
+import { format, addMonths, isAfter, startOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import MandateLegalTerms from '@/components/client/MandateLegalTerms'
+import { Download } from 'lucide-react'
 
 interface MonthlyBudget {
   month: number
   amount: number
+  monthName: string
+  isPast: boolean
 }
 
 interface AdvertisingMandate {
@@ -46,7 +49,7 @@ export default function MandatePage() {
     signedByEmail: '',
     budgetType: 'FIXED' as 'FIXED' | 'VARIABLE',
     totalAnnualBudget: '',
-    monthlyBudgets: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 })) as MonthlyBudget[]
+    monthlyBudgets: [] as MonthlyBudget[]
   })
 
   // États juridiques
@@ -57,6 +60,22 @@ export default function MandatePage() {
     timeSpent: 0,
     scrollEvents: 0
   })
+
+  // Générer les mois relatifs à la date de signature
+  const generateMonthlyBudgets = (startDate: Date = new Date()) => {
+    return Array.from({ length: 12 }, (_, i) => {
+      const monthDate = addMonths(startDate, i)
+      const monthName = format(monthDate, 'MMMM yyyy', { locale: fr })
+      const isPast = isAfter(startOfMonth(new Date()), startOfMonth(monthDate))
+      
+      return {
+        month: i + 1,
+        amount: 0,
+        monthName,
+        isPast
+      }
+    })
+  }
 
   // Charger le mandat actuel
   useEffect(() => {
@@ -103,21 +122,25 @@ export default function MandatePage() {
         setMandate(result.data)
         
         // Parser monthlyBudgets de manière plus robuste
-        let parsedMonthlyBudgets = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 }))
+        let parsedMonthlyBudgets = generateMonthlyBudgets()
         
         if (result.data.monthlyBudgets) {
           try {
             if (typeof result.data.monthlyBudgets === 'string') {
               const parsed = JSON.parse(result.data.monthlyBudgets)
               if (Array.isArray(parsed)) {
-                parsedMonthlyBudgets = parsed
+                // Mettre à jour avec les données existantes
+                parsedMonthlyBudgets = parsed.map((mb, index) => ({
+                  ...mb,
+                  monthName: parsedMonthlyBudgets[index]?.monthName || mb.monthName,
+                  isPast: parsedMonthlyBudgets[index]?.isPast || false
+                }))
               }
             } else if (Array.isArray(result.data.monthlyBudgets)) {
               parsedMonthlyBudgets = result.data.monthlyBudgets
             }
           } catch (e) {
             console.error('Erreur parsing monthlyBudgets:', e)
-            // Garder l'array par défaut en cas d'erreur
           }
         }
 
@@ -130,6 +153,12 @@ export default function MandatePage() {
         })
         setTermsAccepted(result.data.termsAccepted || false)
         setGdprAccepted(result.data.gdprAccepted || false)
+      } else {
+        // Pas de mandat existant, initialiser avec les mois actuels
+        setFormData(prev => ({
+          ...prev,
+          monthlyBudgets: generateMonthlyBudgets()
+        }))
       }
     } catch (error) {
       console.error('❌ Erreur lors du chargement du mandat:', error)
@@ -148,6 +177,31 @@ export default function MandatePage() {
 
   const calculateTotalMonthlyBudget = () => {
     return formData.monthlyBudgets.reduce((sum, mb) => sum + mb.amount, 0)
+  }
+
+  const downloadPDF = async () => {
+    if (!mandate) return
+    
+    try {
+      const response = await fetch('/api/client/mandate/pdf')
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `mandat-${mandate.mandateNumber}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        toast.success('PDF téléchargé avec succès')
+      } else {
+        toast.error('Erreur lors du téléchargement du PDF')
+      }
+    } catch (error) {
+      console.error('Erreur téléchargement PDF:', error)
+      toast.error('Erreur lors du téléchargement du PDF')
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -244,11 +298,6 @@ export default function MandatePage() {
     return new Date(validUntil) < new Date()
   }
 
-  const months = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-  ]
-
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -275,7 +324,18 @@ export default function MandatePage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Mandat Actuel</span>
-              {getStatusBadge(mandate.status)}
+              <div className="flex items-center gap-2">
+                {getStatusBadge(mandate.status)}
+                <Button
+                  onClick={downloadPDF}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Télécharger PDF
+                </Button>
+              </div>
             </CardTitle>
             <CardDescription>
               Numéro de mandat: {mandate.mandateNumber} • Version {mandate.version}
@@ -332,8 +392,9 @@ export default function MandatePage() {
                       
                       if (Array.isArray(monthlyData)) {
                         return monthlyData.map((mb, index) => (
-                          <div key={mb.month}>
-                            {months[index]}: {mb.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                          <div key={mb.month} className={mb.isPast ? 'text-gray-400' : ''}>
+                            {mb.monthName}: {mb.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                            {mb.isPast && <span className="text-xs text-gray-500 ml-1">(passé)</span>}
                           </div>
                         ))
                       }
@@ -371,11 +432,11 @@ export default function MandatePage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {mandate ? 'Renouveler le Mandat' : 'Signer le Mandat'}
+            {mandate ? 'Modifier le Mandat' : 'Signer le Mandat'}
           </CardTitle>
           <CardDescription>
             {mandate 
-              ? 'Renouvelez votre mandat publicitaire pour une durée d\'un an.'
+              ? 'Modifiez votre mandat publicitaire (seuls les mois futurs peuvent être modifiés).'
               : 'Signez votre premier mandat publicitaire pour activer les services de publicité.'
             }
           </CardDescription>
@@ -412,7 +473,7 @@ export default function MandatePage() {
               <RadioGroup 
                 defaultValue="FIXED" 
                 value={formData.budgetType} 
-                onValueChange={(value: string) => setFormData(prev => ({ ...prev, budgetType: value as 'FIXED' | 'VARIABLE', totalAnnualBudget: '', monthlyBudgets: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 })) }))}
+                onValueChange={(value: string) => setFormData(prev => ({ ...prev, budgetType: value as 'FIXED' | 'VARIABLE', totalAnnualBudget: '', monthlyBudgets: generateMonthlyBudgets() }))}
                 className="flex space-x-4"
               >
                 <div className="flex items-center space-x-2">
@@ -444,16 +505,21 @@ export default function MandatePage() {
                 <div className="space-y-2">
                   <p className="text-sm text-gray-700">Indiquez le budget pour chaque mois :</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {months.map((monthName, index) => (
-                      <div key={index}>
-                        <Label htmlFor={`month-${index + 1}`}>{monthName}</Label>
+                    {formData.monthlyBudgets.map((mb, index) => (
+                      <div key={mb.month}>
+                        <Label htmlFor={`month-${mb.month}`} className={mb.isPast ? 'text-gray-400' : ''}>
+                          {mb.monthName}
+                          {mb.isPast && <span className="text-xs text-gray-500 ml-1">(passé)</span>}
+                        </Label>
                         <Input
-                          id={`month-${index + 1}`}
+                          id={`month-${mb.month}`}
                           type="number"
-                          value={formData.monthlyBudgets.find(mb => mb.month === index + 1)?.amount || ''}
-                          onChange={(e) => handleMonthlyBudgetChange(index + 1, e.target.value)}
+                          value={mb.amount || ''}
+                          onChange={(e) => handleMonthlyBudgetChange(mb.month, e.target.value)}
                           placeholder="0"
                           min="0"
+                          disabled={mb.isPast}
+                          className={mb.isPast ? 'bg-gray-100 text-gray-400' : ''}
                         />
                       </div>
                     ))}
@@ -478,7 +544,7 @@ export default function MandatePage() {
               disabled={isSubmitting}
               className="w-full"
             >
-              {isSubmitting ? 'Traitement...' : mandate ? 'Renouveler le Mandat' : 'Signer le Mandat'}
+              {isSubmitting ? 'Traitement...' : mandate ? 'Modifier le Mandat' : 'Signer le Mandat'}
             </Button>
           </form>
         </CardContent>
