@@ -528,50 +528,6 @@ export default function MandatePage() {
                 </div>
               )}
             </div>
-
-            {/* Gestion de trésorerie */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-gray-900">Gestion de Trésorerie</h3>
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    id="treasuryManagement"
-                    checked={formData.treasuryManagement}
-                    onChange={(e) => setFormData(prev => ({ ...prev, treasuryManagement: e.target.checked }))}
-                    className="mt-1"
-                  />
-                  <div>
-                    <Label htmlFor="treasuryManagement" className="font-medium text-blue-900">
-                      L'agence paie les dépenses publicitaires
-                    </Label>
-                    <p className="text-sm text-blue-700 mt-1">
-                      L'agence avance les frais publicitaires et vous facture avec des frais de gestion de 20% 
-                      (minimum 50€ par mois). Paiement à 30 jours fin de mois.
-                    </p>
-                    {formData.treasuryManagement && (
-                      <div className="mt-3 p-3 bg-white rounded border border-blue-200">
-                        <h4 className="font-medium text-blue-900 mb-2">Conditions de paiement :</h4>
-                        <ul className="text-sm text-blue-700 space-y-1">
-                          <li>• Frais de gestion : 20% des dépenses publicitaires</li>
-                          <li>• Minimum : 50€ par mois</li>
-                          <li>• Paiement : 30 jours fin de mois</li>
-                          <li>• Facturation mensuelle des dépenses + frais</li>
-                        </ul>
-                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                          <p className="text-xs text-yellow-800">
-                            <strong>Exemple :</strong> Si vos dépenses publicitaires sont de 1000€, 
-                            vous paierez 1000€ + 200€ de frais = 1200€ à 30 jours.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Gestion de trésorerie */}
             <div className="space-y-4">
               <h3 className="font-medium text-gray-900">Gestion de Trésorerie</h3>
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
