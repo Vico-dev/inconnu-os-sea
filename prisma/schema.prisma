@@ -287,6 +287,12 @@ model AdvertisingMandate {
   validFrom        DateTime?
   validUntil       DateTime?
   documentUrl      String?
+  
+  // Informations de budget média
+  totalAnnualBudget Float?  // Budget annuel total en euros
+  monthlyBudgets   Json?    // Budgets mensuels détaillés [{"month": 1, "amount": 1000}, ...]
+  budgetType       String?  // "FIXED" (montant fixe) ou "VARIABLE" (montants variables par mois)
+  
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
