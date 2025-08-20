@@ -613,6 +613,10 @@ export default function MandatePage() {
                   // Si c'est un nouveau mandat, on utilise l'API de création et signature
                   try {
                     setIsSubmitting(true)
+                    // Ouvrir immédiatement le modal pour indiquer l'action en cours
+                    setSignatureInitialStep('request')
+                    setSignatureExpiresAt('')
+                    setShowSignatureModal(true)
                     
                     const response = await fetch('/api/client/mandate/create-and-sign', {
                       method: 'POST',
@@ -647,13 +651,15 @@ export default function MandatePage() {
                       await fetchMandate()
                       setSignatureInitialStep('verify')
                       setSignatureExpiresAt(result.expiresAt || '')
-                      setShowSignatureModal(true)
                     } else {
                       toast.error(result.error || 'Erreur lors de la création du mandat')
+                      // Fermer le modal si l'opération échoue
+                      setShowSignatureModal(false)
                     }
                   } catch (error) {
                     console.error('Erreur création mandat:', error)
                     toast.error('Erreur lors de la création du mandat')
+                    setShowSignatureModal(false)
                   } finally {
                     setIsSubmitting(false)
                   }
