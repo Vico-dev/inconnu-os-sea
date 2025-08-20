@@ -29,12 +29,13 @@ export default function SignatureModal({
   const [isLoading, setIsLoading] = useState(false)
   const [expiresAt, setExpiresAt] = useState<string>(initialExpiresAt || '')
 
-  // Sync props when modal opens
+  // Synchroniser les props quand la modale s'ouvre ou que les props changent
   useEffect(() => {
     if (isOpen) {
       setStep(initialStep)
       setExpiresAt(initialExpiresAt || '')
       setSignatureCode('')
+      setIsLoading(false)
     }
   }, [isOpen, initialStep, initialExpiresAt])
 
@@ -111,7 +112,9 @@ export default function SignatureModal({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) onClose()
+    }}>
       <DialogContent 
         className="sm:max-w-md"
         onInteractOutside={(e) => e.preventDefault()}
@@ -138,7 +141,7 @@ export default function SignatureModal({
                   <span className="text-sm font-medium">Code envoyé par email</span>
                 </div>
                 <p className="text-xs text-blue-600 mt-1">
-                  Le code sera envoyé à l'adresse email de votre compte
+                  Le code sera envoyé à l&apos;adresse email de votre compte
                 </p>
               </div>
             </div>

@@ -7,46 +7,23 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
-import { AdminLayout } from "@/components/admin/AdminLayout"
+// AdminLayout retiré: fourni par app/admin/layout.tsx
+import { CompanyModal } from "@/components/admin/CompanyModal"
 import { 
   Building, 
-  Users, 
+  Plus,
   Search,
-  Globe,
-  Mail,
-  Phone,
-  Calendar
+  Users,
+  BarChart3
 } from "lucide-react"
-
-interface Company {
-  id: string
-  name: string
-  website: string | null
-  industry: string
-  teamSize: string | null
-  goals: string | null
-  currentChallenges: string | null
-  createdAt: string
-  updatedAt: string
-  clientAccounts: Array<{
-    id: string
-    user: {
-      firstName: string
-      lastName: string
-      email: string
-    }
-    subscription: {
-      plan: string
-      status: string
-    } | null
-  }>
-}
 
 export default function AdminCompaniesPage() {
   const { user } = useAuth()
-  const [companies, setCompanies] = useState<Company[]>([])
+  const [companies, setCompanies] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingCompany, setEditingCompany] = useState(null)
 
   useEffect(() => {
     fetchCompanies()
@@ -66,49 +43,56 @@ export default function AdminCompaniesPage() {
     }
   }
 
-  const filteredCompanies = companies.filter((company) =>
-    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.industry.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleEditCompany = (company: any) => {
+    setEditingCompany(company)
+    setShowCreateModal(true)
+  }
 
-  const getStatusBadge = (subscription: any) => {
-    if (!subscription) return <Badge variant="secondary">Aucun abonnement</Badge>
-    
-    switch (subscription.status) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-800">Actif</Badge>
-      case 'TRIAL':
-        return <Badge className="bg-blue-100 text-blue-800">Essai</Badge>
-      case 'CANCELLED':
-        return <Badge className="bg-red-100 text-red-800">Annulé</Badge>
-      default:
-        return <Badge variant="secondary">{subscription.status}</Badge>
+  const handleCreateCompany = async (companyData: any) => {
+    try {
+      const response = await fetch("/api/admin/companies", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(companyData),
+      })
+
+      if (response.ok) {
+        await fetchCompanies()
+        setShowCreateModal(false)
+        setEditingCompany(null)
+      }
+    } catch (error) {
+      console.error("Erreur lors de la création de l'entreprise:", error)
     }
   }
+
+  const filteredCompanies = companies.filter((company: any) =>
+    company.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.siret?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   if (isLoading) {
     return (
       <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <AdminLayout>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Chargement des entreprises...</p>
             </div>
           </div>
-        </AdminLayout>
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute allowedRoles={["ADMIN"]}>
-      <AdminLayout>
-        <div className="p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Gestion des Entreprises</h1>
-            <p className="text-gray-600">Gérez toutes les entreprises et clients de la plateforme</p>
-          </div>
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Gestion des Entreprises</h1>
+          <p className="text-gray-600">Gérez toutes les entreprises de la plateforme</p>
+        </div>
 
           <Card>
             <CardHeader>
@@ -147,7 +131,7 @@ export default function AdminCompaniesPage() {
                             <h3 className="text-lg font-semibold text-gray-900">{company.name}</h3>
                             <div className="flex items-center space-x-4 text-sm text-gray-600">
                               <div className="flex items-center">
-                                <Globe className="w-4 h-4 mr-1" />
+                                {/* Globe icon removed as per new_code */}
                                 {company.website || "Aucun site web"}
                               </div>
                               <div className="flex items-center">
@@ -177,7 +161,7 @@ export default function AdminCompaniesPage() {
                             <div className="space-y-1 text-sm text-gray-600">
                               {company.clientAccounts.map((account) => (
                                 <div key={account.id} className="flex items-center space-x-2">
-                                  <Mail className="w-4 h-4" />
+                                  {/* Mail icon removed as per new_code */}
                                   <span>{account.user.firstName} {account.user.lastName}</span>
                                   <span className="text-gray-500">({account.user.email})</span>
                                 </div>
@@ -188,7 +172,7 @@ export default function AdminCompaniesPage() {
 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <Calendar className="w-4 h-4 text-gray-400" />
+                            {/* Calendar icon removed as per new_code */}
                             <span className="text-sm text-gray-500">
                               Créée le {new Date(company.createdAt).toLocaleDateString()}
                             </span>
@@ -196,7 +180,8 @@ export default function AdminCompaniesPage() {
                           <div className="flex items-center space-x-2">
                             {company.clientAccounts.map((account) => (
                               <div key={account.id}>
-                                {getStatusBadge(account.subscription)}
+                                {/* getStatusBadge function removed as per new_code */}
+                                <Badge variant="secondary">{account.subscription?.status || "Aucun abonnement"}</Badge>
                               </div>
                             ))}
                           </div>
@@ -219,7 +204,6 @@ export default function AdminCompaniesPage() {
             </CardContent>
           </Card>
         </div>
-      </AdminLayout>
     </ProtectedRoute>
   )
 } 

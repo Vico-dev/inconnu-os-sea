@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
-import { AdminLayout } from "@/components/admin/AdminLayout"
+// AdminLayout retiré: fourni par app/admin/layout.tsx
 import { UserModal } from "@/components/admin/UserModal"
 import { 
   Users, 
@@ -78,26 +78,23 @@ export default function AdminUsersPage() {
   if (isLoading) {
     return (
       <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <AdminLayout>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Chargement des utilisateurs...</p>
             </div>
           </div>
-        </AdminLayout>
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute allowedRoles={["ADMIN"]}>
-      <AdminLayout>
-        <div className="p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Gestion des Utilisateurs</h1>
-            <p className="text-gray-600">Gérez tous les utilisateurs de la plateforme</p>
-          </div>
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Gestion des Utilisateurs</h1>
+          <p className="text-gray-600">Gérez tous les utilisateurs de la plateforme</p>
+        </div>
 
           <Card>
             <CardHeader>
@@ -192,7 +189,6 @@ export default function AdminUsersPage() {
             user={editingUser}
           />
         </div>
-      </AdminLayout>
     </ProtectedRoute>
   )
 } 

@@ -1,113 +1,44 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
-import { AdminLayout } from "@/components/admin/AdminLayout"
-import { useRouter } from "next/navigation"
-import { Shield, User, Calendar, MessageSquare, ArrowRight, ArrowLeft } from "lucide-react"
-
-interface Ticket {
-  id: string
-  subject: string
-  description: string
-  status: string
-  priority: string
-  category: string
-  createdAt: string
-  clientAccount: {
-    user: {
-      firstName: string
-      lastName: string
-      email: string
-    }
-    company: {
-      name: string
-    }
-  }
-  accountManager?: {
-    id: string
-    user: {
-      firstName: string
-      lastName: string
-      email: string
-    }
-  } | null
-}
-
-interface AccountManager {
-  id: string
-  user: {
-    firstName: string
-    lastName: string
-    email: string
-  }
-}
+// AdminLayout retiré: fourni par app/admin/layout.tsx
+import { 
+  MessageSquare, 
+  Filter,
+  Search,
+  Clock,
+  User,
+  Building
+} from "lucide-react"
 
 export default function AdminTicketsPage() {
   const { user } = useAuth()
-  const router = useRouter()
-  const [tickets, setTickets] = useState<Ticket[]>([])
-  const [accountManagers, setAccountManagers] = useState<AccountManager[]>([])
+  const [tickets, setTickets] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isUpdating, setIsUpdating] = useState<string | null>(null)
+  const [filterStatus, setFilterStatus] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     fetchTickets()
-    fetchAccountManagers()
   }, [])
 
   const fetchTickets = async () => {
     try {
-      const response = await fetch('/api/admin/tickets')
+      const response = await fetch("/api/admin/tickets")
       if (response.ok) {
         const data = await response.json()
         setTickets(data.tickets)
       }
     } catch (error) {
-      console.error("Erreur lors de la récupération des tickets:", error)
+      console.error("Erreur lors du chargement des tickets:", error)
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const fetchAccountManagers = async () => {
-    try {
-      const response = await fetch('/api/admin/account-managers')
-      if (response.ok) {
-        const data = await response.json()
-        setAccountManagers(data.accountManagers)
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération des AM:", error)
-    }
-  }
-
-  const handleAssignAM = async (ticketId: string, amId: string) => {
-    setIsUpdating(ticketId)
-    try {
-      const response = await fetch(`/api/admin/tickets/${ticketId}/assign`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ accountManagerId: amId }),
-      })
-
-      if (response.ok) {
-        await fetchTickets()
-      } else {
-        console.error("Erreur lors de l&apos;attribution")
-      }
-    } catch (error) {
-      console.error("Erreur:", error)
-    } finally {
-      setIsUpdating(null)
     }
   }
 
@@ -117,15 +48,6 @@ export default function AdminTicketsPage() {
       case "IN_PROGRESS": return "bg-yellow-100 text-yellow-800"
       case "RESOLVED": return "bg-green-100 text-green-800"
       case "CLOSED": return "bg-gray-100 text-gray-800"
-      default: return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "low": return "bg-green-100 text-green-800"
-      case "medium": return "bg-yellow-100 text-yellow-800"
-      case "high": return "bg-red-100 text-red-800"
       default: return "bg-gray-100 text-gray-800"
     }
   }
@@ -140,48 +62,34 @@ export default function AdminTicketsPage() {
     }
   }
 
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case "low": return "Faible"
-      case "medium": return "Moyenne"
-      case "high": return "Élevée"
-      default: return priority
-    }
-  }
-
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case "technical": return "Technique"
-      case "billing": return "Facturation"
-      case "general": return "Général"
-      case "optimization": return "Optimisation"
-      default: return category
-    }
-  }
+  const filteredTickets = tickets.filter((ticket: any) => {
+    const statusMatch = filterStatus === "all" || ticket.status === filterStatus
+    const searchMatch = ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       ticket.client?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    return statusMatch && searchMatch
+  })
 
   if (isLoading) {
     return (
       <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <AdminLayout>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Chargement des tickets...</p>
             </div>
           </div>
-        </AdminLayout>
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute allowedRoles={["ADMIN"]}>
-      <AdminLayout>
-        <div className="p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Gestion des Tickets</h1>
-            <p className="text-gray-600">Attribuez les tickets aux Account Managers</p>
-          </div>
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Gestion des Tickets</h1>
+          <p className="text-gray-600">Gérez tous les tickets de support</p>
+        </div>
 
           <div className="space-y-6">
             {/* Statistiques */}
@@ -321,7 +229,6 @@ export default function AdminTicketsPage() {
             </Card>
           </div>
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
+      </ProtectedRoute>
   )
 } 

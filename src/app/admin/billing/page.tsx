@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
-import { AdminLayout } from "@/components/admin/AdminLayout"
 import { 
   CreditCard, 
   DollarSign, 
@@ -95,27 +94,23 @@ export default function AdminBillingPage() {
   if (isLoading) {
     return (
       <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <AdminLayout>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Chargement de la facturation...</p>
             </div>
           </div>
-        </AdminLayout>
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute allowedRoles={["ADMIN"]}>
-      <AdminLayout>
-        <div className="p-6">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Gestion de la Facturation</h1>
-            <p className="text-gray-600">Suivez les paiements et abonnements des clients</p>
-          </div>
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Gestion de la Facturation</h1>
+          <p className="text-gray-600">Suivez les paiements et abonnements des clients</p>
+        </div>
 
           {/* Statistiques */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -231,7 +226,6 @@ export default function AdminBillingPage() {
             </CardContent>
           </Card>
         </div>
-      </AdminLayout>
     </ProtectedRoute>
   )
 } 
