@@ -175,15 +175,22 @@ model Campaign {
 }
 
 model Invoice {
-  id          String   @id @default(cuid())
+  id              String   @id @default(cuid())
   clientAccountId String
-  number      String
-  amount      Float
-  status      String   // DRAFT, SENT, PAID, OVERDUE
-  dueDate     DateTime
-  items       String?  // JSON string
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  stripeInvoiceId String?  @unique
+  number          String
+  amount          Float
+  currency        String   @default("EUR")
+  status          String   // DRAFT, SENT, PAID, FAILED, OVERDUE
+  dueDate         DateTime?
+  paidAt          DateTime?
+  failedAt        DateTime?
+  failureReason   String?
+  invoiceUrl      String?
+  invoicePdfUrl   String?
+  items           String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
 
