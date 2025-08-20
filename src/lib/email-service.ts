@@ -683,4 +683,84 @@ export class EmailService {
       throw error
     }
   }
+
+  /**
+   * Envoyer une notification par email
+   */
+  static async sendNotificationEmail(
+    to: string,
+    firstName: string,
+    title: string,
+    message: string,
+    actionUrl?: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de notification ignoré')
+        return null
+      }
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">Agence Inconnu</h2>
+          <h3 style="color: #1d4ed8;">${title}</h3>
+          <p>Bonjour ${firstName},</p>
+          <p>${message}</p>
+          ${actionUrl ? `
+            <a href="${actionUrl}" 
+               style="background-color: #1d4ed8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+              Voir les détails
+            </a>
+          ` : ''}
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 14px; text-align: center;">
+            Agence Inconnu - Spécialiste Google Ads
+          </p>
+        </div>
+      `
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `${title} - Agence Inconnu`,
+        html: emailHtml,
+      })
+
+      console.log('Email de notification envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Envoyer un rapport hebdomadaire
+   */
+  static async sendWeeklyReport(
+    to: string,
+    firstName: string,
+    companyName: string,
+    reportHtml: string
+  ) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de rapport ignoré')
+        return null
+      }
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject: `Rapport hebdomadaire - ${companyName}`,
+        html: reportHtml,
+      })
+
+      console.log('Email de rapport hebdomadaire envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de rapport:', error)
+      throw error
+    }
+  }
 } 
