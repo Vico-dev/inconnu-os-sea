@@ -20,6 +20,13 @@ echo "🚀 Démarrage de l'application..."
 echo "📁 Contenu du répertoire:"
 ls -la
 
+# Synchronisation du schéma Prisma (migrations en prod, sinon push)
+echo "🗄️ Synchronisation du schéma Prisma..."
+npx prisma migrate deploy || npx prisma db push || {
+  echo "❌ Échec de la synchronisation Prisma";
+  exit 1;
+}
+
 # Validation du build
 if ! is_build_valid; then
   attempt_build

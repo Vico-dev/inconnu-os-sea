@@ -98,17 +98,9 @@ export async function POST(request: NextRequest) {
 
     console.log('🔐 Code de signature généré:', signatureCode)
 
-    // Envoyer l'email avec le code
-    console.log('📧 Tentative envoi email à:', clientAccount.user.email)
-    console.log('📧 Données email:', {
-      to: clientAccount.user.email,
-      firstName: clientAccount.user.firstName,
-      mandateNumber: mandate.mandateNumber,
-      signatureCode,
-      expiresAt: expiresAt.toISOString()
-    })
-    
+    // Envoyer l'email avec le code (optionnel)
     try {
+      console.log('📧 Tentative envoi email à:', clientAccount.user.email)
       await EmailService.sendSignatureCode(
         clientAccount.user.email,
         clientAccount.user.firstName,
@@ -118,11 +110,11 @@ export async function POST(request: NextRequest) {
       )
       console.log('✅ Email de signature envoyé avec succès')
     } catch (emailError) {
-      console.error('❌ Erreur envoi email de signature:', emailError)
+      console.error('❌ Erreur envoi email de signature (continuation):', emailError)
       // On continue même si l'email échoue
     }
 
-    // Envoyer les emails de confirmation
+    // Envoyer les emails de confirmation (optionnel)
     try {
       await EmailService.sendMandateConfirmation(
         clientAccount.user.email,
@@ -142,7 +134,7 @@ export async function POST(request: NextRequest) {
         body.budgetType
       )
     } catch (emailError) {
-      console.error('⚠️ Erreur envoi emails de confirmation:', emailError)
+      console.error('⚠️ Erreur envoi emails de confirmation (continuation):', emailError)
       // On continue même si les emails échouent
     }
 
@@ -150,7 +142,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Mandat créé et code de signature envoyé par email',
       mandateNumber: mandate.mandateNumber,
-      expiresAt: expiresAt.toISOString()
+      expiresAt: expiresAt.toISOString(),
+      signatureCode: signatureCode // Temporairement inclure le code pour debug
     })
 
   } catch (error: any) {
