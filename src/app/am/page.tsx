@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
-import { AMLayout } from "@/components/am/AMLayout"
 import { useRouter } from "next/navigation"
 import { 
   MessageSquare, 
@@ -121,21 +120,18 @@ export default function AMDashboardPage() {
   if (isLoading) {
     return (
       <ProtectedRoute allowedRoles={["ACCOUNT_MANAGER"]}>
-        <AMLayout>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Chargement du dashboard...</p>
             </div>
           </div>
-        </AMLayout>
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute allowedRoles={["ACCOUNT_MANAGER"]}>
-      <AMLayout>
         <div className="p-6">
           {/* Header */}
           <div className="mb-6">
@@ -313,7 +309,6 @@ export default function AMDashboardPage() {
             </Card>
           </div>
         </div>
-      </AMLayout>
     </ProtectedRoute>
   )
 } 

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
-import { AMLayout } from "@/components/am/AMLayout"
 import { useRouter } from "next/navigation"
 import { Calendar, Plus, Clock, User } from "lucide-react"
 
@@ -53,7 +52,6 @@ export default function AMAppointmentsPage() {
 
   return (
     <ProtectedRoute allowedRoles={["ACCOUNT_MANAGER"]}>
-      <AMLayout>
         <div className="p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Mes Rendez-vous</h1>
@@ -134,7 +132,6 @@ export default function AMAppointmentsPage() {
             </CardContent>
           </Card>
         </div>
-      </AMLayout>
     </ProtectedRoute>
   )
 } 

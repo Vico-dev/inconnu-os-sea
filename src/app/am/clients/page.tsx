@@ -3,7 +3,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
-import { AMLayout } from "@/components/am/AMLayout"
 import { Users } from "lucide-react"
 
 export default function AMClientsPage() {
@@ -11,7 +10,6 @@ export default function AMClientsPage() {
 
   return (
     <ProtectedRoute allowedRoles={["ACCOUNT_MANAGER"]}>
-      <AMLayout>
         <div className="p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Mes Clients</h1>
@@ -34,7 +32,6 @@ export default function AMClientsPage() {
             </CardContent>
           </Card>
         </div>
-      </AMLayout>
     </ProtectedRoute>
   )
 } 
