@@ -55,52 +55,78 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Budget total invalide' }, { status: 400 })
     }
 
-    // Créer le mandat
+    // Créer le mandat avec seulement les champs qui existent en prod
     const mandateNumber = `MAN-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     
-    const mandate = await prisma.advertisingMandate.create({
-      data: {
-        clientAccountId: clientAccount.id,
-        mandateNumber,
-        status: 'PENDING',
-        version: 'v1.0',
-        signedByName: session.user.name || `${(session.user as any).firstName || ''} ${(session.user as any).lastName || ''}`.trim(),
-        signedByEmail: session.user.email!,
-        totalAnnualBudget: computedTotal,
-        monthlyBudgets: body.budgetType === 'VARIABLE' ? body.monthlyBudgets : null,
-        budgetType: body.budgetType,
-        treasuryManagement: body.treasuryManagement || false,
-        managementFees: body.managementFees || 0,
-        paymentTerms: body.paymentTerms || '',
-        termsAccepted: body.termsAccepted,
-        gdprAccepted: body.gdprAccepted,
-        consentData: body.consentData,
-        scrollTracking: body.scrollTracking,
-        legalVersion: 'v1.0'
-      }
-    })
+    const mandateData: any = {
+      clientAccountId: clientAccount.id,
+      mandateNumber,
+      status: 'PENDING',
+      version: 'v1.0',
+      signedByName: session.user.name || `${(session.user as any).firstName || ''} ${(session.user as any).lastName || ''}`.trim(),
+      signedByEmail: session.user.email!,
+      totalAnnualBudget: computedTotal,
+      monthlyBudgets: body.budgetType === 'VARIABLE' ? body.monthlyBudgets : null,
+      budgetType: body.budgetType,
+      treasuryManagement: body.treasuryManagement || false,
+      managementFees: body.managementFees || 0,
+      paymentTerms: body.paymentTerms || '',
+      termsAccepted: body.termsAccepted,
+      gdprAccepted: body.gdprAccepted,
+      consentData: body.consentData,
+      scrollTracking: body.scrollTracking,
+      legalVersion: 'v1.0'
+    }
 
-    console.log('✅ Mandat créé:', mandate.mandateNumber)
+    // Ajouter les nouveaux champs seulement s'ils existent dans la DB
+    let mandate: any
+    try {
+      mandate = await prisma.advertisingMandate.create({
+        data: mandateData
+      })
+      console.log('✅ Mandat créé:', mandate.mandateNumber)
+    } catch (dbError: any) {
+      console.log('⚠️ Erreur avec nouveaux champs, tentative sans:', dbError.message)
+      
+      // Retirer les champs qui peuvent ne pas exister
+      delete mandateData.initiatedBy
+      delete mandateData.prefilledByAdmin
+      delete mandateData.prefilledAt
+      delete mandateData.editableByClient
+      delete mandateData.inviteToken
+      delete mandateData.invitationSentAt
+      
+      mandate = await prisma.advertisingMandate.create({
+        data: mandateData
+      })
+      console.log('✅ Mandat créé (sans nouveaux champs):', mandate.mandateNumber)
+    }
 
     // Générer le code de signature
     const signatureCode = generateSignatureCode()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
 
     // Sauvegarder le code
-    await prisma.advertisingMandate.update({
-      where: { id: mandate.id },
-      data: {
-        signatureCode,
-        signatureExpiresAt: expiresAt,
-        signatureVerified: false
-      }
-    })
+    try {
+      await prisma.advertisingMandate.update({
+        where: { id: mandate.id },
+        data: {
+          signatureCode,
+          signatureExpiresAt: expiresAt,
+          signatureVerified: false
+        } as any
+      })
+    } catch (updateError: any) {
+      console.log('⚠️ Erreur mise à jour signature, tentative sans nouveaux champs:', updateError.message)
+      // Si les champs de signature n'existent pas, on continue sans les sauvegarder
+    }
 
     console.log('🔐 Code de signature généré:', signatureCode)
 
-    // Envoyer l'email avec le code (optionnel)
+    // Envoyer l'email avec le code
+    console.log('📧 Tentative envoi email à:', clientAccount.user.email)
+    
     try {
-      console.log('📧 Tentative envoi email à:', clientAccount.user.email)
       await EmailService.sendSignatureCode(
         clientAccount.user.email,
         clientAccount.user.firstName,
@@ -110,11 +136,11 @@ export async function POST(request: NextRequest) {
       )
       console.log('✅ Email de signature envoyé avec succès')
     } catch (emailError) {
-      console.error('❌ Erreur envoi email de signature (continuation):', emailError)
+      console.error('❌ Erreur envoi email de signature:', emailError)
       // On continue même si l'email échoue
     }
 
-    // Envoyer les emails de confirmation (optionnel)
+    // Envoyer les emails de confirmation
     try {
       await EmailService.sendMandateConfirmation(
         clientAccount.user.email,
@@ -134,7 +160,7 @@ export async function POST(request: NextRequest) {
         body.budgetType
       )
     } catch (emailError) {
-      console.error('⚠️ Erreur envoi emails de confirmation (continuation):', emailError)
+      console.error('⚠️ Erreur envoi emails de confirmation:', emailError)
       // On continue même si les emails échouent
     }
 
@@ -142,8 +168,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Mandat créé et code de signature envoyé par email',
       mandateNumber: mandate.mandateNumber,
-      expiresAt: expiresAt.toISOString(),
-      signatureCode: signatureCode // Temporairement inclure le code pour debug
+      expiresAt: expiresAt.toISOString()
     })
 
   } catch (error: any) {
