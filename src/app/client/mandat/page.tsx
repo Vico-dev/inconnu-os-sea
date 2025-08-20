@@ -13,6 +13,7 @@ import { fr } from 'date-fns/locale'
 import MandateLegalTerms from '@/components/client/MandateLegalTerms'
 import { Download } from 'lucide-react'
 import SignatureModal from '@/components/client/SignatureModal'
+import { useSession } from 'next-auth/react'
 
 interface MonthlyBudget {
   month: number
@@ -42,6 +43,7 @@ interface AdvertisingMandate {
 }
 
 export default function MandatePage() {
+  const { data: session } = useSession()
   const [mandate, setMandate] = useState<AdvertisingMandate | null>(null)
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -93,6 +95,19 @@ export default function MandatePage() {
     fetchMandate()
     startTracking()
   }, [])
+
+  // Préremplir nom/email depuis la session si disponibles
+  useEffect(() => {
+    if (session?.user) {
+      const sessionName = (session.user as any).name || `${(session.user as any).firstName || ''} ${(session.user as any).lastName || ''}`.trim()
+      const sessionEmail = (session.user as any).email || ''
+      setFormData(prev => ({
+        ...prev,
+        signedByName: prev.signedByName || sessionName || '',
+        signedByEmail: prev.signedByEmail || sessionEmail || ''
+      }))
+    }
+  }, [session])
 
   const startTracking = () => {
     let startTime = Date.now()
@@ -457,7 +472,7 @@ export default function MandatePage() {
                   id="signedByName"
                   type="text"
                   value={formData.signedByName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, signedByName: e.target.value }))}
+                  disabled
                   placeholder="Nom complet"
                   required
                 />
@@ -468,7 +483,7 @@ export default function MandatePage() {
                   id="signedByEmail"
                   type="email"
                   value={formData.signedByEmail}
-                  onChange={(e) => setFormData(prev => ({ ...prev, signedByEmail: e.target.value }))}
+                  disabled
                   placeholder="email@exemple.com"
                   required
                 />
