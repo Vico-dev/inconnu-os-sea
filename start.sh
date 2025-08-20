@@ -8,10 +8,11 @@ ls -la
 # Si le build n'existe pas (cas Railway), construire avant de démarrer
 if [ ! -d ".next" ]; then
   echo "⚠️ Aucun build trouvé (.next manquant). Lancement du build..."
-  echo "📦 Installation des dépendances..."
-  npm ci --legacy-peer-deps
-  echo "🔧 Génération Prisma..."
-  npx prisma generate
+  # Générer Prisma si le client n'existe pas (robustesse Nixpacks)
+  if [ ! -d "node_modules/.prisma/client" ]; then
+    echo "🔧 Prisma client absent. Génération..."
+    npx prisma generate
+  fi
   echo "🏗️ Build Next.js..."
   npm run build
   echo "✅ Build terminé. Vérification .next:"
