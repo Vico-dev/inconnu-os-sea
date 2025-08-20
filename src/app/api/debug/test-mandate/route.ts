@@ -11,39 +11,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    // Récupérer le compte client
-    const sessionUserId = (session.user as any).id || (session.user as any).sub || null
-    const sessionEmail = (session.user as any).email || null
-    
-    let clientAccount = await prisma.clientAccount.findFirst({
-      where: { userId: sessionUserId ?? undefined },
-      include: { user: true, company: true }
-    })
-    
-    if (!clientAccount && sessionEmail) {
-      const user = await prisma.user.findUnique({ where: { email: sessionEmail } })
-      if (user) {
-        clientAccount = await prisma.clientAccount.findFirst({
-          where: { userId: user.id },
-          include: { user: true, company: true }
-        })
-      }
-    }
-
-    if (!clientAccount) {
-      return NextResponse.json({ error: 'Compte client non trouvé' }, { status: 404 })
-    }
-
-    // Test de création d'un mandat minimal
+    // Test de création d'un mandat minimal avec seulement les champs de base
     const mandateNumber = `TEST-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     
+    // Utiliser seulement les champs qui existent certainement
     const mandateData = {
-      clientAccountId: clientAccount.id,
+      clientAccountId: 1, // ID temporaire pour test
       mandateNumber,
       status: 'PENDING',
       version: 'v1.0',
-      signedByName: session.user.name || 'Test User',
-      signedByEmail: session.user.email!,
+      signedByName: 'Test User',
+      signedByEmail: 'test@example.com',
       totalAnnualBudget: 1000,
       budgetType: 'FIXED',
       treasuryManagement: false,
@@ -56,25 +34,49 @@ export async function GET(request: NextRequest) {
       legalVersion: 'v1.0'
     }
 
-    const mandate = await prisma.advertisingMandate.create({
-      data: mandateData
-    })
+    // Test de création
+    let testResult = null
+    let testError = null
 
-    // Supprimer le mandat de test
-    await prisma.advertisingMandate.delete({
-      where: { id: mandate.id }
-    })
+    try {
+      testResult = await prisma.advertisingMandate.create({
+        data: mandateData
+      })
+      
+      // Supprimer le mandat de test
+      await prisma.advertisingMandate.delete({
+        where: { id: testResult.id }
+      })
+      
+    } catch (error: any) {
+      testError = {
+        message: error.message,
+        code: error.code,
+        meta: error.meta
+      }
+    }
+
+    // Vérifier la structure de la table
+    let tableStructure = null
+    try {
+      // Essayer de récupérer les colonnes de la table
+      const result = await prisma.$queryRaw`
+        SELECT column_name, data_type, is_nullable 
+        FROM information_schema.columns 
+        WHERE table_name = 'advertising_mandates' 
+        ORDER BY ordinal_position
+      `
+      tableStructure = result
+    } catch (error: any) {
+      tableStructure = { error: error.message }
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Test de création de mandat réussi',
-      clientAccount: {
-        id: clientAccount.id,
-        user: {
-          name: clientAccount.user.firstName,
-          email: clientAccount.user.email
-        }
-      }
+      testResult,
+      testError,
+      tableStructure,
+      mandateData
     })
 
   } catch (error: any) {
