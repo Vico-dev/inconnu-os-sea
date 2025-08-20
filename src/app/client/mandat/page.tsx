@@ -129,12 +129,12 @@ export default function MandatePage() {
       })
     }
 
-    window.addEventListener('scroll', trackScroll)
+    window.addEventListener('scroll', trackScroll, { passive: true })
     const timeInterval = setInterval(trackTime, 1000)
 
     return () => {
-      window.removeEventListener('scroll', trackScroll)
-      clearInterval(timeInterval)
+      try { window.removeEventListener('scroll', trackScroll) } catch {}
+      try { clearInterval(timeInterval) } catch {}
     }
   }
 
