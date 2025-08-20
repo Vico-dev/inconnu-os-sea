@@ -56,6 +56,7 @@ export default function SignatureModal({
         toast.success('Code de signature envoyé par email')
       } else {
         toast.error(data.error || 'Erreur lors de l\'envoi du code')
+        console.error('Signature code POST error:', data)
       }
     } catch (error) {
       console.error('Erreur:', error)
@@ -91,6 +92,7 @@ export default function SignatureModal({
         setSignatureCode('')
       } else {
         toast.error(data.error || 'Code de signature invalide')
+        console.error('Signature code PUT error:', data)
       }
     } catch (error) {
       console.error('Erreur:', error)

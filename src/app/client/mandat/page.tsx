@@ -330,8 +330,20 @@ export default function MandatePage() {
     )
   }
 
+  const summaryTotal = () => {
+    if (formData.budgetType === 'FIXED') {
+      return parseFloat(formData.totalAnnualBudget || '0') || 0
+    }
+    return calculateTotalMonthlyBudget()
+  }
+
+  const lowBudgetMonths = () => {
+    if (formData.budgetType !== 'VARIABLE') return 0
+    return formData.monthlyBudgets.filter(m => (m.amount || 0) > 0 && m.amount < 200 && !m.isPast).length
+  }
+
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Mandat Publicitaire</h1>
         <p className="text-gray-600 mt-2">
@@ -339,8 +351,11 @@ export default function MandatePage() {
         </p>
       </div>
 
-      {/* Statut du mandat actuel */}
-      {mandate && (
+      {/* Grille principale */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          {/* Statut du mandat actuel */}
+          {mandate && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -667,6 +682,7 @@ export default function MandatePage() {
                       setSignatureInitialStep('verify')
                       setSignatureExpiresAt(result.expiresAt || '')
                     } else {
+                      console.error('create-and-sign error:', result)
                       toast.error(result.error || 'Erreur lors de la création du mandat')
                       // Fermer le modal si l'opération échoue
                       setShowSignatureModal(false)
@@ -690,19 +706,35 @@ export default function MandatePage() {
         </CardContent>
         </Card>
       )}
-
-      {/* Bouton Modifier quand mandat actif et formulaire caché */}
-      {mandate && !showEditForm && (
-        <div className="mt-6 text-center">
-          <Button 
-            onClick={() => setShowEditForm(true)}
-            variant="outline"
-            size="lg"
-          >
-            Modifier le Mandat
-          </Button>
         </div>
-      )}
+
+        {/* Récapitulatif sticky */}
+        <div className="lg:col-span-1">
+          <Card className="lg:sticky top-6">
+            <CardHeader>
+              <CardTitle>Récapitulatif</CardTitle>
+              <CardDescription>Vérifiez les infos clés avant signature</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm text-gray-600">
+                <div className="flex justify-between"><span>Type de budget</span><span className="font-medium">{formData.budgetType === 'FIXED' ? 'Annuel fixe' : 'Mensuel variable'}</span></div>
+                <div className="flex justify-between"><span>Total annuel estimé</span><span className="font-semibold">{summaryTotal().toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span></div>
+                {formData.treasuryManagement && (
+                  <div className="mt-2 text-blue-700 bg-blue-50 p-2 rounded border border-blue-200 text-xs">Gestion de trésorerie activée (20% de frais, min 50€)</div>
+                )}
+                {formData.budgetType === 'VARIABLE' && lowBudgetMonths() > 0 && (
+                  <div className="mt-2 text-yellow-800 bg-yellow-50 p-2 rounded border border-yellow-200 text-xs">{lowBudgetMonths()} mois < 200€: performances potentiellement insuffisantes</div>
+                )}
+              </div>
+              {mandate && !showEditForm ? (
+                <Button onClick={() => setShowEditForm(true)} variant="outline" className="w-full">Modifier le Mandat</Button>
+              ) : (
+                <Button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} variant="secondary" className="w-full">Revenir en haut</Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Modal de signature électronique */}
       <SignatureModal
