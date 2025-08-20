@@ -67,6 +67,9 @@ export default function MandatePage() {
   // État pour la signature électronique
   const [showSignatureModal, setShowSignatureModal] = useState(false)
 
+  // État pour contrôler l'affichage du formulaire
+  const [showEditForm, setShowEditForm] = useState(false)
+
   // Générer les mois relatifs à la date de signature
   const generateMonthlyBudgets = (startDate: Date = new Date()) => {
     return Array.from({ length: 12 }, (_, i) => {
@@ -430,18 +433,19 @@ export default function MandatePage() {
       )}
 
       {/* Formulaire de signature/renouvellement */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {mandate ? 'Modifier le Mandat' : 'Signer le Mandat'}
-          </CardTitle>
-          <CardDescription>
-            {mandate 
-              ? 'Modifiez votre mandat publicitaire (seuls les mois futurs peuvent être modifiés).'
-              : 'Signez votre premier mandat publicitaire pour activer les services de publicité.'
-            }
-          </CardDescription>
-        </CardHeader>
+      {(!mandate || showEditForm) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {mandate ? 'Modifier le Mandat' : 'Signer le Mandat'}
+            </CardTitle>
+            <CardDescription>
+              {mandate 
+                ? 'Modifiez votre mandat publicitaire (seuls les mois futurs peuvent être modifiés).'
+                : 'Signez votre premier mandat publicitaire pour activer les services de publicité.'
+              }
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -580,12 +584,26 @@ export default function MandatePage() {
               gdprAccepted={gdprAccepted}
             />
 
-            <Button 
-              type="button"
-              onClick={async () => {
+            <div className="flex gap-3">
+              {mandate && (
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditForm(false)}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+              )}
+              <Button 
+                type="button"
+                onClick={async () => {
                 if (mandate) {
                   // Si le mandat existe, on peut le modifier directement
-                  handleSubmit(new Event('submit') as any)
+                  const result = await handleSubmit(new Event('submit') as any)
+                  if (result) {
+                    setShowEditForm(false) // Fermer le formulaire après modification
+                  }
                 } else {
                   // Si c'est un nouveau mandat, on utilise l'API de création et signature
                   try {
@@ -636,12 +654,27 @@ export default function MandatePage() {
               }}
               disabled={isSubmitting || !termsAccepted || !gdprAccepted}
               className="w-full"
-            >
-              {isSubmitting ? 'Traitement...' : mandate ? 'Modifier le Mandat' : 'Signer le Mandat'}
-            </Button>
+                          >
+                {isSubmitting ? 'Traitement...' : mandate ? 'Modifier le Mandat' : 'Signer le Mandat'}
+              </Button>
+            </div>
           </form>
         </CardContent>
-      </Card>
+        </Card>
+      )}
+
+      {/* Bouton Modifier quand mandat actif et formulaire caché */}
+      {mandate && !showEditForm && (
+        <div className="mt-6 text-center">
+          <Button 
+            onClick={() => setShowEditForm(true)}
+            variant="outline"
+            size="lg"
+          >
+            Modifier le Mandat
+          </Button>
+        </div>
+      )}
 
       {/* Modal de signature électronique */}
       <SignatureModal
