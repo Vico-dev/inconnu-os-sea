@@ -723,7 +723,7 @@ export default function MandatePage() {
                   <div className="mt-2 text-blue-700 bg-blue-50 p-2 rounded border border-blue-200 text-xs">Gestion de trésorerie activée (20% de frais, min 50€)</div>
                 )}
                 {formData.budgetType === 'VARIABLE' && lowBudgetMonths() > 0 && (
-                  <div className="mt-2 text-yellow-800 bg-yellow-50 p-2 rounded border border-yellow-200 text-xs">{lowBudgetMonths()} mois < 200€: performances potentiellement insuffisantes</div>
+                  <div className="mt-2 text-yellow-800 bg-yellow-50 p-2 rounded border border-yellow-200 text-xs">{lowBudgetMonths()} mois &lt; 200€ : performances potentiellement insuffisantes</div>
                 )}
               </div>
               {mandate && !showEditForm ? (
