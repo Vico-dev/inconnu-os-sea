@@ -1,5 +1,71 @@
-import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import crypto from 'crypto'
+
+export async function POST(request: NextRequest) {
+  try {
+    const { email } = await request.json()
+
+    if (!email) {
+      return NextResponse.json({ error: 'Email requis' }, { status: 400 })
+    }
+
+    // Vérifier si l'utilisateur existe
+    const user = await prisma.user.findUnique({
+      where: { email }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
+    }
+
+    if (user.emailVerified) {
+      return NextResponse.json({ error: 'Email déjà vérifié' }, { status: 400 })
+    }
+
+    // Générer un token de vérification sécurisé
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 heures
+
+    // Sauvegarder le token
+    await prisma.user.update({
+      where: { email },
+      data: {
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: expiresAt
+      }
+    })
+
+    // Envoyer l'email de vérification
+    const verificationUrl = `${process.env.NEXTAUTH_URL}/verify-email?token=${verificationToken}`
+
+    try {
+      await import('@/lib/email-service').then(({ EmailService }) => 
+        EmailService.sendEmailVerification(
+          email,
+          user.firstName,
+          verificationUrl
+        )
+      )
+    } catch (emailError) {
+      console.error('Erreur envoi email de vérification:', emailError)
+      return NextResponse.json({ 
+        error: 'Erreur lors de l\'envoi de l\'email de vérification' 
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Email de vérification envoyé' 
+    })
+
+  } catch (error: any) {
+    console.error('Erreur vérification email:', error)
+    return NextResponse.json({ 
+      error: 'Erreur interne du serveur' 
+    }, { status: 500 })
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,37 +73,45 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('token')
 
     if (!token) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/email-verified?error=token_missing`)
+      return NextResponse.json({ error: 'Token manquant' }, { status: 400 })
     }
 
     // Trouver l'utilisateur avec ce token
-    const user = await prisma.user.findUnique({
-      where: { emailVerificationToken: token }
+    const user = await prisma.user.findFirst({
+      where: {
+        emailVerificationToken: token,
+        emailVerificationExpires: {
+          gt: new Date()
+        }
+      }
     })
 
     if (!user) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/email-verified?error=invalid_token`)
+      return NextResponse.json({ 
+        error: 'Token invalide ou expiré' 
+      }, { status: 400 })
     }
 
-    // Vérifier si le token n'a pas expiré
-    if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/email-verified?error=token_expired`)
-    }
-
-    // Valider l'email
+    // Marquer l'email comme vérifié
     await prisma.user.update({
       where: { id: user.id },
       data: {
         emailVerified: true,
         emailVerificationToken: null,
-        emailVerificationExpires: null
+        emailVerificationExpires: null,
+        emailVerifiedAt: new Date()
       }
     })
 
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/email-verified?token=${token}`)
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Email vérifié avec succès' 
+    })
 
-  } catch (error) {
-    console.error('Erreur lors de la validation email:', error)
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/login?error=verification_failed`)
+  } catch (error: any) {
+    console.error('Erreur vérification token:', error)
+    return NextResponse.json({ 
+      error: 'Erreur interne du serveur' 
+    }, { status: 500 })
   }
 } 
