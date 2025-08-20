@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('📋 Données reçues:', Object.keys(body))
 
-    // Récupérer le compte client (fallback par email si id absent)
+    // Récupérer le compte client
     const sessionUserId = (session.user as any).id || (session.user as any).sub || null
     const sessionEmail = (session.user as any).email || null
     
@@ -55,12 +55,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Budget total invalide' }, { status: 400 })
     }
 
-    // Créer le mandat avec seulement les champs qui existent en prod
+    // Créer le mandat avec CHAMP MINIMUM
     const mandateNumber = `MAN-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     
     // Utiliser seulement les champs qui existent certainement en production
     const mandateData = {
-      clientAccountId: clientAccount.id,
+      clientAccountId: clientAccount.id.toString(), // Convertir en string
       mandateNumber,
       status: 'PENDING',
       version: 'v1.0',
@@ -79,29 +79,26 @@ export async function POST(request: NextRequest) {
       legalVersion: 'v1.0'
     }
 
-    const mandate = await prisma.advertisingMandate.create({
-      data: mandateData
-    })
-    console.log('✅ Mandat créé:', mandate.mandateNumber)
+    console.log('📝 Tentative création mandat avec données:', Object.keys(mandateData))
+
+    let mandate
+    try {
+      mandate = await prisma.advertisingMandate.create({
+        data: mandateData
+      })
+      console.log('✅ Mandat créé avec succès:', mandate.mandateNumber)
+    } catch (dbError: any) {
+      console.error('❌ Erreur création mandat:', dbError)
+      return NextResponse.json({ 
+        error: 'Erreur lors de la création du mandat',
+        details: dbError.message,
+        code: dbError.code
+      }, { status: 500 })
+    }
 
     // Générer le code de signature
     const signatureCode = generateSignatureCode()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
-
-    // Sauvegarder le code (optionnel - si les champs n'existent pas, on continue)
-    try {
-      await prisma.advertisingMandate.update({
-        where: { id: mandate.id },
-        data: {
-          signatureCode,
-          signatureExpiresAt: expiresAt,
-          signatureVerified: false
-        } as any
-      })
-      console.log('✅ Code de signature sauvegardé')
-    } catch (updateError: any) {
-      console.log('⚠️ Champs de signature non disponibles, continuation sans sauvegarde:', updateError.message)
-    }
 
     console.log('🔐 Code de signature généré:', signatureCode)
 
@@ -120,30 +117,6 @@ export async function POST(request: NextRequest) {
     } catch (emailError) {
       console.error('❌ Erreur envoi email de signature:', emailError)
       // On continue même si l'email échoue
-    }
-
-    // Envoyer les emails de confirmation
-    try {
-      await EmailService.sendMandateConfirmation(
-        clientAccount.user.email,
-        clientAccount.user.firstName,
-        mandate.mandateNumber,
-        new Date().toISOString(),
-        `${body.totalAnnualBudget}€ (${body.budgetType === 'FIXED' ? 'budget fixe' : 'budget variable'})`,
-        `${process.env.NEXTAUTH_URL}/client/mandat`
-      )
-
-      await EmailService.sendMandateNotificationToAdmin(
-        mandate.mandateNumber,
-        clientAccount.user.firstName,
-        clientAccount.user.lastName,
-        clientAccount.company?.name || 'N/A',
-        body.totalAnnualBudget,
-        body.budgetType
-      )
-    } catch (emailError) {
-      console.error('⚠️ Erreur envoi emails de confirmation:', emailError)
-      // On continue même si les emails échouent
     }
 
     return NextResponse.json({
