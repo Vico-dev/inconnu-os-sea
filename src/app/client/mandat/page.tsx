@@ -66,6 +66,8 @@ export default function MandatePage() {
 
   // État pour la signature électronique
   const [showSignatureModal, setShowSignatureModal] = useState(false)
+  const [signatureInitialStep, setSignatureInitialStep] = useState<'request' | 'verify'>('request')
+  const [signatureExpiresAt, setSignatureExpiresAt] = useState<string>('')
 
   // État pour contrôler l'affichage du formulaire
   const [showEditForm, setShowEditForm] = useState(false)
@@ -603,6 +605,8 @@ export default function MandatePage() {
                   const result = await handleSubmit(new Event('submit') as any)
                   if (result) {
                     setShowEditForm(false) // Fermer le formulaire après modification
+                    setSignatureInitialStep('request')
+                    setSignatureExpiresAt('')
                     setShowSignatureModal(true) // Demander la confirmation par code
                   }
                 } else {
@@ -641,6 +645,8 @@ export default function MandatePage() {
                     if (response.ok) {
                       toast.success('Mandat créé ! Vérifiez votre email pour le code de signature.')
                       await fetchMandate()
+                      setSignatureInitialStep('verify')
+                      setSignatureExpiresAt(result.expiresAt || '')
                       setShowSignatureModal(true)
                     } else {
                       toast.error(result.error || 'Erreur lors de la création du mandat')
@@ -686,6 +692,8 @@ export default function MandatePage() {
           setShowSignatureModal(false)
         }}
         mandateNumber={mandate?.mandateNumber || 'N/A'}
+        initialStep={signatureInitialStep}
+        initialExpiresAt={signatureExpiresAt}
       />
     </div>
   )

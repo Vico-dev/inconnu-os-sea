@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,18 +12,31 @@ interface SignatureModalProps {
   onClose: () => void
   onSuccess: () => void
   mandateNumber: string
+  initialStep?: 'request' | 'verify'
+  initialExpiresAt?: string
 }
 
 export default function SignatureModal({ 
   isOpen, 
   onClose, 
   onSuccess, 
-  mandateNumber 
+  mandateNumber,
+  initialStep = 'request',
+  initialExpiresAt
 }: SignatureModalProps) {
-  const [step, setStep] = useState<'request' | 'verify'>('request')
+  const [step, setStep] = useState<'request' | 'verify'>(initialStep)
   const [signatureCode, setSignatureCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [expiresAt, setExpiresAt] = useState<string>('')
+  const [expiresAt, setExpiresAt] = useState<string>(initialExpiresAt || '')
+
+  // Sync props when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setStep(initialStep)
+      setExpiresAt(initialExpiresAt || '')
+      setSignatureCode('')
+    }
+  }, [isOpen, initialStep, initialExpiresAt])
 
   const requestCode = async () => {
     setIsLoading(true)
