@@ -1,7 +1,7 @@
 import resend from './resend'
 
 export class EmailService {
-  private static from = 'Agence Inconnu <noreply@agence-inconnu.fr>'
+  private static from = process.env.RESEND_FROM || 'Agence Inconnu <onboarding@resend.dev>'
 
   /**
    * Envoyer un email de validation de compte
