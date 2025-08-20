@@ -145,10 +145,21 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
+      
+      // Erreurs de base de données
+      if (error.message.includes("connect") || error.message.includes("database")) {
+        return NextResponse.json(
+          { message: "Erreur de connexion à la base de données" },
+          { status: 500 }
+        )
+      }
     }
     
     return NextResponse.json(
-      { message: "Erreur interne du serveur lors de la création du compte" },
+      { 
+        message: "Erreur interne du serveur lors de la création du compte",
+        details: error instanceof Error ? error.message : "Erreur inconnue"
+      },
       { status: 500 }
     )
   }
