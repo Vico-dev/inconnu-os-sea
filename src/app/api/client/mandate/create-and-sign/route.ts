@@ -58,7 +58,8 @@ export async function POST(request: NextRequest) {
     // Créer le mandat avec seulement les champs qui existent en prod
     const mandateNumber = `MAN-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     
-    const mandateData: any = {
+    // Utiliser seulement les champs qui existent certainement en production
+    const mandateData = {
       clientAccountId: clientAccount.id,
       mandateNumber,
       status: 'PENDING',
@@ -78,35 +79,16 @@ export async function POST(request: NextRequest) {
       legalVersion: 'v1.0'
     }
 
-    // Ajouter les nouveaux champs seulement s'ils existent dans la DB
-    let mandate: any
-    try {
-      mandate = await prisma.advertisingMandate.create({
-        data: mandateData
-      })
-      console.log('✅ Mandat créé:', mandate.mandateNumber)
-    } catch (dbError: any) {
-      console.log('⚠️ Erreur avec nouveaux champs, tentative sans:', dbError.message)
-      
-      // Retirer les champs qui peuvent ne pas exister
-      delete mandateData.initiatedBy
-      delete mandateData.prefilledByAdmin
-      delete mandateData.prefilledAt
-      delete mandateData.editableByClient
-      delete mandateData.inviteToken
-      delete mandateData.invitationSentAt
-      
-      mandate = await prisma.advertisingMandate.create({
-        data: mandateData
-      })
-      console.log('✅ Mandat créé (sans nouveaux champs):', mandate.mandateNumber)
-    }
+    const mandate = await prisma.advertisingMandate.create({
+      data: mandateData
+    })
+    console.log('✅ Mandat créé:', mandate.mandateNumber)
 
     // Générer le code de signature
     const signatureCode = generateSignatureCode()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
 
-    // Sauvegarder le code
+    // Sauvegarder le code (optionnel - si les champs n'existent pas, on continue)
     try {
       await prisma.advertisingMandate.update({
         where: { id: mandate.id },
@@ -116,9 +98,9 @@ export async function POST(request: NextRequest) {
           signatureVerified: false
         } as any
       })
+      console.log('✅ Code de signature sauvegardé')
     } catch (updateError: any) {
-      console.log('⚠️ Erreur mise à jour signature, tentative sans nouveaux champs:', updateError.message)
-      // Si les champs de signature n'existent pas, on continue sans les sauvegarder
+      console.log('⚠️ Champs de signature non disponibles, continuation sans sauvegarde:', updateError.message)
     }
 
     console.log('🔐 Code de signature généré:', signatureCode)
