@@ -23,8 +23,8 @@ COPY . .
 # Générer le client Prisma
 RUN npx prisma generate
 
-# Build de l'application
-RUN npm run build
+# Build de l'application avec gestion d'erreurs
+RUN chmod +x ./build.sh && ./build.sh
 
 # Image de production
 FROM node:20-slim AS runner
