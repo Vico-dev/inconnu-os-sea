@@ -279,7 +279,7 @@ model AdvertisingMandate {
   id               String   @id @default(cuid())
   clientAccountId  String
   mandateNumber    String   @unique
-  status           String   @default("PENDING") // PENDING, ACTIVE, EXPIRED
+  status           String   @default("PENDING") // DRAFT, PENDING, ACTIVE, EXPIRED
   version          String   @default("v1.0")
   signedByName     String?
   signedByEmail    String?
@@ -287,30 +287,38 @@ model AdvertisingMandate {
   validFrom        DateTime?
   validUntil       DateTime?
   documentUrl      String?
-  
+
   // Informations de budget média
-  totalAnnualBudget Float?  // Budget annuel total en euros
-  monthlyBudgets   Json?    // Budgets mensuels détaillés [{"month": 1, "amount": 1000}, ...]
-  budgetType       String?  // "FIXED" (montant fixe) ou "VARIABLE" (montants variables par mois)
-  
+  totalAnnualBudget Float?
+  monthlyBudgets   Json?
+  budgetType       String?
+
   // Gestion de trésorerie
-  treasuryManagement Boolean @default(false) // L'agence paie les dépenses publicitaires
-  managementFees    Float?  // Frais de gestion (20% avec minimum 50€)
-  paymentTerms      String? // Conditions de paiement (ex: "30 jours fin de mois")
-  
-  // Traçabilité juridique renforcée
-  consentData      Json?    // Données de consentement: IP, User-Agent, timestamps, etc.
-  scrollTracking   Json?    // Données de scroll et temps passé sur la page
-  emailConfirmation Json?   // Données de confirmation email (envoyé, ouvert, etc.)
-  legalVersion     String   @default("v1.0") // Version des conditions légales
+  treasuryManagement Boolean @default(false)
+  managementFees    Float?
+  paymentTerms      String?
+
+  // Traçabilité juridique
+  consentData      Json?
+  scrollTracking   Json?
+  emailConfirmation Json?
+  legalVersion     String   @default("v1.0")
   termsAccepted    Boolean  @default(false)
   gdprAccepted     Boolean  @default(false)
-  
+
   // Signature électronique sécurisée
-  signatureCode    String?  // Code de vérification envoyé par email
-  signatureVerified Boolean @default(false) // Signature validée par code
-  signatureExpiresAt DateTime? // Expiration du code de signature
-  
+  signatureCode    String?
+  signatureVerified Boolean @default(false)
+  signatureExpiresAt DateTime?
+
+  // Pré-remplissage par l'admin
+  initiatedBy       String   @default("CLIENT") // CLIENT | ADMIN
+  prefilledByAdmin  Boolean  @default(false)
+  prefilledAt       DateTime?
+  editableByClient  Boolean  @default(false)
+  inviteToken       String?  @unique
+  invitationSentAt  DateTime?
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
