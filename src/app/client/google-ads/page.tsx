@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, ExternalLink, BarChart3, TrendingUp, Eye, MousePointer, Euro, Info } from 'lucide-react'
+import { Loader2, ExternalLink, BarChart3, TrendingUp, Eye, MousePointer, Euro, Info, Download, FileText } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSearchParams } from 'next/navigation'
 import { DateRangeSelector, DateRange } from '@/components/client/DateRangeSelector'
@@ -142,6 +142,34 @@ export default function GoogleAdsPage() {
     }
   }
 
+  const handleExportReport = async (format: 'pdf' | 'excel') => {
+    try {
+      const params = new URLSearchParams({
+        startDate: dateRange.startDate.toISOString(),
+        endDate: dateRange.endDate.toISOString(),
+        format
+      })
+      
+      const response = await fetch(`/api/google-ads/export?${params}`)
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `rapport-google-ads-${dateRange.label.toLowerCase().replace(' ', '-')}.${format}`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      } else {
+        setError('Erreur lors de l\'export du rapport')
+      }
+    } catch (error) {
+      setError('Erreur lors de l\'export du rapport')
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -203,6 +231,28 @@ export default function GoogleAdsPage() {
               </>
             )}
           </Button>
+          
+          {metrics && (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleExportReport('pdf')}
+                variant="outline"
+                size="sm"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Export PDF
+              </Button>
+              <Button
+                onClick={() => handleExportReport('excel')}
+                variant="outline"
+                size="sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export Excel
+              </Button>
+            </div>
+          )}
+          
           <Button
             onClick={handleConnectGoogleAds}
             disabled={isConnecting}

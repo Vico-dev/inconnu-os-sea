@@ -1,248 +1,321 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, AreaChart, Area, LabelList } from 'recharts'
-import { formatCurrency } from '@/lib/utils'
+"use client"
 
-interface Campaign {
-  id: string
-  name: string
-  status: string
-  impressions: number
-  clicks: number
-  cost: number
-  ctr: number
-  cpc: number
-  conversions: number
-}
-
-interface DailyPoint { date: string; impressions: number; clicks: number; cost: number; conversions: number }
-interface ConversionType { category: string; conversions: number }
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { 
+  LineChart, 
+  Line, 
+  BarChart, 
+  Bar, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts'
 
 interface GoogleAdsChartsProps {
-  campaigns: Campaign[]
-  daily?: DailyPoint[]
-  conversionsByType?: ConversionType[]
+  campaigns: any[]
+  daily: any[]
+  conversionsByType: any[]
 }
 
-export function GoogleAdsCharts({ campaigns, daily = [], conversionsByType = [] }: GoogleAdsChartsProps) {
-  // Préparer les données pour les graphiques
-  const chartData = campaigns.map(campaign => ({
-    name: campaign.name.length > 20 ? campaign.name.substring(0, 20) + '...' : campaign.name,
-    clicks: campaign.clicks,
-    cpc: campaign.cpc,
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D']
+
+export function GoogleAdsCharts({ campaigns, daily, conversionsByType }: GoogleAdsChartsProps) {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(value)
+  }
+
+  const formatNumber = (value: number) => {
+    return new Intl.NumberFormat('fr-FR').format(value)
+  }
+
+  const formatPercentage = (value: number) => {
+    return `${value.toFixed(2)}%`
+  }
+
+  // Calculer les métriques de performance
+  const performanceMetrics = campaigns.map(campaign => ({
+    name: campaign.name,
     ctr: campaign.ctr,
-    conversions: campaign.conversions,
-    cost: campaign.cost
+    cpc: campaign.cpc,
+    cpm: campaign.cpm,
+    conversionRate: campaign.conversions > 0 ? (campaign.conversions / campaign.clicks) * 100 : 0
   }))
 
-  const totalClicks = campaigns.reduce((sum, campaign) => sum + campaign.clicks, 0)
-  const totalCost = campaigns.reduce((sum, campaign) => sum + campaign.cost, 0)
-  const avgCpc = totalClicks > 0 ? totalCost / totalClicks : 0
-  const avgCtr = campaigns.reduce((sum, campaign) => sum + campaign.ctr, 0) / campaigns.length
+  // Données pour le graphique de tendance quotidienne
+  const dailyData = daily.map(day => ({
+    date: new Date(day.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+    impressions: day.impressions,
+    clicks: day.clicks,
+    cost: day.cost,
+    conversions: day.conversions
+  }))
 
-  // Styles & helpers
-  const COLORS = {
-    clicks: '#3b82f6',
-    conversions: '#8b5cf6',
-    cost: '#10b981',
-    bar: '#3b82f6',
-    cpc: '#10b981',
-  }
+  // Données pour la répartition des conversions
+  const conversionData = conversionsByType.map(conv => ({
+    name: conv.conversionType,
+    value: conv.conversions,
+    percentage: conv.percentage
+  }))
 
-  const formatNumber = (n: number) => new Intl.NumberFormat('fr-FR').format(n)
-
-  const mapCategory = (cat: string) => {
-    switch (cat) {
-      case 'PURCHASE': return 'Achat'
-      case 'ADD_TO_CART': return 'Ajout au panier'
-      case 'SUBMIT_LEAD_FORM': return 'Lead/Formulaire'
-      case 'PAGE_VIEW': return 'Vue de page'
-      case 'PHONE_CALL_LEAD': return 'Appel'
-      default: return cat
-    }
-  }
-
-  const convData = conversionsByType.map((d) => ({ ...d, label: mapCategory(d.category) }))
-
-  const DailyTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload.length) return null
-    const p: Record<string, any> = {}
-    payload.forEach((it: any) => (p[it.dataKey] = it.value))
-    return (
-      <div className="rounded-md border bg-white/95 p-2 shadow-sm text-sm">
-        <div className="font-medium mb-1">{label}</div>
-        <div className="flex items-center gap-2"><span className="inline-block w-2 h-2 rounded-full" style={{background: COLORS.clicks}} /> Clics: {formatNumber(Number(p.clicks || 0))}</div>
-        <div className="flex items-center gap-2"><span className="inline-block w-2 h-2 rounded-full" style={{background: COLORS.conversions}} /> Conversions: {formatNumber(Number(p.conversions || 0))}</div>
-        <div className="flex items-center gap-2"><span className="inline-block w-2 h-2 rounded-full" style={{background: COLORS.cost}} /> Coût: {formatCurrency(Number(p.cost || 0))}</div>
-      </div>
-    )
-  }
-
-  const BarTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload.length) return null
-    const value = Number(payload[0].value || 0)
-    return (
-      <div className="rounded-md border bg-white/95 p-2 shadow-sm text-sm">
-        <div className="font-medium mb-1">{label}</div>
-        <div>Conversions: {formatNumber(value)}</div>
-      </div>
-    )
-  }
+  // Données pour la performance des campagnes
+  const campaignPerformance = campaigns.map(campaign => ({
+    name: campaign.name.length > 20 ? campaign.name.substring(0, 20) + '...' : campaign.name,
+    clicks: campaign.clicks,
+    cost: campaign.cost,
+    conversions: campaign.conversions,
+    ctr: campaign.ctr
+  }))
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* Tendance quotidienne */}
-      {daily.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">Tendance quotidienne</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={320}>
-              <AreaChart data={daily} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-                <defs>
-                  <linearGradient id="gClicks" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={COLORS.clicks} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={COLORS.clicks} stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="gConv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={COLORS.conversions} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={COLORS.conversions} stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" angle={-45} textAnchor="end" height={70} tick={{ fontSize: 12 }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
-                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => formatCurrency(Number(v)).replace(/\s/g, '\u00A0')} width={60} />
-                <Tooltip content={<DailyTooltip />} />
-                <Legend />
-                <Area yAxisId="left" type="monotone" dataKey="clicks" name="Clics" stroke={COLORS.clicks} fill="url(#gClicks)" strokeWidth={2} />
-                <Area yAxisId="left" type="monotone" dataKey="conversions" name="Conversions" stroke={COLORS.conversions} fill="url(#gConv)" strokeWidth={2} />
-                <Line yAxisId="right" type="monotone" dataKey="cost" name="Coût (€)" stroke={COLORS.cost} strokeWidth={2} dot={{ r: 2 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
+    <Card>
+      <CardHeader>
+        <CardTitle>Analyses et tendances</CardTitle>
+        <CardDescription>Visualisez vos performances Google Ads</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="trends" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="trends">Tendances</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
+            <TabsTrigger value="conversions">Conversions</TabsTrigger>
+            <TabsTrigger value="campaigns">Campagnes</TabsTrigger>
+          </TabsList>
 
-      {/* Détail des conversions */}
-      {conversionsByType.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">Détail des conversions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={convData} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip content={<BarTooltip />} />
-                <Legend />
-                <Bar dataKey="conversions" fill={COLORS.conversions} radius={[6,6,0,0]}>
-                  <LabelList dataKey="conversions" position="top" formatter={(v: number)=>formatNumber(Number(v))} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-      {/* Graphique des clics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span className="text-lg">Clics par campagne</span>
-            <span className="text-sm text-muted-foreground">({totalClicks} total)</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 40, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-              <YAxis />
-              <Tooltip 
-                formatter={(value: number) => [value, 'Clics']}
-                labelFormatter={(label) => `Campagne: ${label}`}
-              />
-              <Bar dataKey="clicks" fill={COLORS.bar} radius={[6,6,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+          <TabsContent value="trends" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Graphique des impressions et clics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Impressions et Clics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={dailyData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value: number, name: string) => [
+                          formatNumber(value), 
+                          name === 'impressions' ? 'Impressions' : 'Clics'
+                        ]}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="impressions" 
+                        stackId="1" 
+                        stroke="#8884d8" 
+                        fill="#8884d8" 
+                        fillOpacity={0.6}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="clicks" 
+                        stackId="1" 
+                        stroke="#82ca9d" 
+                        fill="#82ca9d" 
+                        fillOpacity={0.6}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
 
-      {/* Graphique du CPC */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span className="text-lg">CPC par campagne</span>
-            <span className="text-sm text-muted-foreground">(Moy: {avgCpc.toFixed(2)}€)</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 40, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-              <YAxis />
-              <Tooltip 
-                formatter={(value: number) => [`${value.toFixed(2)}€`, 'CPC']}
-                labelFormatter={(label) => `Campagne: ${label}`}
-              />
-              <Bar dataKey="cpc" fill={COLORS.cpc} radius={[6,6,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+              {/* Graphique du coût et conversions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Coût et Conversions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={dailyData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip 
+                        formatter={(value: number, name: string) => [
+                          name === 'cost' ? formatCurrency(value) : formatNumber(value), 
+                          name === 'cost' ? 'Coût' : 'Conversions'
+                        ]}
+                      />
+                      <Line 
+                        yAxisId="left"
+                        type="monotone" 
+                        dataKey="cost" 
+                        stroke="#ff7300" 
+                        strokeWidth={2}
+                        dot={{ fill: '#ff7300' }}
+                      />
+                      <Line 
+                        yAxisId="right"
+                        type="monotone" 
+                        dataKey="conversions" 
+                        stroke="#00c49f" 
+                        strokeWidth={2}
+                        dot={{ fill: '#00c49f' }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
-      {/* Graphique du CTR */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span className="text-lg">CTR par campagne</span>
-            <span className="text-sm text-muted-foreground">(Moy: {avgCtr.toFixed(2)}%)</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData} margin={{ top: 10, right: 10, bottom: 40, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-              <YAxis />
-              <Tooltip 
-                formatter={(value: number) => [`${value.toFixed(2)}%`, 'CTR']}
-                labelFormatter={(label) => `Campagne: ${label}`}
-              />
-              <Line type="monotone" dataKey="ctr" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+          <TabsContent value="performance" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Graphique CTR par campagne */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">CTR par Campagne</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={performanceMetrics}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value: number) => [formatPercentage(value), 'CTR']}
+                      />
+                      <Bar dataKey="ctr" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
 
-      {/* Graphique des conversions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span className="text-lg">Conversions par campagne</span>
-            <span className="text-sm text-muted-foreground">
-              ({campaigns.reduce((sum, c) => sum + c.conversions, 0)} total)
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 40, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-              <YAxis />
-              <Tooltip 
-                formatter={(value: number) => [value, 'Conversions']}
-                labelFormatter={(label) => `Campagne: ${label}`}
-              />
-              <Bar dataKey="conversions" fill={COLORS.conversions} radius={[6,6,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </div>
+              {/* Graphique CPC par campagne */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">CPC par Campagne</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={performanceMetrics}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value), 'CPC']}
+                      />
+                      <Bar dataKey="cpc" fill="#82ca9d" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="conversions" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Graphique en camembert des conversions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Répartition des Conversions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={conversionData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {conversionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number) => [formatNumber(value), 'Conversions']}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Graphique des taux de conversion */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Taux de Conversion par Campagne</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={performanceMetrics}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value: number) => [formatPercentage(value), 'Taux de conversion']}
+                      />
+                      <Bar dataKey="conversionRate" fill="#ffc658" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="campaigns" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Graphique des clics par campagne */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Clics par Campagne</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={campaignPerformance}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value: number) => [formatNumber(value), 'Clics']}
+                      />
+                      <Bar dataKey="clicks" fill="#0088FE" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Graphique du coût par campagne */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Coût par Campagne</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={campaignPerformance}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value), 'Coût']}
+                      />
+                      <Bar dataKey="cost" fill="#FF8042" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   )
 }

@@ -1,62 +1,155 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/db'
 
-const prisma = new PrismaClient()
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    // Vérifier que l'utilisateur est admin
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (user?.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    }
+
+    const prospects = await prisma.prospect.findMany({
+      orderBy: { createdAt: 'desc' }
+    })
+
+    return NextResponse.json({
+      success: true,
+      prospects: prospects.map(prospect => ({
+        id: prospect.id,
+        firstName: prospect.firstName,
+        lastName: prospect.lastName,
+        email: prospect.email,
+        phone: prospect.phone,
+        company: prospect.company,
+        industry: prospect.industry,
+        website: prospect.website,
+        budget: prospect.budget,
+        status: prospect.status,
+        source: prospect.source,
+        notes: prospect.notes,
+        score: prospect.score,
+        lastContact: prospect.lastContact,
+        createdAt: prospect.createdAt
+      }))
+    })
+
+  } catch (error) {
+    console.error('Erreur lors de la récupération des prospects:', error)
+    return NextResponse.json(
+      { error: 'Erreur interne du serveur' },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    // Vérifier que l'utilisateur est admin
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (user?.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    }
+
     const body = await request.json()
-    const { firstName, lastName, email, phone, company, message, notes, score, budget, status } = body
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      company,
+      industry,
+      website,
+      budget,
+      source,
+      notes
+    } = body
 
     // Validation des champs requis
-    if (!firstName || !lastName || !email) {
+    if (!firstName || !lastName || !email || !company) {
       return NextResponse.json(
-        { error: 'Prénom, nom et email sont requis' },
+        { error: 'Prénom, nom, email et entreprise sont requis' },
         { status: 400 }
       )
     }
 
-    // Validation de l'email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
+    // Vérifier si l'email existe déjà
+    const existingProspect = await prisma.prospect.findUnique({
+      where: { email }
+    })
+
+    if (existingProspect) {
       return NextResponse.json(
-        { error: 'Format d\'email invalide' },
+        { error: 'Un prospect avec cet email existe déjà' },
         { status: 400 }
       )
     }
 
-    // Validation du score
-    if (score !== undefined && (score < 1 || score > 10)) {
-      return NextResponse.json(
-        { error: 'Score doit être entre 1 et 10' },
-        { status: 400 }
-      )
-    }
+    // Calculer un score de base
+    const score = calculateProspectScore({
+      industry,
+      budget,
+      website,
+      source
+    })
 
-    // Créer le prospect
     const prospect = await prisma.prospect.create({
       data: {
         firstName,
         lastName,
         email,
-        phone: phone || null,
-        company: company || null,
-        message: message || null,
-        notes: notes || null,
-        score: score || null,
-        budget: budget || null,
-        source: 'WEBSITE',
-        status: status || 'NEW'
+        phone: phone || '',
+        company,
+        industry: industry || '',
+        website: website || '',
+        budget: budget ? parseFloat(budget) : null,
+        status: 'NEW',
+        source: source || 'OTHER',
+        notes: notes || '',
+        score,
+        lastContact: new Date()
       }
     })
 
-    return NextResponse.json(
-      { 
-        message: 'Prospect créé avec succès',
-        prospect 
-      },
-      { status: 201 }
-    )
+    return NextResponse.json({
+      success: true,
+      prospect: {
+        id: prospect.id,
+        firstName: prospect.firstName,
+        lastName: prospect.lastName,
+        email: prospect.email,
+        phone: prospect.phone,
+        company: prospect.company,
+        industry: prospect.industry,
+        website: prospect.website,
+        budget: prospect.budget,
+        status: prospect.status,
+        source: prospect.source,
+        notes: prospect.notes,
+        score: prospect.score,
+        lastContact: prospect.lastContact,
+        createdAt: prospect.createdAt
+      }
+    })
+
   } catch (error) {
     console.error('Erreur lors de la création du prospect:', error)
     return NextResponse.json(
@@ -66,45 +159,36 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const offset = (page - 1) * limit
+function calculateProspectScore(data: {
+  industry?: string
+  budget?: number | null
+  website?: string
+  source?: string
+}): number {
+  let score = 50 // Score de base
 
-    // Construire les filtres
-    const where: any = {}
-    if (status) {
-      where.status = status
-    }
-
-    // Récupérer les prospects avec pagination
-    const [prospects, total] = await Promise.all([
-      prisma.prospect.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: limit
-      }),
-      prisma.prospect.count({ where })
-    ])
-
-    return NextResponse.json({
-      prospects,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    })
-  } catch (error) {
-    console.error('Erreur lors de la récupération des prospects:', error)
-    return NextResponse.json(
-      { error: 'Erreur interne du serveur' },
-      { status: 500 }
-    )
+  // Score basé sur l'industrie
+  const highValueIndustries = ['E-COMMERCE', 'SERVICES', 'TECHNOLOGY', 'FINANCE']
+  if (data.industry && highValueIndustries.includes(data.industry.toUpperCase())) {
+    score += 20
   }
+
+  // Score basé sur le budget
+  if (data.budget) {
+    if (data.budget >= 5000) score += 25
+    else if (data.budget >= 2000) score += 15
+    else if (data.budget >= 500) score += 10
+  }
+
+  // Score basé sur la présence d'un site web
+  if (data.website) {
+    score += 10
+  }
+
+  // Score basé sur la source
+  if (data.source === 'REFERRAL') score += 15
+  else if (data.source === 'WEBSITE') score += 10
+  else if (data.source === 'LINKEDIN') score += 5
+
+  return Math.min(score, 100) // Score maximum de 100
 } 
