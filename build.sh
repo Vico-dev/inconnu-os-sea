@@ -4,15 +4,19 @@ echo "🔧 Génération du Prisma Client..."
 npx prisma generate
 
 echo "🏗️ Build de l'application Next.js..."
-# Forcer le build même avec des erreurs de prerender
+# Build strict; on ne continue que si un build utilisable est présent
 npx next build --no-lint || {
-  echo "⚠️ Build avec erreurs de prerender, mais on continue..."
-  # Vérifier que .next existe malgré les erreurs
+  echo "⚠️ Build avec erreurs. Vérification de l'artefact..."
   if [ -d ".next" ]; then
-    echo "✅ Dossier .next trouvé, build partiellement réussi"
-    exit 0
+    if [ -f ".next/BUILD_ID" ]; then
+      echo "✅ Artefact détecté (.next/BUILD_ID présent)." 
+      exit 0
+    else
+      echo "❌ Build invalide: fichier .next/BUILD_ID absent. Arrêt."
+      exit 1
+    fi
   else
-    echo "❌ Échec du build Next.js. Arrêt du déploiement pour éviter un runtime sans .next"
+    echo "❌ Échec du build Next.js: dossier .next manquant. Arrêt."
     exit 1
   fi
 }

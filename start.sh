@@ -1,26 +1,37 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Démarrage de l'application..."
-echo "📁 Contenu du répertoire:"
-ls -la
-
-# Si le build n'existe pas (cas Railway), construire avant de démarrer
-if [ ! -d ".next" ]; then
-  echo "⚠️ Aucun build trouvé (.next manquant). Lancement du build..."
-  # Générer Prisma si le client n'existe pas (robustesse Nixpacks)
+attempt_build() {
+  echo "⚠️ Aucun build valide trouvé. Lancement du build..."
+  # Générer Prisma si le client n'existe pas (robustesse)
   if [ ! -d "node_modules/.prisma/client" ]; then
     echo "🔧 Prisma client absent. Génération..."
     npx prisma generate
   fi
   echo "🏗️ Build Next.js..."
   npm run build
-  echo "✅ Build terminé. Vérification .next:"
-  ls -la .next/
-else
-  echo "✅ Build trouvé (.next existe)"
+}
+
+is_build_valid() {
+  [ -d ".next" ] && [ -f ".next/BUILD_ID" ]
+}
+
+echo "🚀 Démarrage de l'application..."
+echo "📁 Contenu du répertoire:"
+ls -la
+
+# Validation du build
+if ! is_build_valid; then
+  attempt_build
 fi
+
+if ! is_build_valid; then
+  echo "❌ Build toujours invalide après tentative. Arrêt."
+  exit 1
+fi
+
+echo "✅ Build valide détecté (.next/BUILD_ID)"
 
 # Démarrage
 echo "🚀 Lancement de Next.js..."
-exec npx next start -p "${PORT:-3000}"
+exec npx next start -p "${PORT:-3000}" -H 0.0.0.0
