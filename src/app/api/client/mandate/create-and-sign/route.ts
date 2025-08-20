@@ -74,15 +74,28 @@ export async function POST(request: NextRequest) {
     console.log('🔐 Code de signature généré:', signatureCode)
 
     // Envoyer l'email avec le code
-    await EmailService.sendSignatureCode(
-      clientAccount.user.email,
-      clientAccount.user.firstName,
-      mandate.mandateNumber,
+    console.log('📧 Tentative envoi email à:', clientAccount.user.email)
+    console.log('📧 Données email:', {
+      to: clientAccount.user.email,
+      firstName: clientAccount.user.firstName,
+      mandateNumber: mandate.mandateNumber,
       signatureCode,
-      expiresAt.toISOString()
-    )
-
-    console.log('📧 Email de signature envoyé')
+      expiresAt: expiresAt.toISOString()
+    })
+    
+    try {
+      await EmailService.sendSignatureCode(
+        clientAccount.user.email,
+        clientAccount.user.firstName,
+        mandate.mandateNumber,
+        signatureCode,
+        expiresAt.toISOString()
+      )
+      console.log('✅ Email de signature envoyé avec succès')
+    } catch (emailError) {
+      console.error('❌ Erreur envoi email de signature:', emailError)
+      // On continue même si l'email échoue
+    }
 
     // Envoyer les emails de confirmation
     try {

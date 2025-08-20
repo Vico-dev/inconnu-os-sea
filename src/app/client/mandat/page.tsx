@@ -603,6 +603,7 @@ export default function MandatePage() {
                   const result = await handleSubmit(new Event('submit') as any)
                   if (result) {
                     setShowEditForm(false) // Fermer le formulaire après modification
+                    setShowSignatureModal(true) // Demander la confirmation par code
                   }
                 } else {
                   // Si c'est un nouveau mandat, on utilise l'API de création et signature
