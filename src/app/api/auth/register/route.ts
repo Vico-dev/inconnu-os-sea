@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcryptjs from "bcryptjs"
 import { prisma } from "@/lib/db"
-import { EmailService } from "@/lib/email-service-stub"
+import { EmailService } from "@/lib/email-service"
 import crypto from "crypto"
 
 export async function POST(request: NextRequest) {
