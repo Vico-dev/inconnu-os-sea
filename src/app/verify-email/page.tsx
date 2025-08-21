@@ -1,150 +1,240 @@
-'use client'
+"use client"
+
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, CheckCircle, XCircle, Mail, ArrowRight, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'expired'>('loading')
   const [message, setMessage] = useState('')
+  const [email, setEmail] = useState('')
 
   useEffect(() => {
     const token = searchParams.get('token')
+    const success = searchParams.get('success')
+    const error = searchParams.get('error')
     
-    if (!token) {
+    if (success === 'true') {
+      setStatus('success')
+      setMessage('Votre email a été vérifié avec succès !')
+      const emailParam = searchParams.get('email')
+      if (emailParam) setEmail(decodeURIComponent(emailParam))
+    } else if (error) {
+      if (error === 'expired_token') {
+        setStatus('expired')
+        setMessage('Le lien de validation a expiré')
+      } else {
+        setStatus('error')
+        setMessage('Lien de validation invalide')
+      }
+    } else if (token) {
+      verifyEmail(token)
+    } else {
       setStatus('error')
-      setMessage('Token de vérification manquant')
+      setMessage('Lien de validation invalide')
+    }
+  }, [searchParams])
+
+  const verifyEmail = async (token: string) => {
+    try {
+      const response = await fetch(`/api/auth/verify-email?token=${token}`)
+      
+      if (response.ok) {
+        setStatus('success')
+        setMessage('Votre email a été vérifié avec succès !')
+      } else {
+        const data = await response.json()
+        if (data.error?.includes('expiré')) {
+          setStatus('expired')
+          setMessage('Le lien de validation a expiré')
+        } else {
+          setStatus('error')
+          setMessage(data.error || 'Erreur lors de la validation')
+        }
+      }
+    } catch (error) {
+      setStatus('error')
+      setMessage('Erreur de connexion')
+    }
+  }
+
+  const resendVerification = async () => {
+    if (!email) {
+      setMessage('Impossible de renvoyer l\'email sans adresse email')
       return
     }
 
-    // Vérifier le token
-    fetch(`/api/auth/verify-email?token=${token}`)
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          setStatus('success')
-          setMessage('Votre email a été vérifié avec succès ! Vous pouvez maintenant vous connecter.')
-          toast.success('Email vérifié avec succès !')
-        } else {
-          setStatus('error')
-          setMessage(data.error || 'Erreur lors de la vérification')
-          toast.error(data.error || 'Erreur lors de la vérification')
-        }
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
       })
-      .catch(error => {
-        console.error('Erreur vérification:', error)
-        setStatus('error')
-        setMessage('Erreur lors de la vérification de votre email')
-        toast.error('Erreur lors de la vérification')
-      })
-  }, [searchParams])
 
-  const handleResendEmail = async () => {
-    // Ici on pourrait ajouter une logique pour renvoyer l'email
-    toast.info('Fonctionnalité à implémenter')
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage('Email de vérification renvoyé avec succès ! Vérifiez votre boîte de réception.')
+      } else {
+        setMessage(data.error || 'Erreur lors de l\'envoi')
+      }
+    } catch (error) {
+      setMessage('Erreur de connexion')
+    }
   }
 
-  const handleGoToLogin = () => {
-    router.push('/login')
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="w-16 h-16 text-green-600" />
+      case 'error':
+      case 'expired':
+        return <XCircle className="w-16 h-16 text-red-600" />
+      default:
+        return <Loader2 className="w-16 h-16 animate-spin text-blue-600" />
+    }
+  }
+
+  const getStatusColor = () => {
+    switch (status) {
+      case 'success':
+        return 'border-green-200 bg-green-50'
+      case 'error':
+      case 'expired':
+        return 'border-red-200 bg-red-50'
+      default:
+        return 'border-blue-200 bg-blue-50'
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Vérification de votre email
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            {status === 'loading' && 'Vérification en cours...'}
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl">
+        <CardHeader className="text-center pb-4">
+          <div className="flex justify-center mb-6">
+            {getStatusIcon()}
+          </div>
+          <CardTitle className="text-3xl font-bold">
+            {status === 'loading' && 'Validation en cours...'}
+            {status === 'success' && 'Email vérifié !'}
+            {status === 'error' && 'Erreur de validation'}
+            {status === 'expired' && 'Lien expiré'}
+          </CardTitle>
+          <CardDescription className="text-lg">
+            {status === 'loading' && 'Vérification de votre email...'}
+            {status === 'success' && 'Votre compte est maintenant actif'}
+            {status === 'error' && 'Le lien de validation est invalide'}
+            {status === 'expired' && 'Le lien de validation a expiré'}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {message && (
+            <Alert className={getStatusColor()}>
+              <AlertDescription className={
+                status === 'success' ? 'text-green-800' : 
+                status === 'error' || status === 'expired' ? 'text-red-800' : 
+                'text-blue-800'
+              }>
+                {message}
+              </AlertDescription>
+            </Alert>
+          )}
 
-        <Card>
-          <CardHeader className="text-center">
-            {status === 'loading' && (
-              <>
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
-                  <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
-                </div>
-                <CardTitle className="text-lg">Vérification en cours</CardTitle>
-                <CardDescription>
-                  Nous vérifions votre email...
-                </CardDescription>
-              </>
-            )}
+          {status === 'success' && (
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-800 text-center">
+                  🎉 Félicitations ! Votre compte a été validé avec succès. 
+                  Vous pouvez maintenant accéder à toutes les fonctionnalités de la plateforme.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                  <Link href="/login">
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Se connecter
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild className="w-full">
+                  <Link href="/client">
+                    Accéder au dashboard
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
 
-            {status === 'success' && (
-              <>
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                </div>
-                <CardTitle className="text-lg text-green-600">Email vérifié !</CardTitle>
-                <CardDescription>
-                  Votre compte est maintenant actif
-                </CardDescription>
-              </>
-            )}
-
-            {status === 'error' && (
-              <>
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                  <XCircle className="h-6 w-6 text-red-600" />
-                </div>
-                <CardTitle className="text-lg text-red-600">Erreur de vérification</CardTitle>
-                <CardDescription>
-                  Impossible de vérifier votre email
-                </CardDescription>
-              </>
-            )}
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-600 text-center">
-              {message}
-            </p>
-
-            {status === 'success' && (
-              <Button 
-                onClick={handleGoToLogin}
-                className="w-full"
-              >
-                Se connecter
-              </Button>
-            )}
-
-            {status === 'error' && (
+          {status === 'expired' && (
+            <div className="space-y-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800 text-center">
+                  ⏰ Le lien de validation a expiré. Les liens de validation sont valides pendant 24 heures.
+                </p>
+              </div>
               <div className="space-y-3">
-                <Button 
-                  onClick={handleResendEmail}
-                  variant="outline"
-                  className="w-full"
-                >
+                <Button onClick={resendVerification} className="w-full bg-blue-600 hover:bg-blue-700">
                   <Mail className="w-4 h-4 mr-2" />
                   Renvoyer l'email de vérification
                 </Button>
-                
-                <Button 
-                  onClick={handleGoToLogin}
-                  className="w-full"
-                >
-                  Retour à la connexion
+                <Button variant="outline" asChild className="w-full">
+                  <Link href="/login">
+                    Retour à la connexion
+                  </Link>
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
 
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
-            Si vous rencontrez des problèmes, contactez notre support
-          </p>
-        </div>
-      </div>
+          {status === 'error' && (
+            <div className="space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-800 text-center">
+                  ❌ Le lien de validation est invalide. Veuillez vérifier votre email ou contacter le support.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Button variant="outline" asChild className="w-full">
+                  <Link href="/login">
+                    Retour à la connexion
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild className="w-full">
+                  <Link href="/register">
+                    Créer un nouveau compte
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {status === 'loading' && (
+            <div className="text-center space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  🔄 Veuillez patienter pendant la vérification de votre email...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500 text-center">
+              Besoin d'aide ? Contactez-nous à{' '}
+              <a href="mailto:support@agence-inconnu.fr" className="text-blue-600 hover:underline">
+                support@agence-inconnu.fr
+              </a>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 } 

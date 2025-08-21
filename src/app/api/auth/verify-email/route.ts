@@ -73,7 +73,10 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('token')
 
     if (!token) {
-      return NextResponse.json({ error: 'Token manquant' }, { status: 400 })
+      // Rediriger vers la page de validation avec une erreur
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/verify-email?error=missing_token`
+      )
     }
 
     // Trouver l'utilisateur avec ce token
@@ -87,9 +90,10 @@ export async function GET(request: NextRequest) {
     })
 
     if (!user) {
-      return NextResponse.json({ 
-        error: 'Token invalide ou expiré' 
-      }, { status: 400 })
+      // Rediriger vers la page de validation avec une erreur d'expiration
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/verify-email?error=expired_token`
+      )
     }
 
     // Marquer l'email comme vérifié
@@ -103,15 +107,16 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Email vérifié avec succès' 
-    })
+    // Rediriger vers la page de validation avec succès
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/verify-email?success=true&email=${encodeURIComponent(user.email)}`
+    )
 
   } catch (error: any) {
     console.error('Erreur vérification token:', error)
-    return NextResponse.json({ 
-      error: 'Erreur interne du serveur' 
-    }, { status: 500 })
+    // Rediriger vers la page de validation avec une erreur
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/verify-email?error=server_error`
+    )
   }
 } 
