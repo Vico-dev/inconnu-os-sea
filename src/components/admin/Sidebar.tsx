@@ -118,6 +118,12 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
       href: "/admin/prospects",
       icon: Users,
       current: pathname === "/admin/prospects"
+    },
+    {
+      name: "Outil IA",
+      href: "/admin/ai-tools",
+      icon: TrendingUp,
+      current: pathname === "/admin/ai-tools"
     }
   ]
 

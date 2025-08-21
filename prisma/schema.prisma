@@ -84,6 +84,8 @@ model ClientAccount {
   emailReminders EmailReminder[]
   advertisingMandates AdvertisingMandate[]
   notifications Notification[]
+  aiCampaigns AICampaign[]
+  aiTasks AITask[]
 
   @@map("client_accounts")
 }
@@ -362,4 +364,68 @@ model Notification {
   @@index([userId])
   @@index([clientAccountId])
   @@map("notifications")
+}
+
+// Modèle pour les campagnes générées par IA
+model AICampaign {
+  id                String   @id @default(cuid())
+  clientAccountId   String
+  name              String
+  website           String
+  industry          String?
+  targetAudience    String?
+  budget            Float?
+  status            String   @default("DRAFT") // DRAFT, REVIEW, APPROVED, REJECTED, PUBLISHED
+  aiGeneratedAt     DateTime @default(now())
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  notes             String?
+  
+  // Données scrapées du site
+  scrapedData       Json?    // Pages, produits, services, etc.
+  
+  // Assets générés par IA
+  keywords          Json?    // Mots-clés générés
+  adCopy            Json?    // Textes d'annonces
+  headlines         Json?    // Titres d'annonces
+  descriptions      Json?    // Descriptions d'annonces
+  landingPages      Json?    // Suggestions de pages de destination
+  
+  // Métriques de performance
+  performanceScore  Float?
+  relevanceScore    Float?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  aiTasks AITask[]
+
+  @@index([clientAccountId])
+  @@index([status])
+  @@map("ai_campaigns")
+}
+
+// Modèle pour les tâches de scraping et génération IA
+model AITask {
+  id                String   @id @default(cuid())
+  clientAccountId   String
+  campaignId        String?
+  taskType          String   // SCRAPING, KEYWORD_GENERATION, AD_COPY_GENERATION, OPTIMIZATION
+  status            String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  progress          Int      @default(0) // 0-100
+  result            Json?
+  error             String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  campaign     AICampaign?   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([clientAccountId])
+  @@index([campaignId])
+  @@index([status])
+  @@map("ai_tasks")
 }
