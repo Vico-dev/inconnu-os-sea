@@ -186,11 +186,40 @@ export default function OnboardingPage() {
     }
   }
 
+  // Fonction pour déterminer le plan recommandé selon le budget
+  const getRecommendedPlan = (dailyBudget: string) => {
+    if (!dailyBudget || isNaN(Number(dailyBudget))) return null
+    
+    const monthlyBudget = Number(dailyBudget) * 30
+    
+    if (monthlyBudget < 1000) {
+      return 'SMALL_BUDGET'
+    } else if (monthlyBudget >= 1000 && monthlyBudget < 5000) {
+      return 'MEDIUM_BUDGET'
+    } else if (monthlyBudget >= 5000) {
+      return 'LARGE_BUDGET'
+    }
+    
+    return null
+  }
+
   const handleInputChange = (field: string, value: string | string[]) => {
-    setOnboardingData(prev => ({
-      ...prev,
-      [field]: value
-    }))
+    setOnboardingData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      }
+      
+      // Si on change le budget journalier, mettre à jour automatiquement le plan recommandé
+      if (field === "dailyBudget") {
+        const recommendedPlan = getRecommendedPlan(value as string)
+        if (recommendedPlan) {
+          newData.selectedPlan = recommendedPlan
+        }
+      }
+      
+      return newData
+    })
   }
 
   const handleGoalToggle = (goal: string) => {
@@ -571,83 +600,73 @@ export default function OnboardingPage() {
         )
 
       case 7:
+        // Déterminer le plan recommandé selon le budget
+        const recommendedPlan = getRecommendedPlan(onboardingData.dailyBudget)
+        
+        const planData = {
+          'SMALL_BUDGET': {
+            name: 'Petit Chasseur',
+            price: 200,
+            description: 'Budget média < 1000€/mois',
+            features: ['Audit mensuel', 'Optimisations techniques', 'Support email']
+          },
+          'MEDIUM_BUDGET': {
+            name: 'Chasseur',
+            price: 400,
+            description: 'Budget média 1000€-5000€/mois',
+            features: ['Call hebdomadaire', 'Optimisations temps réel', 'Support prioritaire']
+          },
+          'LARGE_BUDGET': {
+            name: 'Grand Chasseur',
+            price: 600,
+            description: 'Budget média 5000€-10000€/mois',
+            features: ['Account manager dédié', 'Support 24/7', 'Stratégie personnalisée']
+          }
+        }
+
+        const selectedPlanData = planData[recommendedPlan as keyof typeof planData] || planData.MEDIUM_BUDGET
+
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
               <p className="text-lg text-gray-600 mb-4">
-                Basé sur vos informations, voici nos forfaits recommandés :
+                Basé sur votre budget de <strong>{Number(onboardingData.dailyBudget) * 30}€/mois</strong>, 
+                voici le forfait qui vous convient :
               </p>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                {
-                  id: 'SMALL_BUDGET',
-                  name: 'Petit Chasseur',
-                  price: 200,
-                  description: 'Budget média < 1000€/mois',
-                  features: ['Audit mensuel', 'Optimisations techniques', 'Support email'],
-                  popular: false
-                },
-                {
-                  id: 'MEDIUM_BUDGET',
-                  name: 'Chasseur',
-                  price: 400,
-                  description: 'Budget média 1000€-5000€/mois',
-                  features: ['Call hebdomadaire', 'Optimisations temps réel', 'Support prioritaire'],
-                  popular: true
-                },
-                {
-                  id: 'LARGE_BUDGET',
-                  name: 'Grand Chasseur',
-                  price: 600,
-                  description: 'Budget média 5000€-10000€/mois',
-                  features: ['Account manager dédié', 'Support 24/7', 'Stratégie personnalisée'],
-                  popular: false
-                }
-              ].map((plan) => (
-                <Card
-                  key={plan.id}
-                  className={`cursor-pointer transition-all ${
-                    onboardingData.selectedPlan === plan.id
-                      ? 'border-2 border-blue-500 bg-blue-50'
-                      : 'border border-gray-200 hover:border-blue-300'
-                  } ${plan.popular ? 'ring-2 ring-blue-300' : ''}`}
-                  onClick={() => handleInputChange("selectedPlan", plan.id)}
-                >
-                  {plan.popular && (
-                    <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white">
-                      Recommandé
-                    </Badge>
-                  )}
-                  
-                  <CardHeader className="text-center">
-                    <CardTitle className="text-xl">{plan.name}</CardTitle>
-                    <div className="text-3xl font-bold text-gray-900">
-                      {plan.price}€<span className="text-sm text-gray-600">/mois</span>
-                    </div>
-                    <p className="text-sm text-gray-600">{plan.description}</p>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <ul className="space-y-2 text-sm">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-center">
-                          <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              ))}
+            {/* Affichage du plan recommandé */}
+            <div className="max-w-md mx-auto">
+              <Card className="border-2 border-blue-500 bg-blue-50">
+                <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white">
+                  Recommandé pour vous
+                </Badge>
+                
+                <CardHeader className="text-center">
+                  <CardTitle className="text-xl">{selectedPlanData.name}</CardTitle>
+                  <div className="text-3xl font-bold text-gray-900">
+                    {selectedPlanData.price}€<span className="text-sm text-gray-600">/mois</span>
+                  </div>
+                  <p className="text-sm text-gray-600">{selectedPlanData.description}</p>
+                </CardHeader>
+                
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    {selectedPlanData.features.map((feature, index) => (
+                      <li key={index} className="flex items-center">
+                        <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
             </div>
             
             {onboardingData.selectedPlan && (
               <div className="text-center mt-6">
                 <p className="text-green-600 font-medium">
-                  ✓ Plan sélectionné : {onboardingData.selectedPlan === 'SMALL_BUDGET' ? 'Petit Chasseur' : 
-                    onboardingData.selectedPlan === 'MEDIUM_BUDGET' ? 'Chasseur' : 'Grand Chasseur'}
+                  ✓ Plan sélectionné : {selectedPlanData.name}
                 </p>
               </div>
             )}
