@@ -30,6 +30,11 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true
           }
+        },
+        assignedAccountManager: {
+          include: {
+            user: true
+          }
         }
       }
     })
@@ -43,7 +48,11 @@ export async function GET(request: NextRequest) {
         userName: `${account.user.firstName} ${account.user.lastName}`,
         companyId: account.companyId,
         companyName: account.company.name,
-        status: account.status
+        status: account.status,
+        assignedAccountManagerId: account.assignedAccountManagerId,
+        assignedAccountManagerName: account.assignedAccountManager?.user
+          ? `${account.assignedAccountManager.user.firstName} ${account.assignedAccountManager.user.lastName}`
+          : null
       }))
     })
 

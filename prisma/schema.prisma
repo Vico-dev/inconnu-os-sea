@@ -23,6 +23,9 @@ model User {
   emailVerificationToken String? @unique
   emailVerificationExpires DateTime?
   emailVerifiedAt       DateTime?
+  // Nouveaux champs pour la réinitialisation de mot de passe
+  passwordResetToken    String? @unique
+  passwordResetExpires  DateTime?
   twoFactorSecret       String?
   twoFactorEnabled      Boolean  @default(false)
   twoFactorEnabledAt    DateTime?
@@ -70,11 +73,13 @@ model ClientAccount {
   cgvAccepted           Boolean  @default(false)
   cgvAcceptedAt         DateTime?
   cgvVersion            String?
+  assignedAccountManagerId String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   company     Company     @relation(fields: [companyId], references: [id])
+  assignedAccountManager AccountManager? @relation(fields: [assignedAccountManagerId], references: [id])
   subscription Subscription?
   appointments Appointment[]
   campaigns   Campaign[]
@@ -101,6 +106,7 @@ model AccountManager {
   company Company? @relation(fields: [companyId], references: [id])
   tickets  Ticket[]
   appointments Appointment[]
+  assignedClients ClientAccount[]
 
   @@map("account_managers")
 }

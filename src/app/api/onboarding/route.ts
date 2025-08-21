@@ -138,7 +138,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Vérifier si Google Ads est connecté
+    const googleAdsConnection = await prisma.googleAdsConnection.findFirst({
+      where: { userId }
+    })
+
     console.log("Onboarding terminé pour l&apos;utilisateur:", userId)
+    console.log("Connexion Google Ads:", googleAdsConnection ? "Connecté" : "Non connecté")
 
     // Envoyer l'email de bienvenue
     try {
@@ -157,6 +163,64 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Erreur envoi email de bienvenue:', error)
       // Ne pas faire échouer l'onboarding si l'email échoue
+    }
+
+    // Créer des notifications pour les admins
+    try {
+      const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } })
+
+      if (admins.length > 0 && updatedClientAccount) {
+        const adminNotifications = [] as Array<Parameters<typeof prisma.notification.createMany>[0]['data'][number]>
+
+        // 1) Nouveau client onboardé
+        for (const admin of admins) {
+          adminNotifications.push({
+            userId: admin.id,
+            clientAccountId: updatedClientAccount.id,
+            type: 'info',
+            title: 'Nouveau client onboardé',
+            message: `La société ${companyName} a terminé son onboarding. Vérifiez les prochaines étapes.`,
+            actionUrl: '/admin/companies',
+            priority: 'medium',
+          })
+        }
+
+        // 2) Action requise: Attribuer un AM
+        for (const admin of admins) {
+          adminNotifications.push({
+            userId: admin.id,
+            clientAccountId: updatedClientAccount.id,
+            type: 'warning',
+            title: 'Attribuer un Account Manager',
+            message: `Attribuez un AM au client ${companyName} pour démarrer la prise en charge.`,
+            actionUrl: `/admin/users`,
+            priority: 'high',
+          })
+        }
+
+        // 3) Action requise: Compte Google Ads
+        const needsGoogleAds = !googleAdsConnection
+        if (needsGoogleAds) {
+          for (const admin of admins) {
+            adminNotifications.push({
+              userId: admin.id,
+              clientAccountId: updatedClientAccount.id,
+              type: 'warning',
+              title: 'Configurer un compte Google Ads',
+              message: `Le client ${companyName} n'a pas de compte Google Ads. Créez/Reliez un compte.`,
+              actionUrl: `/admin/mcc`,
+              priority: 'high',
+            })
+          }
+        }
+
+        if (adminNotifications.length > 0) {
+          await prisma.notification.createMany({ data: adminNotifications })
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création des notifications admin:', error)
+      // Non bloquant
     }
 
     return NextResponse.json({

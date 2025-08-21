@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
-import { EmailService } from "@/lib/email-service-stub"
+import { EmailService } from "@/lib/email-service"
 import crypto from "crypto"
 
 export async function POST(request: NextRequest) {
@@ -15,9 +15,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validation de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: "Format d'email invalide" },
+        { status: 400 }
+      )
+    }
+
     // Vérifier si l'utilisateur existe
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email: email.toLowerCase() }
     })
 
     if (!user) {
@@ -28,7 +37,15 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Générer un token de réinitialisation
+    // Vérifier si un token de réinitialisation existe déjà et n'a pas expiré
+    if (user.passwordResetToken && user.passwordResetExpires && user.passwordResetExpires > new Date()) {
+      return NextResponse.json({
+        success: true,
+        message: "Un lien de réinitialisation a déjà été envoyé. Vérifiez votre boîte de réception."
+      })
+    }
+
+    // Générer un token de réinitialisation sécurisé
     const resetToken = crypto.randomBytes(32).toString('hex')
     const resetExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 heure
 
@@ -36,8 +53,8 @@ export async function POST(request: NextRequest) {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        emailVerificationToken: resetToken, // Réutiliser le champ existant
-        emailVerificationExpires: resetExpires
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires
       }
     })
 
@@ -52,6 +69,16 @@ export async function POST(request: NextRequest) {
       )
     } catch (emailError) {
       console.error("Erreur lors de l'envoi de l'email de réinitialisation:", emailError)
+      
+      // Supprimer le token en cas d'échec d'envoi
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetToken: null,
+          passwordResetExpires: null
+        }
+      })
+      
       return NextResponse.json(
         { error: "Erreur lors de l'envoi de l'email" },
         { status: 500 }

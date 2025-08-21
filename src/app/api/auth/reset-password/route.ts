@@ -22,22 +22,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Trouver l'utilisateur avec ce token
-    const user = await prisma.user.findUnique({
-      where: { emailVerificationToken: token }
-    })
-
-    if (!user) {
+    // Validation supplémentaire du mot de passe (optionnelle mais recommandée)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+    if (!passwordRegex.test(password)) {
       return NextResponse.json(
-        { error: "Token de réinitialisation invalide" },
+        { error: "Le mot de passe doit contenir au moins une minuscule, une majuscule, un chiffre et un caractère spécial" },
         { status: 400 }
       )
     }
 
-    // Vérifier si le token n'a pas expiré
-    if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
+    // Trouver l'utilisateur avec ce token de réinitialisation
+    const user = await prisma.user.findFirst({
+      where: { 
+        passwordResetToken: token,
+        passwordResetExpires: {
+          gt: new Date()
+        }
+      }
+    })
+
+    if (!user) {
       return NextResponse.json(
-        { error: "Le lien de réinitialisation a expiré" },
+        { error: "Token de réinitialisation invalide ou expiré" },
         { status: 400 }
       )
     }
@@ -50,8 +56,8 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       data: {
         password: hashedPassword,
-        emailVerificationToken: null,
-        emailVerificationExpires: null
+        passwordResetToken: null,
+        passwordResetExpires: null
       }
     })
 

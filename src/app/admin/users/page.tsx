@@ -16,6 +16,9 @@ import {
   Settings,
   BarChart3
 } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function AdminUsersPage() {
   const { user } = useAuth()
@@ -24,6 +27,11 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
+  const [assignModalOpen, setAssignModalOpen] = useState(false)
+  const [assignClient, setAssignClient] = useState<any>(null)
+  const [accountManagers, setAccountManagers] = useState<any[]>([])
+  const [selectedAMId, setSelectedAMId] = useState<string>("")
+  const [isAssigning, setIsAssigning] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,6 +82,45 @@ export default function AdminUsersPage() {
     user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  const openAssignModal = async (clientUser: any) => {
+    setAssignClient(clientUser)
+    setAssignModalOpen(true)
+    try {
+      const res = await fetch("/api/admin/users?role=ACCOUNT_MANAGER")
+      if (res.ok) {
+        const data = await res.json()
+        setAccountManagers(data.users || [])
+      }
+    } catch (e) {
+      console.error("Erreur chargement AM:", e)
+    }
+  }
+
+  const handleAssign = async () => {
+    if (!assignClient?.clientAccount?.id || !selectedAMId) return
+    setIsAssigning(true)
+    try {
+      const res = await fetch("/api/admin/clients/assign-am", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientAccountId: assignClient.clientAccount.id,
+          accountManagerId: selectedAMId
+        })
+      })
+      if (res.ok) {
+        await fetchUsers()
+        setAssignModalOpen(false)
+        setAssignClient(null)
+        setSelectedAMId("")
+      }
+    } catch (e) {
+      console.error("Erreur assignation AM:", e)
+    } finally {
+      setIsAssigning(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -164,6 +211,15 @@ export default function AdminUsersPage() {
                           <BarChart3 className="w-4 h-4" />
                         </Button>
                       )}
+                      {user.role === "CLIENT" && user.clientAccount?.id && (
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={() => openAssignModal(user)}
+                        >
+                          Attribuer un AM
+                        </Button>
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -188,6 +244,39 @@ export default function AdminUsersPage() {
             onSubmit={handleCreateUser}
             user={editingUser}
           />
+
+          {/* Modal d'attribution AM */}
+          <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Attribuer un Account Manager</DialogTitle>
+                <DialogDescription>
+                  Sélectionnez un AM pour le client {assignClient?.clientAccount?.company?.name || `${assignClient?.firstName} ${assignClient?.lastName}`}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <Label>Account Manager</Label>
+                <Select value={selectedAMId} onValueChange={setSelectedAMId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir un AM" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accountManagers.map((am: any) => (
+                      <SelectItem key={am.accountManager?.id || am.id} value={am.accountManager?.id || am.id}>
+                        {am.firstName} {am.lastName} ({am.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setAssignModalOpen(false)}>Annuler</Button>
+                <Button onClick={handleAssign} disabled={!selectedAMId || isAssigning}>
+                  {isAssigning ? "Attribution..." : "Attribuer"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
     </ProtectedRoute>
   )

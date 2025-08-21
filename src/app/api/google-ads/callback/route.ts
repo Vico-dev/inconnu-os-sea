@@ -98,16 +98,32 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Données du compte Google Ads préparées pour sauvegarde')
 
-    // Vérifier si c'est une connexion MCC (admin) ou client
+    // Vérifier le type de connexion
     const isMCCConnection = state.startsWith('mcc_')
-    const actualUserId = isMCCConnection ? state.replace('mcc_', '') : state
+    const isOnboardingConnection = state.startsWith('onboarding_')
+    
+    let actualUserId: string
+    let connectionType: 'mcc' | 'onboarding' | 'client' = 'client'
+    
+    if (isMCCConnection) {
+      actualUserId = state.replace('mcc_', '')
+      connectionType = 'mcc'
+    } else if (isOnboardingConnection) {
+      // Format: onboarding_userId_existing ou onboarding_userId_new
+      const parts = state.split('_')
+      actualUserId = parts[1]
+      connectionType = 'onboarding'
+    } else {
+      actualUserId = state
+      connectionType = 'client'
+    }
     
     console.log('🔍 Type de connexion:', { 
       state, 
-      isMCCConnection, 
+      connectionType,
       actualUserId,
-      startsWithMCC: state.startsWith('mcc_'),
-      stateLength: state.length 
+      isMCCConnection,
+      isOnboardingConnection
     })
 
     // Sauvegarder les informations dans la base de données
@@ -148,9 +164,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Rediriger selon le type de connexion
-    if (isMCCConnection) {
+    if (connectionType === 'mcc') {
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/admin/mcc?success=connected`
+      )
+    } else if (connectionType === 'onboarding') {
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/onboarding?googleAdsConnected=true&step=7`
       )
     } else {
       return NextResponse.redirect(
