@@ -16,6 +16,13 @@ export async function POST(request: NextRequest) {
       currentChallenges
     } = await request.json()
 
+    const cleanGoals = Array.isArray(goals)
+      ? goals.map((g: string) => (typeof g === 'string' ? g.replace(/&apos;/g, "'") : g))
+      : null
+    const cleanCurrentChallenges = typeof currentChallenges === 'string'
+      ? currentChallenges.replace(/&apos;/g, "'")
+      : currentChallenges
+
     console.log("Données reçues:", {
       userId,
       companyName,
@@ -63,9 +70,9 @@ export async function POST(request: NextRequest) {
           website: website || null,
           industry,
           teamSize: teamSize || null,
-          goals: goals ? JSON.stringify(goals) : null,
+          goals: cleanGoals ? JSON.stringify(cleanGoals) : null,
           googleAdsAccount: googleAdsAccount || null,
-          currentChallenges: currentChallenges || null
+          currentChallenges: cleanCurrentChallenges || null
         }
       })
 

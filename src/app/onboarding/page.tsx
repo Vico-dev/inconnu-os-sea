@@ -94,14 +94,14 @@ const goalOptions = [
   "Améliorer le ROAS",
   "Élargir la clientèle",
   "Lancer un nouveau produit",
-  "Optimiser les coûts d&apos;acquisition"
+  "Optimiser les coûts d'acquisition"
 ]
 
 const industryOptions = [
   "E-commerce",
   "SaaS / Tech",
   "Services B2B",
-  "Restaurant / Horeca",
+  "Restaurant / Hôtellerie",
   "Immobilier",
   "Santé / Médical",
   "Formation / Éducation",
