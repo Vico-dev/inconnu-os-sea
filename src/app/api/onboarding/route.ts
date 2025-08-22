@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
               type: 'warning',
               title: 'Configurer un compte Google Ads',
               message: `Le client ${companyName} n'a pas de compte Google Ads. Créez/Reliez un compte.`,
-              actionUrl: `/admin/mcc`,
+              actionUrl: `/admin/google-ads-permissions`,
               priority: 'high',
             })
           }

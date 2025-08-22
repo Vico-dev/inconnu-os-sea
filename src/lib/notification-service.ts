@@ -1,287 +1,343 @@
-import { prisma } from '@/lib/db'
-import { EmailService } from './email-service'
+import { db } from './db'
+import { sendEmail } from './email'
 
-export interface NotificationData {
-  type: 'info' | 'success' | 'warning' | 'error'
+export interface Notification {
+  id: string
+  type: 'ALERT' | 'INFO' | 'WARNING' | 'SUCCESS'
   title: string
   message: string
-  userId?: string
-  clientAccountId?: string
-  actionUrl?: string
-  priority?: 'low' | 'medium' | 'high'
+  userId: string
+  read: boolean
+  createdAt: Date
+  metadata?: any
+}
+
+export interface AlertRule {
+  id: string
+  name: string
+  description: string
+  condition: {
+    metric: string
+    operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte'
+    threshold: number
+    timeframe: string // '1h', '24h', '7d', '30d'
+  }
+  actions: {
+    type: 'EMAIL' | 'SLACK' | 'DASHBOARD' | 'SMS'
+    recipients: string[]
+    template?: string
+  }[]
+  enabled: boolean
+  lastTriggered?: Date
+  triggerCount: number
 }
 
 export class NotificationService {
   /**
-   * Créer une notification en base de données
+   * Crée une notification dans le dashboard
    */
-  static async createNotification(data: NotificationData) {
-    try {
-      const notification = await prisma.notification.create({
-        data: {
-          type: data.type,
-          title: data.title,
-          message: data.message,
-          userId: data.userId,
-          clientAccountId: data.clientAccountId,
-          actionUrl: data.actionUrl,
-          priority: data.priority || 'medium',
-          read: false
-        }
-      })
-
-      console.log('📢 Notification créée:', notification.id)
-      return notification
-    } catch (error) {
-      console.error('Erreur création notification:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Envoyer une notification par email
-   */
-  static async sendEmailNotification(
-    email: string,
-    firstName: string,
-    data: NotificationData
-  ) {
-    try {
-      const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1f2937;">Agence Inconnu</h2>
-          <h3 style="color: ${this.getTypeColor(data.type)};">${data.title}</h3>
-          <p>Bonjour ${firstName},</p>
-          <p>${data.message}</p>
-          ${data.actionUrl ? `
-            <a href="${data.actionUrl}" 
-               style="background-color: #1d4ed8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
-              Voir les détails
-            </a>
-          ` : ''}
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-          <p style="color: #6b7280; font-size: 14px; text-align: center;">
-            Agence Inconnu - Spécialiste Google Ads
-          </p>
-        </div>
-      `
-
-      // Utiliser le service email existant ou créer une méthode spécifique
-      await EmailService.sendNotificationEmail(email, firstName, data.title, data.message, data.actionUrl)
-
-    } catch (error) {
-      console.error('Erreur envoi notification email:', error)
-    }
-  }
-
-  /**
-   * Alertes de performance Google Ads
-   */
-  static async checkGoogleAdsPerformance(clientAccountId: string) {
-    try {
-      // Récupérer les données Google Ads récentes
-      const campaigns = await prisma.campaign.findMany({
-        where: { clientAccountId },
-        orderBy: { updatedAt: 'desc' },
-        take: 10
-      })
-
-      for (const campaign of campaigns) {
-        if (!campaign.metrics) continue
-
-        const metrics = JSON.parse(campaign.metrics)
-        
-        // Vérifier les anomalies
-        await this.checkAnomalies(clientAccountId, campaign, metrics)
+  static async createNotification(notification: Omit<Notification, 'id' | 'read' | 'createdAt'>): Promise<Notification> {
+    return await db.notification.create({
+      data: {
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        userId: notification.userId,
+        read: false,
+        metadata: notification.metadata
       }
-
-    } catch (error) {
-      console.error('Erreur vérification performance:', error)
-    }
-  }
-
-  /**
-   * Détecter les anomalies de performance
-   */
-  private static async checkAnomalies(clientAccountId: string, campaign: any, metrics: any) {
-    const clientAccount = await prisma.clientAccount.findUnique({
-      where: { id: clientAccountId },
-      include: { user: true, company: true }
     })
-
-    if (!clientAccount) return
-
-    // Vérifier CPC élevé
-    if (metrics.cpc && metrics.cpc > 5) { // CPC > 5€
-      await this.createNotification({
-        type: 'warning',
-        title: 'CPC élevé détecté',
-        message: `Le CPC de la campagne "${campaign.name}" est élevé (${metrics.cpc}€). Considérez une optimisation.`,
-        clientAccountId,
-        actionUrl: `/client/campaigns/${campaign.id}`,
-        priority: 'medium'
-      })
-    }
-
-    // Vérifier CTR bas
-    if (metrics.ctr && metrics.ctr < 0.01) { // CTR < 1%
-      await this.createNotification({
-        type: 'warning',
-        title: 'CTR faible détecté',
-        message: `Le CTR de la campagne "${campaign.name}" est faible (${(metrics.ctr * 100).toFixed(2)}%). Améliorez vos annonces.`,
-        clientAccountId,
-        actionUrl: `/client/campaigns/${campaign.id}`,
-        priority: 'medium'
-      })
-    }
-
-    // Vérifier budget dépassé
-    if (metrics.spend && campaign.budget && metrics.spend > campaign.budget * 0.9) {
-      await this.createNotification({
-        type: 'error',
-        title: 'Budget presque épuisé',
-        message: `La campagne "${campaign.name}" a utilisé ${((metrics.spend / campaign.budget) * 100).toFixed(1)}% de son budget.`,
-        clientAccountId,
-        actionUrl: `/client/campaigns/${campaign.id}`,
-        priority: 'high'
-      })
-    }
   }
 
   /**
-   * Générer un rapport hebdomadaire
+   * Marque une notification comme lue
    */
-  static async generateWeeklyReport(clientAccountId: string) {
+  static async markAsRead(notificationId: string): Promise<void> {
+    await db.notification.update({
+      where: { id: notificationId },
+      data: { read: true }
+    })
+  }
+
+  /**
+   * Récupère les notifications d'un utilisateur
+   */
+  static async getUserNotifications(userId: string, limit: number = 50): Promise<Notification[]> {
+    return await db.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit
+    })
+  }
+
+  /**
+   * Récupère les notifications non lues d'un utilisateur
+   */
+  static async getUnreadNotifications(userId: string): Promise<Notification[]> {
+    return await db.notification.findMany({
+      where: { 
+        userId,
+        read: false
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+  }
+
+  /**
+   * Crée une alerte basée sur une règle
+   */
+  static async createAlert(rule: AlertRule, data: any): Promise<void> {
     try {
-      const clientAccount = await prisma.clientAccount.findUnique({
-        where: { id: clientAccountId },
-        include: { user: true, company: true, campaigns: true }
+      // Créer la notification dans le dashboard
+      await this.createNotification({
+        type: 'ALERT',
+        title: `Alerte: ${rule.name}`,
+        message: `La condition "${rule.condition.metric} ${rule.condition.operator} ${rule.condition.threshold}" a été déclenchée.`,
+        userId: data.userId,
+        metadata: {
+          ruleId: rule.id,
+          triggeredValue: data.currentValue,
+          threshold: rule.condition.threshold
+        }
       })
 
-      if (!clientAccount) return
-
-      // Calculer les KPIs de la semaine
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      const recentCampaigns = clientAccount.campaigns.filter(
-        c => new Date(c.updatedAt) > weekAgo
-      )
-
-      let totalSpend = 0
-      let totalClicks = 0
-      let totalImpressions = 0
-      let totalConversions = 0
-
-      for (const campaign of recentCampaigns) {
-        if (campaign.metrics) {
-          const metrics = JSON.parse(campaign.metrics)
-          totalSpend += metrics.spend || 0
-          totalClicks += metrics.clicks || 0
-          totalImpressions += metrics.impressions || 0
-          totalConversions += metrics.conversions || 0
-        }
+      // Exécuter les actions configurées
+      for (const action of rule.actions) {
+        await this.executeAlertAction(action, rule, data)
       }
 
-      const avgCpc = totalClicks > 0 ? totalSpend / totalClicks : 0
-      const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0
-      const conversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0
-
-      // Envoyer le rapport par email
-      const reportHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1f2937;">Agence Inconnu</h2>
-          <h3 style="color: #1d4ed8;">Rapport Hebdomadaire - ${clientAccount.company.name}</h3>
-          
-          <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h4 style="margin-top: 0;">Résumé de la semaine</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-              <div>
-                <strong>Dépenses totales:</strong><br>
-                ${totalSpend.toFixed(2)}€
-              </div>
-              <div>
-                <strong>Clics totaux:</strong><br>
-                ${totalClicks.toLocaleString()}
-              </div>
-              <div>
-                <strong>CPC moyen:</strong><br>
-                ${avgCpc.toFixed(2)}€
-              </div>
-              <div>
-                <strong>CTR moyen:</strong><br>
-                ${ctr.toFixed(2)}%
-              </div>
-              <div>
-                <strong>Conversions:</strong><br>
-                ${totalConversions}
-              </div>
-              <div>
-                <strong>Taux de conversion:</strong><br>
-                ${conversionRate.toFixed(2)}%
-              </div>
-            </div>
-          </div>
-
-          <a href="${process.env.NEXTAUTH_URL}/client" 
-             style="background-color: #1d4ed8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
-            Voir le dashboard complet
-          </a>
-        </div>
-      `
-
-      // Envoyer l'email
-      await EmailService.sendWeeklyReport(
-        clientAccount.user.email,
-        clientAccount.user.firstName,
-        clientAccount.company.name,
-        reportHtml
-      )
+      // Mettre à jour le compteur de déclenchements
+      await this.updateAlertRuleStats(rule.id)
 
     } catch (error) {
-      console.error('Erreur génération rapport hebdomadaire:', error)
+      console.error('Erreur lors de la création de l\'alerte:', error)
     }
   }
 
   /**
-   * Marquer une notification comme lue
+   * Exécute une action d'alerte
    */
-  static async markAsRead(notificationId: string) {
-    try {
-      await prisma.notification.update({
-        where: { id: notificationId },
-        data: { read: true, readAt: new Date() }
+  private static async executeAlertAction(action: any, rule: AlertRule, data: any): Promise<void> {
+    switch (action.type) {
+      case 'EMAIL':
+        await this.sendEmailAlert(action, rule, data)
+        break
+      case 'SLACK':
+        await this.sendSlackAlert(action, rule, data)
+        break
+      case 'SMS':
+        await this.sendSMSAlert(action, rule, data)
+        break
+      case 'DASHBOARD':
+        // Déjà géré par createNotification
+        break
+    }
+  }
+
+  /**
+   * Envoie une alerte par email
+   */
+  private static async sendEmailAlert(action: any, rule: AlertRule, data: any): Promise<void> {
+    const subject = `🚨 Alerte Google Ads: ${rule.name}`
+    const html = `
+      <h2>🚨 Alerte Google Ads</h2>
+      <p><strong>Règle:</strong> ${rule.name}</p>
+      <p><strong>Description:</strong> ${rule.description}</p>
+      <p><strong>Condition déclenchée:</strong> ${rule.condition.metric} ${rule.condition.operator} ${rule.condition.threshold}</p>
+      <p><strong>Valeur actuelle:</strong> ${data.currentValue}</p>
+      <p><strong>Campagne:</strong> ${data.campaignName || 'N/A'}</p>
+      <p><strong>Client:</strong> ${data.clientName || 'N/A'}</p>
+      <p><strong>Date:</strong> ${new Date().toLocaleString('fr-FR')}</p>
+      <br>
+      <p>Connectez-vous à votre dashboard pour plus de détails.</p>
+    `
+
+    for (const recipient of action.recipients) {
+      await sendEmail({
+        to: recipient,
+        subject,
+        html
       })
-    } catch (error) {
-      console.error('Erreur marquage notification lue:', error)
     }
   }
 
   /**
-   * Récupérer les notifications non lues
+   * Envoie une alerte Slack
    */
-  static async getUnreadNotifications(userId: string) {
+  private static async sendSlackAlert(action: any, rule: AlertRule, data: any): Promise<void> {
+    // TODO: Implémenter l'intégration Slack
+    console.log('Slack alert:', {
+      channel: action.recipients[0],
+      rule: rule.name,
+      data
+    })
+  }
+
+  /**
+   * Envoie une alerte SMS
+   */
+  private static async sendSMSAlert(action: any, rule: AlertRule, data: any): Promise<void> {
+    // TODO: Implémenter l'intégration SMS
+    console.log('SMS alert:', {
+      recipients: action.recipients,
+      rule: rule.name,
+      data
+    })
+  }
+
+  /**
+   * Met à jour les statistiques d'une règle d'alerte
+   */
+  private static async updateAlertRuleStats(ruleId: string): Promise<void> {
+    // TODO: Implémenter la mise à jour des stats
+    console.log('Updating alert rule stats for:', ruleId)
+  }
+
+  /**
+   * Vérifie toutes les règles d'alerte actives
+   */
+  static async checkAlertRules(): Promise<void> {
     try {
-      return await prisma.notification.findMany({
-        where: {
-          userId,
-          read: false
+      const activeRules = await this.getActiveAlertRules()
+      
+      for (const rule of activeRules) {
+        await this.evaluateAlertRule(rule)
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification des alertes:', error)
+    }
+  }
+
+  /**
+   * Récupère toutes les règles d'alerte actives
+   */
+  private static async getActiveAlertRules(): Promise<AlertRule[]> {
+    // TODO: Récupérer depuis la base de données
+    return [
+      {
+        id: '1',
+        name: 'CTR faible',
+        description: 'Alerte quand le CTR est inférieur à 2%',
+        condition: {
+          metric: 'ctr',
+          operator: 'lt',
+          threshold: 2.0,
+          timeframe: '24h'
         },
-        orderBy: { createdAt: 'desc' }
-      })
+        actions: [
+          {
+            type: 'EMAIL',
+            recipients: ['admin@example.com']
+          },
+          {
+            type: 'DASHBOARD',
+            recipients: []
+          }
+        ],
+        enabled: true,
+        triggerCount: 0
+      },
+      {
+        id: '2',
+        name: 'Budget dépassé',
+        description: 'Alerte quand 80% du budget est dépensé',
+        condition: {
+          metric: 'budget_spent_percentage',
+          operator: 'gte',
+          threshold: 80,
+          timeframe: '24h'
+        },
+        actions: [
+          {
+            type: 'EMAIL',
+            recipients: ['admin@example.com']
+          },
+          {
+            type: 'SLACK',
+            recipients: ['#alerts']
+          }
+        ],
+        enabled: true,
+        triggerCount: 0
+      }
+    ]
+  }
+
+  /**
+   * Évalue une règle d'alerte
+   */
+  private static async evaluateAlertRule(rule: AlertRule): Promise<void> {
+    try {
+      // TODO: Récupérer les vraies données depuis Google Ads API
+      const currentData = await this.getCurrentMetrics(rule.condition.metric)
+      
+      const shouldTrigger = this.evaluateCondition(rule.condition, currentData)
+      
+      if (shouldTrigger) {
+        await this.createAlert(rule, {
+          currentValue: currentData.value,
+          campaignName: currentData.campaignName,
+          clientName: currentData.clientName,
+          userId: currentData.userId
+        })
+      }
     } catch (error) {
-      console.error('Erreur récupération notifications:', error)
-      return []
+      console.error(`Erreur lors de l'évaluation de la règle ${rule.name}:`, error)
     }
   }
 
   /**
-   * Couleur selon le type de notification
+   * Récupère les métriques actuelles
    */
-  private static getTypeColor(type: string): string {
-    switch (type) {
-      case 'success': return '#059669'
-      case 'warning': return '#d97706'
-      case 'error': return '#dc2626'
-      default: return '#1d4ed8'
+  private static async getCurrentMetrics(metric: string): Promise<any> {
+    // TODO: Intégrer avec Google Ads API
+    return {
+      value: Math.random() * 10, // Simulé
+      campaignName: 'Campagne Test',
+      clientName: 'Client Test',
+      userId: 'user_123'
     }
+  }
+
+  /**
+   * Évalue une condition d'alerte
+   */
+  private static evaluateCondition(condition: any, data: any): boolean {
+    const currentValue = data.value
+    
+    switch (condition.operator) {
+      case 'gt':
+        return currentValue > condition.threshold
+      case 'lt':
+        return currentValue < condition.threshold
+      case 'eq':
+        return currentValue === condition.threshold
+      case 'gte':
+        return currentValue >= condition.threshold
+      case 'lte':
+        return currentValue <= condition.threshold
+      default:
+        return false
+    }
+  }
+
+  /**
+   * Crée une règle d'alerte
+   */
+  static async createAlertRule(rule: Omit<AlertRule, 'id' | 'triggerCount'>): Promise<AlertRule> {
+    // TODO: Sauvegarder dans la base de données
+    return {
+      ...rule,
+      id: 'rule_' + Date.now(),
+      triggerCount: 0
+    }
+  }
+
+  /**
+   * Supprime une règle d'alerte
+   */
+  static async deleteAlertRule(ruleId: string): Promise<void> {
+    // TODO: Supprimer de la base de données
+    console.log('Deleting alert rule:', ruleId)
   }
 } 

@@ -21,7 +21,9 @@ import {
   AlertCircle,
   Shield,
   Building,
-  Network
+  Target,
+  CheckSquare,
+  Brain
 } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
@@ -107,12 +109,7 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
       icon: Shield,
       current: pathname === "/admin/google-ads-permissions"
     },
-    {
-      name: "MCC Google Ads",
-      href: "/admin/mcc",
-      icon: Network,
-      current: pathname === "/admin/mcc"
-    },
+
     {
       name: "Prospects",
       href: "/admin/prospects",
@@ -120,10 +117,22 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
       current: pathname === "/admin/prospects"
     },
     {
-      name: "Outil IA",
-      href: "/admin/ai-tools",
-      icon: TrendingUp,
-      current: pathname === "/admin/ai-tools"
+      name: "Campagnes",
+      href: "/admin/campaigns",
+      icon: Target,
+      current: pathname === "/admin/campaigns"
+    },
+    {
+      name: "Approbations",
+      href: "/admin/approvals",
+      icon: CheckSquare,
+      current: pathname === "/admin/approvals"
+    },
+    {
+      name: "Intelligence IA",
+      href: "/admin/ai-intelligence",
+      icon: Brain,
+      current: pathname === "/admin/ai-intelligence"
     }
   ]
 

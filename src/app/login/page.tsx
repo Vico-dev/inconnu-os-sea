@@ -20,7 +20,7 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [message, setMessage] = useState("")
   const searchParams = useSearchParams()
-  const { login, status, redirectBasedOnRole } = useAuth()
+  const { login, status, redirectBasedOnRole, session } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -57,10 +57,15 @@ function LoginContent() {
       if (result?.ok) {
         // S'il y a un plan passé en paramètre, prioriser l'onboarding avec ce plan
         const plan = searchParams?.get("plan")
-        if (plan) {
+        console.log("Login - Plan parameter:", plan)
+        console.log("Login - User role:", session?.user?.role)
+        
+        if (plan && session?.user?.role === "CLIENT") {
+          console.log("Login - Redirecting CLIENT to onboarding with plan")
           router.push(`/onboarding?plan=${plan}`)
         } else {
           // Sinon redirection selon le rôle
+          console.log("Login - Using redirectBasedOnRole")
           redirectBasedOnRole()
         }
       }

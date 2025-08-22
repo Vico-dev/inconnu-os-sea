@@ -170,18 +170,29 @@ model GoogleAdsPermission {
 
 model Campaign {
   id          String   @id @default(cuid())
-  clientAccountId String
   name        String
-  status      String   // ACTIVE, PAUSED, REMOVED
-  budget      Float?
-  metrics     String?  // JSON string
+  type        CampaignType
+  status      CampaignStatus @default(DRAFT)
+  budget      Float
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  // Relations
+  clientAccountId String
+  clientAccount   ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  
+  // Workflow d'approbation
+  approval    CampaignApproval?
+  
+  // Google Ads integration
+  googleAdsId String?  @unique
+  metrics     String?  // JSON string des métriques
+  
+  // Tests A/B
+  abTests     ABTest[]
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
-
-  @@unique([clientAccountId, name])
-  @@map("campaigns")
 }
 
 model Invoice {
@@ -435,3 +446,154 @@ model AITask {
   @@index([status])
   @@map("ai_tasks")
 }
+
+model CampaignApproval {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  // Workflow
+  status      ApprovalStatus @default(PENDING)
+  currentStep Int @default(1)
+  totalSteps  Int @default(3)
+  
+  // Approbateurs
+  submittedBy String
+  submittedAt DateTime @default(now())
+  
+  // Approbations
+  approvals   CampaignApprovalStep[]
+  
+  // Historique
+  history     CampaignApprovalHistory[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([campaignId])
+}
+
+model CampaignApprovalStep {
+  id                String   @id @default(cuid())
+  approvalId        String
+  approval          CampaignApproval @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  
+  stepNumber        Int
+  stepName          String // "REVIEW", "APPROVE", "FINAL_APPROVE"
+  
+  // Approbateur
+  approverId        String
+  approverRole      String // CLIENT, ACCOUNT_MANAGER, ADMIN
+  approverName      String
+  
+  // Statut
+  status            ApprovalStepStatus @default(PENDING)
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  comments          String?
+  
+  // Notifications
+  notifiedAt        DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([approvalId, stepNumber])
+}
+
+model CampaignApprovalHistory {
+  id          String   @id @default(cuid())
+  approvalId  String
+  approval    CampaignApproval @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  
+  action      String // "SUBMITTED", "APPROVED", "REJECTED", "COMMENT_ADDED"
+  userId      String
+  userName    String
+  userRole    String // CLIENT, ACCOUNT_MANAGER, ADMIN
+  
+  // Détails de la modification
+  fieldName   String?
+  oldValue    String?
+  newValue    String?
+  comments    String?
+  
+  timestamp   DateTime @default(now())
+}
+
+enum ApprovalStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalStepStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SKIPPED
+}
+
+enum CampaignType {
+  SEARCH
+  SHOPPING
+  DISPLAY
+  VIDEO
+  PMAX
+  DEMAND_GEN
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+// Modèle pour les Tests A/B
+model ABTest {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  campaignId  String
+  testType    String   // HEADLINES, DESCRIPTIONS, LANDING_PAGES, BIDDING_STRATEGIES, KEYWORDS
+  status      String   @default("DRAFT") // DRAFT, RUNNING, PAUSED, COMPLETED
+  startDate   DateTime?
+  endDate     DateTime?
+  trafficSplit Int     @default(50) // Pourcentage de trafic alloué au test
+  confidenceLevel Float? // Niveau de confiance statistique
+  winner      String?  // ID de la variante gagnante
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  variants    ABTestVariant[]
+
+  @@map("ab_tests")
+}
+
+model ABTestVariant {
+  id          String   @id @default(cuid())
+  testId      String
+  name        String
+  content     String
+  isControl   Boolean  @default(false)
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  ctr         Float    @default(0)
+  conversionRate Float @default(0)
+  cpc         Float    @default(0)
+  roas        Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  test        ABTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@map("ab_test_variants")
+}
+

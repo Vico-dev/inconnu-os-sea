@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, Send, Loader2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { trackDemoRequest } from '@/lib/prospect-tracking'
 
 interface ContactFormData {
   firstName: string
@@ -52,8 +53,15 @@ export default function ContactForm() {
       })
 
       if (response.ok) {
+        const result = await response.json()
         setIsSubmitted(true)
         toast.success('Message envoyé avec succès !')
+        
+        // Tracker l'interaction si on a un prospectId
+        if (result.prospectId) {
+          trackDemoRequest(result.prospectId)
+        }
+        
         setFormData({
           firstName: '',
           lastName: '',

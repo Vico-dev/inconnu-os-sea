@@ -19,7 +19,7 @@ import {
 
 export default function AdminCompaniesPage() {
   const { user } = useAuth()
-  const [companies, setCompanies] = useState([])
+  const [companies, setCompanies] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -159,7 +159,7 @@ export default function AdminCompaniesPage() {
                           <div>
                             <h4 className="font-medium text-gray-900 mb-2">Contacts</h4>
                             <div className="space-y-1 text-sm text-gray-600">
-                              {company.clientAccounts.map((account) => (
+                              {company.clientAccounts.map((account: any) => (
                                 <div key={account.id} className="flex items-center space-x-2">
                                   {/* Mail icon removed as per new_code */}
                                   <span>{account.user.firstName} {account.user.lastName}</span>
@@ -178,12 +178,18 @@ export default function AdminCompaniesPage() {
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            {company.clientAccounts.map((account) => (
+                            {company.clientAccounts.map((account: any) => (
                               <div key={account.id}>
-                                {/* getStatusBadge function removed as per new_code */}
                                 <Badge variant="secondary">{account.subscription?.status || "Aucun abonnement"}</Badge>
                               </div>
                             ))}
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditCompany(company)}
+                            >
+                              Modifier
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -203,6 +209,17 @@ export default function AdminCompaniesPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Modal de création/édition d'entreprise */}
+          <CompanyModal
+            isOpen={showCreateModal}
+            onClose={() => {
+              setShowCreateModal(false)
+              setEditingCompany(null)
+            }}
+            onSubmit={handleCreateCompany}
+            company={editingCompany}
+          />
         </div>
     </ProtectedRoute>
   )

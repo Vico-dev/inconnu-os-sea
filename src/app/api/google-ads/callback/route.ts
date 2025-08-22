@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Callback Google Ads - Début')
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
-    const state = searchParams.get('state') // ID de l'utilisateur ou "mcc_" + ID admin
+    const state = searchParams.get('state') // ID de l'utilisateur
     const error = searchParams.get('error')
     
     console.log('📋 Paramètres reçus:', { code: code ? 'présent' : 'manquant', state, error })
@@ -99,16 +99,12 @@ export async function GET(request: NextRequest) {
     console.log('✅ Données du compte Google Ads préparées pour sauvegarde')
 
     // Vérifier le type de connexion
-    const isMCCConnection = state.startsWith('mcc_')
     const isOnboardingConnection = state.startsWith('onboarding_')
     
     let actualUserId: string
-    let connectionType: 'mcc' | 'onboarding' | 'client' = 'client'
+    let connectionType: 'onboarding' | 'client' = 'client'
     
-    if (isMCCConnection) {
-      actualUserId = state.replace('mcc_', '')
-      connectionType = 'mcc'
-    } else if (isOnboardingConnection) {
+    if (isOnboardingConnection) {
       // Format: onboarding_userId_existing ou onboarding_userId_new
       const parts = state.split('_')
       actualUserId = parts[1]
@@ -122,7 +118,6 @@ export async function GET(request: NextRequest) {
       state, 
       connectionType,
       actualUserId,
-      isMCCConnection,
       isOnboardingConnection
     })
 
@@ -155,23 +150,18 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Mettre à jour le statut dans le compte client (seulement si ce n'est pas MCC)
-    if (!isMCCConnection) {
-      await prisma.clientAccount.updateMany({
-        where: { userId: actualUserId },
-        data: { googleAdsConnected: true }
-      })
-    }
+    // Mettre à jour le statut dans le compte client
+    await prisma.clientAccount.updateMany({
+      where: { userId: actualUserId },
+      data: { googleAdsConnected: true }
+    })
 
     // Rediriger selon le type de connexion
-    if (connectionType === 'mcc') {
-      return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/admin/mcc?success=connected`
-      )
-    } else if (connectionType === 'onboarding') {
-      return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/onboarding?googleAdsConnected=true&step=7`
-      )
+    if (connectionType === 'onboarding') {
+      // Rediriger vers l'onboarding avec un délai pour laisser le temps à la session de se stabiliser
+      const redirectUrl = `${process.env.NEXTAUTH_URL}/onboarding?googleAdsConnected=true&step=7&timestamp=${Date.now()}`
+      console.log('🔄 Redirection vers onboarding:', redirectUrl)
+      return NextResponse.redirect(redirectUrl)
     } else {
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/client/google-ads?success=connected`

@@ -55,18 +55,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Pour les formulaires publics, on ne vérifie pas l'authentification
+    // Pour les créations admin, on vérifie l'authentification
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-    }
+    const isAdminRequest = session?.user?.email && session.user.role === 'ADMIN'
+    
+    // Si c'est une requête admin, vérifier les permissions
+    if (isAdminRequest) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email }
+      })
 
-    // Vérifier que l'utilisateur est admin
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (user?.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+      if (user?.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+      }
     }
 
     const body = await request.json()
@@ -131,6 +133,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      prospectId: prospect.id, // Retourner l'ID pour le tracking
       prospect: {
         id: prospect.id,
         firstName: prospect.firstName,

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db"
 import { googleAdsSync } from "./google-ads-sync"
+import { openaiService, AIGenerationRequest } from "./openai-service"
 
 export interface CampaignData {
   name: string
@@ -152,29 +153,40 @@ export class AIGoogleAdsService {
   private async generateKeywords(campaignData: CampaignData): Promise<KeywordData[]> {
     console.log("🔍 Génération de mots-clés avec IA...")
     
-    // TODO: Intégrer avec OpenAI ou autre API d'IA
-    const prompt = `
-      Génère des mots-clés Google Ads pour une entreprise ${campaignData.industry} 
-      avec le site web ${campaignData.website}.
-      Objectifs: ${campaignData.goals.join(', ')}
+    try {
+      const aiRequest: AIGenerationRequest = {
+        type: 'keywords',
+        industry: campaignData.industry,
+        website: campaignData.website,
+        goals: campaignData.goals,
+        budget: campaignData.budget
+      }
+
+      const aiResponse = await openaiService.generateKeywords(aiRequest)
       
-      Retourne une liste de mots-clés avec:
-      - Mots-clés principaux (exact match)
-      - Mots-clés long tail (phrase match)
-      - Mots-clés de recherche (broad match)
-      - Estimation des enchères
-    `
-    
-    // Simulation de génération de mots-clés
-    const keywords: KeywordData[] = [
-      { keyword: campaignData.industry, matchType: 'EXACT', bid: 2.5 },
-      { keyword: `${campaignData.industry} ${campaignData.goals[0]}`, matchType: 'PHRASE', bid: 1.8 },
-      { keyword: `meilleur ${campaignData.industry}`, matchType: 'BROAD', bid: 1.2 },
-      { keyword: `${campaignData.industry} prix`, matchType: 'EXACT', bid: 2.0 },
-      { keyword: `${campaignData.industry} avis`, matchType: 'PHRASE', bid: 1.5 }
-    ]
-    
-    return keywords
+      // Convertir la réponse IA en format KeywordData
+      const keywords: KeywordData[] = aiResponse.content.map((keyword, index) => ({
+        keyword: keyword,
+        matchType: index < 5 ? 'EXACT' : index < 10 ? 'PHRASE' : 'BROAD',
+        bid: Math.random() * 3 + 1, // Simulation d'enchère
+        qualityScore: Math.floor(Math.random() * 10) + 1
+      }))
+
+      return keywords
+    } catch (error) {
+      console.error("Erreur génération mots-clés IA:", error)
+      
+      // Fallback vers la génération simulée
+      const keywords: KeywordData[] = [
+        { keyword: campaignData.industry, matchType: 'EXACT', bid: 2.5 },
+        { keyword: `${campaignData.industry} ${campaignData.goals[0]}`, matchType: 'PHRASE', bid: 1.8 },
+        { keyword: `meilleur ${campaignData.industry}`, matchType: 'BROAD', bid: 1.2 },
+        { keyword: `${campaignData.industry} prix`, matchType: 'EXACT', bid: 2.0 },
+        { keyword: `${campaignData.industry} avis`, matchType: 'PHRASE', bid: 1.5 }
+      ]
+      
+      return keywords
+    }
   }
 
   // 🛍️ ANALYSE DU CATALOGUE PRODUITS

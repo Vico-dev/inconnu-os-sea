@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from "@/hooks/useAuth"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
-import { AdminLayout } from "@/components/admin/AdminLayout"
+
 import { 
   Users, 
   Mail, 
@@ -21,7 +21,10 @@ import {
   RefreshCw,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  BarChart3,
+  TrendingUp,
+  Target
 } from 'lucide-react'
 
 type ProspectStatus = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'LOST'
@@ -39,6 +42,10 @@ interface Prospect {
   notes: string | null
   score: number | null
   budget: number | null
+  industry: string | null
+  teamSize: string | null
+  urgency: 'low' | 'medium' | 'high' | null
+  engagement: 'low' | 'medium' | 'high' | null
   createdAt: string
   updatedAt: string
 }
@@ -65,8 +72,78 @@ export default function ProspectsPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [scoreFilter, setScoreFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showScoringModal, setShowScoringModal] = useState(false)
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false)
+  const [analyticsData, setAnalyticsData] = useState<any>(null)
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false)
+
+  // Fonction de calcul de score automatique
+  const calculateScore = (prospect: Prospect): number => {
+    let score = 0
+    
+    // Score basé sur le budget
+    if (prospect.budget) {
+      if (prospect.budget >= 5000) score += 30
+      else if (prospect.budget >= 2000) score += 20
+      else if (prospect.budget >= 1000) score += 15
+      else if (prospect.budget >= 500) score += 10
+      else score += 5
+    }
+    
+    // Score basé sur la taille de l'équipe
+    if (prospect.teamSize) {
+      if (prospect.teamSize === '50-100' || prospect.teamSize === '100+') score += 20
+      else if (prospect.teamSize === '25-50') score += 15
+      else if (prospect.teamSize === '10-25') score += 10
+      else if (prospect.teamSize === '5-10') score += 8
+      else score += 5
+    }
+    
+    // Score basé sur l'urgence
+    if (prospect.urgency === 'high') score += 25
+    else if (prospect.urgency === 'medium') score += 15
+    else if (prospect.urgency === 'low') score += 5
+    
+    // Score basé sur l'engagement
+    if (prospect.engagement === 'high') score += 20
+    else if (prospect.engagement === 'medium') score += 12
+    else if (prospect.engagement === 'low') score += 5
+    
+    // Score basé sur le secteur d'activité
+    if (prospect.industry) {
+      const highValueIndustries = ['E-commerce', 'SaaS', 'B2B', 'Finance']
+      if (highValueIndustries.includes(prospect.industry)) score += 15
+      else score += 8
+    }
+    
+    // Score basé sur la source
+    if (prospect.source === 'website') score += 10
+    else if (prospect.source === 'referral') score += 15
+    else if (prospect.source === 'social') score += 8
+    else score += 5
+    
+    return Math.min(score, 100) // Score maximum de 100
+  }
+
+  // Fonction pour obtenir la couleur du score
+  const getScoreColor = (score: number): string => {
+    if (score >= 80) return 'text-green-600 bg-green-100'
+    if (score >= 60) return 'text-blue-600 bg-blue-100'
+    if (score >= 40) return 'text-yellow-600 bg-yellow-100'
+    return 'text-red-600 bg-red-100'
+  }
+
+  // Fonction pour obtenir le niveau de priorité
+  const getPriorityLevel = (score: number): string => {
+    if (score >= 80) return 'Très haute'
+    if (score >= 60) return 'Haute'
+    if (score >= 40) return 'Moyenne'
+    return 'Basse'
+  }
 
   const fetchProspects = async () => {
     try {
@@ -142,6 +219,22 @@ export default function ProspectsPage() {
     }
   }
 
+  const loadAnalytics = async (prospectId: string) => {
+    setLoadingAnalytics(true)
+    try {
+      const response = await fetch(`/api/prospects/${prospectId}/analytics`)
+      if (response.ok) {
+        const data = await response.json()
+        setAnalyticsData(data.data)
+        setShowAnalyticsModal(true)
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des analytics:', error)
+    } finally {
+      setLoadingAnalytics(false)
+    }
+  }
+
   const filteredProspects = prospects.filter(prospect => {
     const searchLower = searchTerm.toLowerCase()
     const matchesSearch = (
@@ -153,17 +246,27 @@ export default function ProspectsPage() {
     
     const matchesStatus = !statusFilter || prospect.status === statusFilter
     
-    return matchesSearch && matchesStatus
+    const prospectScore = calculateScore(prospect)
+    const matchesScore = !scoreFilter || 
+      (scoreFilter === 'high' && prospectScore >= 80) ||
+      (scoreFilter === 'medium' && prospectScore >= 60 && prospectScore < 80) ||
+      (scoreFilter === 'low' && prospectScore < 60)
+    
+    const matchesPriority = !priorityFilter || 
+      (priorityFilter === 'very-high' && prospectScore >= 80) ||
+      (priorityFilter === 'high' && prospectScore >= 60 && prospectScore < 80) ||
+      (priorityFilter === 'medium' && prospectScore >= 40 && prospectScore < 60) ||
+      (priorityFilter === 'low' && prospectScore < 40)
+    
+    return matchesSearch && matchesStatus && matchesScore && matchesPriority
   })
 
   if (loading) {
     return (
       <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <AdminLayout>
-          <div className="flex items-center justify-center h-64">
-            <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
-        </AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
       </ProtectedRoute>
     )
   }
@@ -171,21 +274,18 @@ export default function ProspectsPage() {
   if (error) {
     return (
       <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <AdminLayout>
-          <div className="text-center py-12">
-            <div className="text-red-600 mb-4">{error}</div>
-            <Button onClick={fetchProspects} variant="outline">
-              Réessayer
-            </Button>
-          </div>
-        </AdminLayout>
+        <div className="text-center py-12">
+          <div className="text-red-600 mb-4">{error}</div>
+          <Button onClick={fetchProspects} variant="outline">
+            Réessayer
+          </Button>
+        </div>
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute allowedRoles={["ADMIN"]}>
-      <AdminLayout>
         <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -236,7 +336,8 @@ export default function ProspectsPage() {
       {/* Filtres */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-4">
+            {/* Recherche */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
@@ -246,32 +347,118 @@ export default function ProspectsPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={statusFilter === '' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('')}
-                size="sm"
-              >
-                Tous
-              </Button>
-              <Button
-                variant={statusFilter === 'NEW' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('NEW')}
-                size="sm"
-              >
-                Nouveaux
-              </Button>
-              <Button
-                variant={statusFilter === 'QUALIFIED' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('QUALIFIED')}
-                size="sm"
-              >
-                Qualifiés
-              </Button>
-            </div>
-            <div className="text-sm text-gray-500 flex items-center">
-              <Filter className="w-4 h-4 mr-2" />
-              {filteredProspects.length} prospect{filteredProspects.length > 1 ? 's' : ''} trouvé{filteredProspects.length > 1 ? 's' : ''}
+            
+            {/* Filtres multiples */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Filtre par statut */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Statut</label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={statusFilter === '' ? 'default' : 'outline'}
+                    onClick={() => setStatusFilter('')}
+                    size="sm"
+                  >
+                    Tous
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'NEW' ? 'default' : 'outline'}
+                    onClick={() => setStatusFilter('NEW')}
+                    size="sm"
+                  >
+                    Nouveaux
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'QUALIFIED' ? 'default' : 'outline'}
+                    onClick={() => setStatusFilter('QUALIFIED')}
+                    size="sm"
+                  >
+                    Qualifiés
+                  </Button>
+                </div>
+              </div>
+
+              {/* Filtre par score */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Score</label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={scoreFilter === '' ? 'default' : 'outline'}
+                    onClick={() => setScoreFilter('')}
+                    size="sm"
+                  >
+                    Tous
+                  </Button>
+                  <Button
+                    variant={scoreFilter === 'high' ? 'default' : 'outline'}
+                    onClick={() => setScoreFilter('high')}
+                    size="sm"
+                    className="bg-green-100 text-green-800 hover:bg-green-200"
+                  >
+                    80+
+                  </Button>
+                  <Button
+                    variant={scoreFilter === 'medium' ? 'default' : 'outline'}
+                    onClick={() => setScoreFilter('medium')}
+                    size="sm"
+                    className="bg-blue-100 text-blue-800 hover:bg-blue-200"
+                  >
+                    60-79
+                  </Button>
+                  <Button
+                    variant={scoreFilter === 'low' ? 'default' : 'outline'}
+                    onClick={() => setScoreFilter('low')}
+                    size="sm"
+                    className="bg-red-100 text-red-800 hover:bg-red-200"
+                  >
+                    &lt;60
+                  </Button>
+                </div>
+              </div>
+
+              {/* Filtre par priorité */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Priorité</label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={priorityFilter === '' ? 'default' : 'outline'}
+                    onClick={() => setPriorityFilter('')}
+                    size="sm"
+                  >
+                    Toutes
+                  </Button>
+                  <Button
+                    variant={priorityFilter === 'very-high' ? 'default' : 'outline'}
+                    onClick={() => setPriorityFilter('very-high')}
+                    size="sm"
+                    className="bg-red-100 text-red-800 hover:bg-red-200"
+                  >
+                    Très haute
+                  </Button>
+                  <Button
+                    variant={priorityFilter === 'high' ? 'default' : 'outline'}
+                    onClick={() => setPriorityFilter('high')}
+                    size="sm"
+                    className="bg-orange-100 text-orange-800 hover:bg-orange-200"
+                  >
+                    Haute
+                  </Button>
+                  <Button
+                    variant={priorityFilter === 'medium' ? 'default' : 'outline'}
+                    onClick={() => setPriorityFilter('medium')}
+                    size="sm"
+                    className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                  >
+                    Moyenne
+                  </Button>
+                </div>
+              </div>
+
+              {/* Compteur */}
+              <div className="text-sm text-gray-500 flex items-center">
+                <Filter className="w-4 h-4 mr-2" />
+                {filteredProspects.length} prospect{filteredProspects.length > 1 ? 's' : ''} trouvé{filteredProspects.length > 1 ? 's' : ''}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -343,6 +530,15 @@ export default function ProspectsPage() {
                       <Badge variant="outline" className="text-xs">
                         {prospect.source}
                       </Badge>
+                      {/* Score du prospect */}
+                      <div className="flex items-center space-x-2">
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(calculateScore(prospect))}`}>
+                          Score: {calculateScore(prospect)}/100
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {getPriorityLevel(calculateScore(prospect))}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex items-center space-x-2">
@@ -350,6 +546,14 @@ export default function ProspectsPage() {
                         {statusLabels[prospect.status]}
                       </Badge>
                       <div className="flex space-x-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => loadAnalytics(prospect.id)}
+                          disabled={loadingAnalytics}
+                        >
+                          <BarChart3 className="w-4 h-4" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -437,8 +641,145 @@ export default function ProspectsPage() {
           </Card>
         </div>
       )}
+
+      {/* Modal d'analytics */}
+      {showAnalyticsModal && analyticsData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2" />
+                Analytics - {analyticsData.email}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Métriques principales */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-blue-600">{analyticsData.totalInteractions}</div>
+                      <div className="text-sm text-gray-600">Total Interactions</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-green-600">{analyticsData.engagementScore}</div>
+                      <div className="text-sm text-gray-600">Score d'Engagement</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-purple-600">{Math.round(analyticsData.conversionProbability)}%</div>
+                      <div className="text-sm text-gray-600">Probabilité de Conversion</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-orange-600">{analyticsData.timeOnSite}min</div>
+                      <div className="text-sm text-gray-600">Temps sur le Site</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Recommandations */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Target className="w-5 h-5 mr-2" />
+                      Recommandations
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {analyticsData.recommendations.map((rec: string, index: number) => (
+                        <div key={index} className="flex items-center p-3 bg-blue-50 rounded-lg">
+                          <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
+                          <span className="text-sm">{rec}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Parcours de conversion */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <TrendingUp className="w-5 h-5 mr-2" />
+                      Parcours de Conversion
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center space-x-2">
+                      {analyticsData.conversionPath.map((step: string, index: number) => (
+                        <div key={index} className="flex items-center">
+                          <div className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                            {step}
+                          </div>
+                          {index < analyticsData.conversionPath.length - 1 && (
+                            <div className="mx-2 text-gray-400">→</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Contenu préféré */}
+                {analyticsData.preferredContent.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Contenu Préféré</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {analyticsData.preferredContent.map((content: string, index: number) => (
+                          <Badge key={index} variant="outline">
+                            {content}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Dernières interactions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Dernières Interactions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {analyticsData.interactions.map((interaction: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <span className="text-sm">{interaction.details?.description || interaction.action}</span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(interaction.timestamp).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAnalyticsModal(false)
+                    setAnalyticsData(null)
+                  }}
+                >
+                  Fermer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </AdminLayout>
+      )}
+        </div>
     </ProtectedRoute>
   )
 }

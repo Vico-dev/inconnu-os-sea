@@ -45,7 +45,7 @@ export class EmailService {
   }
 
   /**
-   * Envoyer un email de bienvenue
+   * Envoyer un email de bienvenue pour les nouveaux utilisateurs
    */
   static async sendWelcomeEmail(
     to: string,
@@ -79,6 +79,82 @@ export class EmailService {
       return result
     } catch (error) {
       console.error('Erreur envoi email de bienvenue:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Envoyer un email de bienvenue pour les nouveaux utilisateurs créés par l'admin
+   */
+  static async sendNewUserWelcomeEmail(params: {
+    to: string
+    name: string
+    role: string
+    companyName?: string
+    onboardingUrl: string
+    type: 'client_welcome' | 'am_welcome'
+  }) {
+    try {
+      if (!resend) {
+        console.log('Resend non configuré, email de bienvenue nouveau utilisateur ignoré')
+        return null
+      }
+
+      const { to, name, role, companyName, onboardingUrl, type } = params
+
+      let subject = ''
+      let emailHtml = ''
+
+      if (type === 'client_welcome') {
+        subject = `Bienvenue chez Agence Inconnu - ${companyName}`
+        emailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1f2937;">Agence Inconnu</h2>
+            <h3 style="color: #1d4ed8;">Bienvenue ! 🎉</h3>
+            <p>Bonjour ${name},</p>
+            <p>Votre compte client pour ${companyName} a été créé avec succès.</p>
+            <p>Pour commencer à utiliser notre plateforme, veuillez compléter votre onboarding :</p>
+            <a href="${onboardingUrl}" style="background-color: #1d4ed8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+              Commencer l'onboarding
+            </a>
+            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+              Si vous avez des questions, n'hésitez pas à contacter votre Account Manager.
+            </p>
+          </div>
+        `
+             } else if (type === 'am_welcome') {
+         subject = 'Bienvenue dans l\'équipe Agence Inconnu'
+         emailHtml = `
+           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+             <h2 style="color: #1f2937;">Agence Inconnu</h2>
+             <h3 style="color: #1d4ed8;">Bienvenue dans l'équipe ! 🎉</h3>
+             <p>Bonjour ${name},</p>
+             <p>Votre compte Account Manager a été créé avec succès.</p>
+             <p>Pour configurer votre profil et commencer à travailler, veuillez compléter votre onboarding :</p>
+             <a href="${onboardingUrl}" style="background-color: #1d4ed8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+               Configurer mon profil
+             </a>
+             <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+               Vous pourrez ensuite configurer votre lien de prise de rendez-vous (Calendly/Gmail) et commencer à gérer vos clients.
+             </p>
+             <p style="margin-top: 10px; font-size: 14px; color: #6b7280;">
+               <strong>Important :</strong> N'oubliez pas de configurer vos liens de prise de rendez-vous pour permettre aux clients de vous contacter facilement.
+             </p>
+           </div>
+         `
+       }
+
+      const result = await resend.emails.send({
+        from: this.from,
+        to: [to],
+        subject,
+        html: emailHtml,
+      })
+
+      console.log('Email de bienvenue nouveau utilisateur envoyé:', result)
+      return result
+    } catch (error) {
+      console.error('Erreur envoi email de bienvenue nouveau utilisateur:', error)
       throw error
     }
   }

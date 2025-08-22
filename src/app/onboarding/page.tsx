@@ -314,6 +314,9 @@ export default function OnboardingPage() {
     setMessage("")
 
     try {
+      // S'assurer qu'un plan est sélectionné
+      const planToUse = onboardingData.selectedPlan || 'MEDIUM_BUDGET'
+      
       const response = await fetch("/api/onboarding", {
         method: "POST",
         headers: {
@@ -321,6 +324,7 @@ export default function OnboardingPage() {
         },
         body: JSON.stringify({
           ...onboardingData,
+          selectedPlan: planToUse,
           userId: user?.id
         }),
       })
@@ -331,7 +335,7 @@ export default function OnboardingPage() {
         // Attendre un peu pour que l'utilisateur voie le message
         setTimeout(() => {
           // Rediriger directement vers le checkout avec le plan sélectionné
-          window.location.href = `/client/checkout?plan=${onboardingData.selectedPlan}`
+          window.location.href = `/client/checkout?plan=${planToUse}`
         }, 1500)
       } else {
         const error = await response.json()
@@ -601,7 +605,21 @@ export default function OnboardingPage() {
 
       case 7:
         // Déterminer le plan recommandé selon le budget
-        const recommendedPlan = getRecommendedPlan(onboardingData.dailyBudget)
+        let recommendedPlan = getRecommendedPlan(onboardingData.dailyBudget)
+        
+        // Si pas de budget ou budget invalide, utiliser MEDIUM_BUDGET par défaut
+        if (!recommendedPlan) {
+          recommendedPlan = 'MEDIUM_BUDGET'
+          // Mettre à jour le budget affiché pour qu'il soit cohérent
+          if (!onboardingData.dailyBudget || onboardingData.dailyBudget === '0') {
+            setOnboardingData(prev => ({ ...prev, dailyBudget: '40' })) // 40€/jour = 1200€/mois
+          }
+        }
+        
+        // Assigner automatiquement le plan recommandé si pas encore sélectionné
+        if (recommendedPlan && !onboardingData.selectedPlan) {
+          setOnboardingData(prev => ({ ...prev, selectedPlan: recommendedPlan }))
+        }
         
         const planData = {
           'SMALL_BUDGET': {
@@ -628,12 +646,13 @@ export default function OnboardingPage() {
 
         return (
           <div className="space-y-6">
-            <div className="text-center mb-6">
-              <p className="text-lg text-gray-600 mb-4">
-                Basé sur votre budget de <strong>{Number(onboardingData.dailyBudget) * 30}€/mois</strong>, 
-                voici le forfait qui vous convient :
-              </p>
-            </div>
+                          <div className="text-center mb-6">
+                <p className="text-lg text-gray-600 mb-4">
+                  Basé sur votre budget de <strong>{onboardingData.dailyBudget ? (Number(onboardingData.dailyBudget) * 30) : 0}€/mois</strong> 
+                  ({onboardingData.dailyBudget ? onboardingData.dailyBudget : 0}€/jour), 
+                  voici le forfait qui vous convient :
+                </p>
+              </div>
             
             {/* Affichage du plan recommandé */}
             <div className="max-w-md mx-auto">
@@ -683,7 +702,8 @@ export default function OnboardingPage() {
     
     // Vérification spéciale pour l'étape 7 (sélection de plan)
     if (currentStep === 7) {
-      return onboardingData.selectedPlan !== ""
+      // Permettre de continuer même sans plan sélectionné (il sera assigné automatiquement)
+      return true
     }
     
     return currentFields.every(field => {
@@ -836,7 +856,7 @@ export default function OnboardingPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={`mt-4 p-3 rounded-md ${
-                        message.includes("terminé") || message.includes("réussi") 
+                        message.includes("terminé") || message.includes("réussi") || message.includes("✅") || message.includes("succès")
                           ? "bg-green-50 text-green-800 border border-green-200" 
                           : "bg-red-50 text-red-800 border border-red-200"
                       }`}

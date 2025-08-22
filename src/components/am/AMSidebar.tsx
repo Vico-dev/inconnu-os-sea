@@ -16,7 +16,8 @@ import {
   Settings,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Target
 } from "lucide-react"
 
 interface AMSidebarProps {
@@ -93,6 +94,12 @@ export function AMSidebar({ ticketStats, appointmentStats }: AMSidebarProps) {
       href: "/am/settings",
       icon: Settings,
       current: pathname === "/am/settings"
+    },
+    {
+      name: "Campagnes",
+      href: "/am/campaigns",
+      icon: Target,
+      current: pathname === "/am/campaigns"
     }
   ]
 

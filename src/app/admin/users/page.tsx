@@ -212,13 +212,30 @@ export default function AdminUsersPage() {
                         </Button>
                       )}
                       {user.role === "CLIENT" && user.clientAccount?.id && (
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          onClick={() => openAssignModal(user)}
-                        >
-                          Attribuer un AM
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          {user.clientAccount.assignedAccountManager ? (
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="outline" className="text-xs">
+                                AM: {user.clientAccount.assignedAccountManager.user.firstName} {user.clientAccount.assignedAccountManager.user.lastName}
+                              </Badge>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openAssignModal(user)}
+                              >
+                                Changer AM
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button 
+                              variant="default" 
+                              size="sm"
+                              onClick={() => openAssignModal(user)}
+                            >
+                              Attribuer un AM
+                            </Button>
+                          )}
+                        </div>
                       )}
                       <Button 
                         variant="outline" 

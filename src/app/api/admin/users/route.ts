@@ -21,7 +21,12 @@ export async function GET(request: NextRequest) {
         clientAccount: {
           include: {
             company: true,
-            subscription: true
+            subscription: true,
+            assignedAccountManager: {
+              include: {
+                user: true
+              }
+            }
           }
         },
         accountManager: true
@@ -142,7 +147,12 @@ export async function POST(request: NextRequest) {
         clientAccount: {
           include: {
             company: true,
-            subscription: true
+            subscription: true,
+            assignedAccountManager: {
+              include: {
+                user: true
+              }
+            }
           }
         }
       }
