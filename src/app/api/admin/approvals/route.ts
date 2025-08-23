@@ -26,7 +26,12 @@ export async function GET(request: NextRequest) {
       include: {
         campaign: {
           include: {
-            client: true
+            clientAccount: {
+              include: {
+                user: true,
+                company: true
+              }
+            }
           }
         },
         approvals: {
