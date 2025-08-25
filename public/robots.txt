@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://agence-inconnu.fr/sitemap.xml
+
+# Pages privées à exclure
+Disallow: /admin/
+Disallow: /am/
+Disallow: /client/
+Disallow: /api/
+Disallow: /onboarding
+Disallow: /verify-email
+Disallow: /reset-password
+Disallow: /forgot-password
+
+# Fichiers à exclure
+Disallow: /*.json$
+Disallow: /*.xml$
+Disallow: /_next/
+Disallow: /static/ 

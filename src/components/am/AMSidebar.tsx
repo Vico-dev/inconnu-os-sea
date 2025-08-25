@@ -96,6 +96,12 @@ export function AMSidebar({ ticketStats, appointmentStats }: AMSidebarProps) {
       current: pathname === "/am/settings"
     },
     {
+      name: "Campaign Operator",
+      href: "/am/campaign-operator",
+      icon: Target,
+      current: pathname === "/am/campaign-operator"
+    },
+    {
       name: "Campagnes",
       href: "/am/campaigns",
       icon: Target,

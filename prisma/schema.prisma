@@ -34,10 +34,12 @@ model User {
 
   clientAccount         ClientAccount?
   accountManager        AccountManager?
-  googleAdsConnection   GoogleAdsConnection?
   ticketResponses       TicketResponse[]
   googleAdsPermissions  GoogleAdsPermission[]
+  googleAdsConnections  GoogleAdsConnection[]
+  shopifyStores         ShopifyStore[]
   notifications         Notification[]
+  createdCampaigns      Campaign[]
 
   @@map("users")
 }
@@ -67,7 +69,6 @@ model ClientAccount {
   subscriptionPlan      String?
   monthlyBudget         Float?
   onboardingCompleted   Boolean  @default(false)
-  googleAdsConnected    Boolean  @default(false)
   status                String   @default("ACTIVE") // ACTIVE, CANCELLED, SUSPENDED
   endDate               DateTime?
   cgvAccepted           Boolean  @default(false)
@@ -135,19 +136,42 @@ model Subscription {
 
 model GoogleAdsConnection {
   id            String   @id @default(cuid())
-  userId        String   @unique
+  userId        String
+  customerId    String   // ID du compte Google Ads spécifique
+  customerName  String   // Nom du compte Google Ads
   accessToken   String
   refreshToken  String?
   tokenExpiry   DateTime?
-  accounts      String?  // JSON string of accessible accounts
   isConnected   Boolean  @default(false)
   connectedAt   DateTime?
+  isPrimary     Boolean  @default(false) // Compte principal pour ce client
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, customerId]) // Un utilisateur peut avoir plusieurs comptes, mais pas de doublons
   @@map("google_ads_connections")
+}
+
+model ShopifyStore {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  domain      String
+  email       String
+  currency    String
+  country     String
+  timezone    String
+  accessToken String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, domain])
+  @@map("shopify_stores")
 }
 
 // Nouveau modèle pour gérer les permissions MCC
@@ -172,20 +196,28 @@ model Campaign {
   id          String   @id @default(cuid())
   name        String
   type        CampaignType
+  objective   String   // SALES, LEADS, AWARENESS
   status      CampaignStatus @default(DRAFT)
   budget      Float
+  targetAudience String?
+  keywords    String?  // JSON string des mots-clés
+  locations   String?  // JSON string des localisations
+  language    String   @default("fr")
+  description String?
   startDate   DateTime?
   endDate     DateTime?
   
   // Relations
   clientAccountId String
   clientAccount   ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  createdBy       String
+  createdByUser   User @relation(fields: [createdBy], references: [id])
   
   // Workflow d'approbation
   approval    CampaignApproval?
   
   // Google Ads integration
-  googleAdsId String?  @unique
+  googleAdsCampaignId String?  @unique
   metrics     String?  // JSON string des métriques
   
   // Tests A/B
@@ -288,6 +320,8 @@ model Prospect {
 
   @@map("prospects")
 }
+
+
 
 // Modèle pour gérer les relances d'emails
 model EmailReminder {
@@ -556,22 +590,22 @@ enum CampaignStatus {
 
 // Modèle pour les Tests A/B
 model ABTest {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  campaignId  String
-  testType    String   // HEADLINES, DESCRIPTIONS, LANDING_PAGES, BIDDING_STRATEGIES, KEYWORDS
-  status      String   @default("DRAFT") // DRAFT, RUNNING, PAUSED, COMPLETED
-  startDate   DateTime?
-  endDate     DateTime?
-  trafficSplit Int     @default(50) // Pourcentage de trafic alloué au test
-  confidenceLevel Float? // Niveau de confiance statistique
-  winner      String?  // ID de la variante gagnante
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  campaignId      String
+  testType        String   // HEADLINES, DESCRIPTIONS, LANDING_PAGES, BIDDING_STRATEGIES, KEYWORDS
+  status          String   @default("DRAFT") // DRAFT, RUNNING, PAUSED, COMPLETED
+  startDate       DateTime?
+  endDate         DateTime?
+  trafficSplit    Int      @default(50) // Pourcentage de trafic alloué au test
+  confidenceLevel Float?   // Niveau de confiance statistique
+  winner          String?  // ID de la variante gagnante
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  variants    ABTestVariant[]
+  campaign        Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  variants        ABTestVariant[]
 
   @@map("ab_tests")
 }

@@ -32,14 +32,12 @@ export async function GET(request: NextRequest) {
         email: prospect.email,
         phone: prospect.phone,
         company: prospect.company,
-        industry: prospect.industry,
-        website: prospect.website,
         budget: prospect.budget,
         status: prospect.status,
         source: prospect.source,
+        message: prospect.message,
         notes: prospect.notes,
         score: prospect.score,
-        lastContact: prospect.lastContact,
         createdAt: prospect.createdAt
       }))
     })
@@ -78,11 +76,10 @@ export async function POST(request: NextRequest) {
       email,
       phone,
       company,
-      industry,
-      website,
       budget,
       source,
-      notes
+      notes,
+      message // Ajouter le champ message du formulaire de contact
     } = body
 
     // Validation des champs requis
@@ -94,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier si l'email existe déjà
-    const existingProspect = await prisma.prospect.findUnique({
+    const existingProspect = await prisma.prospect.findFirst({
       where: { email }
     })
 
@@ -107,9 +104,7 @@ export async function POST(request: NextRequest) {
 
     // Calculer un score de base
     const score = calculateProspectScore({
-      industry,
       budget,
-      website,
       source
     })
 
@@ -120,14 +115,12 @@ export async function POST(request: NextRequest) {
         email,
         phone: phone || '',
         company,
-        industry: industry || '',
-        website: website || '',
         budget: budget ? parseFloat(budget) : null,
         status: 'NEW',
-        source: source || 'OTHER',
-        notes: notes || '',
-        score,
-        lastContact: new Date()
+        source: source || 'WEBSITE', // Source par défaut pour formulaire de contact
+        message: message || '', // Utiliser le champ message
+        notes: notes || '', // Notes séparées
+        score
       }
     })
 
@@ -141,14 +134,12 @@ export async function POST(request: NextRequest) {
         email: prospect.email,
         phone: prospect.phone,
         company: prospect.company,
-        industry: prospect.industry,
-        website: prospect.website,
         budget: prospect.budget,
         status: prospect.status,
         source: prospect.source,
+        message: prospect.message,
         notes: prospect.notes,
         score: prospect.score,
-        lastContact: prospect.lastContact,
         createdAt: prospect.createdAt
       }
     })
@@ -163,29 +154,16 @@ export async function POST(request: NextRequest) {
 }
 
 function calculateProspectScore(data: {
-  industry?: string
   budget?: number | null
-  website?: string
   source?: string
 }): number {
   let score = 50 // Score de base
-
-  // Score basé sur l'industrie
-  const highValueIndustries = ['E-COMMERCE', 'SERVICES', 'TECHNOLOGY', 'FINANCE']
-  if (data.industry && highValueIndustries.includes(data.industry.toUpperCase())) {
-    score += 20
-  }
 
   // Score basé sur le budget
   if (data.budget) {
     if (data.budget >= 5000) score += 25
     else if (data.budget >= 2000) score += 15
     else if (data.budget >= 500) score += 10
-  }
-
-  // Score basé sur la présence d'un site web
-  if (data.website) {
-    score += 10
   }
 
   // Score basé sur la source

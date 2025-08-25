@@ -176,14 +176,8 @@ export class AIGoogleAdsService {
     } catch (error) {
       console.error("Erreur génération mots-clés IA:", error)
       
-      // Fallback vers la génération simulée
-      const keywords: KeywordData[] = [
-        { keyword: campaignData.industry, matchType: 'EXACT', bid: 2.5 },
-        { keyword: `${campaignData.industry} ${campaignData.goals[0]}`, matchType: 'PHRASE', bid: 1.8 },
-        { keyword: `meilleur ${campaignData.industry}`, matchType: 'BROAD', bid: 1.2 },
-        { keyword: `${campaignData.industry} prix`, matchType: 'EXACT', bid: 2.0 },
-        { keyword: `${campaignData.industry} avis`, matchType: 'PHRASE', bid: 1.5 }
-      ]
+      // Fallback vers un tableau vide
+      const keywords: KeywordData[] = []
       
       return keywords
     }
@@ -193,23 +187,9 @@ export class AIGoogleAdsService {
   private async analyzeProductCatalog(website: string): Promise<ProductData[]> {
     console.log("🛍️ Analyse du catalogue produits...")
     
-    // TODO: Scraper le site web ou utiliser l'API du site
-    const products: ProductData[] = [
-      {
-        productId: 'prod_001',
-        title: 'Produit Premium',
-        price: 99.99,
-        category: 'Premium',
-        performance: { impressions: 1000, clicks: 50, conversions: 5, roas: 3.2 }
-      },
-      {
-        productId: 'prod_002',
-        title: 'Produit Standard',
-        price: 49.99,
-        category: 'Standard',
-        performance: { impressions: 800, clicks: 40, conversions: 8, roas: 4.1 }
-      }
-    ]
+    // TODO: Implémenter l'analyse réelle du catalogue
+    // Pour l'instant, retourner un tableau vide
+    const products: ProductData[] = []
     
     return products
   }

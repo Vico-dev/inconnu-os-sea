@@ -6,16 +6,32 @@ export async function GET(request: NextRequest) {
     // Version simplifiée pour tester
     const subscriptions = await prisma.subscription.findMany()
 
-    const formattedSubscriptions = subscriptions.map(sub => ({
-      id: sub.id,
-      status: sub.status,
-      amount: sub.amount || 0,
-      plan: sub.plan || "standard",
-      startDate: sub.currentPeriodStart,
-      endDate: sub.endDate,
-      clientAccount: {
-        user: { firstName: "Client", lastName: "Test", email: "client@test.com" },
-        company: { name: "Entreprise Test" }
+    const formattedSubscriptions = await Promise.all(subscriptions.map(async (sub) => {
+      const clientAccount = await prisma.clientAccount.findUnique({
+        where: { id: sub.clientAccountId },
+        include: {
+          user: true,
+          company: true
+        }
+      })
+
+      return {
+        id: sub.id,
+        status: sub.status,
+        amount: sub.amount || 0,
+        plan: sub.plan || "standard",
+        startDate: sub.currentPeriodStart,
+        endDate: sub.endDate,
+        clientAccount: {
+          user: clientAccount?.user ? {
+            firstName: clientAccount.user.firstName,
+            lastName: clientAccount.user.lastName,
+            email: clientAccount.user.email
+          } : null,
+          company: clientAccount?.company ? {
+            name: clientAccount.company.name
+          } : null
+        }
       }
     }))
 

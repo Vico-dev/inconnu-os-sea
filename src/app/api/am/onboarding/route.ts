@@ -9,11 +9,19 @@ export async function GET(request: NextRequest) {
     //   return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     // }
 
-    // Pour l'instant, on retourne des données de test
-    // Plus tard, on récupérera depuis la base de données
+    // Récupérer les vraies données d'onboarding depuis la base de données
+    const onboardingData = await prisma.accountManager.findFirst({
+      where: {
+        // TODO: Ajouter la logique pour récupérer l'AM connecté
+      },
+      include: {
+        onboardingData: true
+      }
+    })
+
     return NextResponse.json({
-      onboardingData: null,
-      currentStep: 1
+      onboardingData: onboardingData?.onboardingData || null,
+      currentStep: onboardingData?.onboardingData?.currentStep || 1
     })
 
   } catch (error) {

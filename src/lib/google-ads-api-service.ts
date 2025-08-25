@@ -180,27 +180,111 @@ export class GoogleAdsAPIService {
         refresh_token: accessToken
       })
 
-      // TODO: Implémenter la création réelle de campagne
-      // Cette fonction nécessite plusieurs étapes :
-      // 1. Créer la campagne
-      // 2. Créer le groupe d'annonces
-      // 3. Ajouter les mots-clés
-      // 4. Créer les annonces
-      
       console.log('🆕 Création de campagne Google Ads:', campaignData)
-      
-      // Simulation pour le moment
-      const mockCampaignId = `camp_${Date.now()}`
-      const mockAdGroupId = `adgroup_${Date.now()}`
+
+      // 1. Créer le budget de campagne
+      const budgetOperation = {
+        create: {
+          name: `${campaignData.name} - Budget`,
+          amount_micros: campaignData.budget * 1000000,
+          delivery_method: 'STANDARD'
+        }
+      }
+
+      const budgetResponse = await customer.campaignBudget.create(budgetOperation)
+      const budgetId = budgetResponse.results[0].resource_name.split('/').pop()
+
+      // 2. Créer la campagne
+      const campaignOperation = {
+        create: {
+          name: campaignData.name,
+          status: 'ENABLED',
+          advertising_channel_type: this.mapCampaignType(campaignData.type),
+          campaign_budget: `customers/${customerId}/campaignBudgets/${budgetId}`,
+          start_date: campaignData.startDate,
+          ...(campaignData.endDate && { end_date: campaignData.endDate }),
+          ...(campaignData.targetCpa && {
+            target_cpa: {
+              target_cpa_micros: campaignData.targetCpa * 1000000
+            }
+          })
+        }
+      }
+
+      const campaignResponse = await customer.campaign.create(campaignOperation)
+      const campaignId = campaignResponse.results[0].resource_name.split('/').pop()
+
+      // 3. Créer le groupe d'annonces
+      const adGroupOperation = {
+        create: {
+          name: `${campaignData.name} - Groupe Principal`,
+          campaign: `customers/${customerId}/campaigns/${campaignId}`,
+          status: 'ENABLED',
+          type: 'SEARCH_STANDARD'
+        }
+      }
+
+      const adGroupResponse = await customer.adGroup.create(adGroupOperation)
+      const adGroupId = adGroupResponse.results[0].resource_name.split('/').pop()
+
+      // 4. Ajouter les mots-clés si fournis
+      if (campaignData.keywords && campaignData.keywords.length > 0) {
+        const keywordOperations = campaignData.keywords.map(keyword => ({
+          create: {
+            ad_group: `customers/${customerId}/adGroups/${adGroupId}`,
+            text: keyword,
+            match_type: 'BROAD'
+          }
+        }))
+
+        await customer.adGroupCriterion.create(keywordOperations)
+      }
+
+      // 5. Créer les annonces si les textes sont fournis
+      if (campaignData.headlines && campaignData.descriptions) {
+        const adOperation = {
+          create: {
+            ad_group: `customers/${customerId}/adGroups/${adGroupId}`,
+            type: 'RESPONSIVE_SEARCH_AD',
+            responsive_search_ad: {
+              headlines: campaignData.headlines.map(headline => ({
+                text: headline,
+                pin: 'UNPINNED'
+              })),
+              descriptions: campaignData.descriptions.map(desc => ({
+                text: desc
+              }))
+            }
+          }
+        }
+
+        await customer.adGroupAd.create(adOperation)
+      }
+
+      console.log('✅ Campagne créée avec succès:', { campaignId, adGroupId })
       
       return {
-        campaignId: mockCampaignId,
-        adGroupId: mockAdGroupId
+        campaignId: campaignId!,
+        adGroupId: adGroupId!
       }
     } catch (error) {
       console.error('Erreur lors de la création de la campagne:', error)
       throw error
     }
+  }
+
+  /**
+   * Mappe les types de campagne vers les types Google Ads
+   */
+  private static mapCampaignType(type: string): string {
+    const typeMap: { [key: string]: string } = {
+      'SEARCH': 'SEARCH',
+      'SHOPPING': 'SHOPPING',
+      'DISPLAY': 'DISPLAY',
+      'VIDEO': 'VIDEO',
+      'PMAX': 'PERFORMANCE_MAX'
+    }
+    return typeMap[type] || 'SEARCH'
   }
 
   /**
@@ -222,25 +306,87 @@ export class GoogleAdsAPIService {
         refresh_token: accessToken
       })
 
-      // TODO: Implémenter les optimisations réelles
       console.log('🔧 Optimisation de campagne:', { campaignId, optimizations })
-      
-      // Simulation des optimisations
+
+      // 1. Gestion des mots-clés
       if (optimizations.keywords) {
-        console.log('📝 Gestion des mots-clés:', optimizations.keywords)
+        for (const keywordAction of optimizations.keywords) {
+          if (keywordAction.action === 'ADD') {
+            // Ajouter de nouveaux mots-clés
+            const keywordOperations = keywordAction.keywords.map(keyword => ({
+              create: {
+                ad_group: `customers/${customerId}/adGroups/${campaignId}`,
+                text: keyword,
+                match_type: 'BROAD'
+              }
+            }))
+            await customer.adGroupCriterion.create(keywordOperations)
+          } else if (keywordAction.action === 'REMOVE') {
+            // Supprimer des mots-clés
+            const keywordOperations = keywordAction.keywords.map(keyword => ({
+              remove: {
+                resource_name: `customers/${customerId}/adGroupCriteria/${keyword}`
+              }
+            }))
+            await customer.adGroupCriterion.remove(keywordOperations)
+          } else if (keywordAction.action === 'PAUSE') {
+            // Pauser des mots-clés
+            const keywordOperations = keywordAction.keywords.map(keyword => ({
+              update: {
+                resource_name: `customers/${customerId}/adGroupCriteria/${keyword}`,
+                status: 'PAUSED'
+              }
+            }))
+            await customer.adGroupCriterion.update(keywordOperations)
+          }
+        }
       }
-      
+
+      // 2. Ajustement des enchères
       if (optimizations.bids) {
-        console.log('💰 Ajustement des enchères:', optimizations.bids)
+        for (const bidAdjustment of optimizations.bids) {
+          const bidOperation = {
+            update: {
+              resource_name: `customers/${customerId}/adGroupCriteria/${bidAdjustment.keywordId}`,
+              cpc_bid_micros: bidAdjustment.newBid * 1000000
+            }
+          }
+          await customer.adGroupCriterion.update(bidOperation)
+        }
       }
-      
+
+      // 3. Modification du budget
       if (optimizations.budget) {
-        console.log('💸 Modification du budget:', optimizations.budget)
+        // Récupérer d'abord le budget de la campagne
+        const campaignQuery = `
+          SELECT campaign.campaign_budget 
+          FROM campaign 
+          WHERE campaign.id = ${campaignId}
+        `
+        const campaignResponse = await customer.query(campaignQuery)
+        const budgetResourceName = campaignResponse[0].campaign.campaignBudget
+
+        const budgetOperation = {
+          update: {
+            resource_name: budgetResourceName,
+            amount_micros: optimizations.budget * 1000000
+          }
+        }
+        await customer.campaignBudget.update(budgetOperation)
       }
-      
+
+      // 4. Changement de statut
       if (optimizations.status) {
-        console.log('⏸️ Changement de statut:', optimizations.status)
+        const campaignOperation = {
+          update: {
+            resource_name: `customers/${customerId}/campaigns/${campaignId}`,
+            status: optimizations.status
+          }
+        }
+        await customer.campaign.update(campaignOperation)
       }
+
+      console.log('✅ Optimisations appliquées avec succès')
     } catch (error) {
       console.error('Erreur lors de l\'optimisation:', error)
       throw error

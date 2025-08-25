@@ -18,7 +18,8 @@ import {
   Check,
   TrendingUp,
   BarChart3,
-  Calendar
+  Calendar,
+  Shield
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -39,52 +40,31 @@ interface OnboardingData {
 const onboardingSteps = [
   {
     id: 1,
-    title: "Votre entreprise",
-    subtitle: "Commençons par mieux connaître votre entreprise",
-    icon: Building2,
-    fields: ["companyName", "website", "industry"]
-  },
-  {
-    id: 2,
-    title: "Vos objectifs",
-    subtitle: "Quels sont vos objectifs principaux ?",
-    icon: Target,
-    fields: ["goals"]
-  },
-  {
-    id: 3,
     title: "Votre budget",
     subtitle: "Quel est votre budget publicitaire mensuel ?",
     icon: DollarSign,
     fields: ["dailyBudget"]
   },
   {
-    id: 4,
-    title: "Votre équipe",
-    subtitle: "Combien de personnes dans votre équipe ?",
-    icon: Users,
-    fields: ["teamSize"]
-  },
-  {
-    id: 5,
-    title: "Vos défis actuels",
-    subtitle: "Quels sont vos principaux défis marketing ?",
-    icon: TrendingUp,
-    fields: ["currentChallenges"]
-  },
-  {
-    id: 6,
-    title: "Google Ads",
-    subtitle: "Avez-vous déjà un compte Google Ads ?",
-    icon: BarChart3,
-    fields: ["googleAdsAccount"]
-  },
-  {
-    id: 7,
+    id: 2,
     title: "Choisissez votre forfait",
     subtitle: "Sélectionnez le forfait qui correspond à votre budget média",
     icon: DollarSign,
     fields: ["selectedPlan"]
+  },
+  {
+    id: 3,
+    title: "Google Ads",
+    subtitle: "Connectez votre compte Google Ads pour commencer",
+    icon: BarChart3,
+    fields: ["googleAdsAccount"]
+  },
+  {
+    id: 4,
+    title: "Votre entreprise",
+    subtitle: "Complétez votre profil (optionnel)",
+    icon: Building2,
+    fields: ["companyName", "website", "industry", "goals", "teamSize", "currentChallenges"]
   }
 ]
 
@@ -119,6 +99,97 @@ const teamSizeOptions = [
   { label: "26-50 personnes", value: "26-50" },
   { label: "Plus de 50 personnes", value: "50+" }
 ]
+
+const plans = [
+  { 
+    id: 'SMALL_BUDGET', 
+    name: 'Petit Chasseur', 
+    price: 200, 
+    description: 'Pour les entreprises avec un budget média inférieur à 1000€/mois', 
+    features: [
+      'Audit mensuel de vos campagnes',
+      'Optimisations techniques',
+      'Recommandations stratégiques',
+      'Support par email',
+      'Reporting mensuel',
+      "Accès à l'espace client"
+    ]
+  },
+  { 
+    id: 'MEDIUM_BUDGET', 
+    name: 'Chasseur', 
+    price: 400, 
+    description: 'Pour les entreprises avec un budget média de 1000€ à 5000€/mois', 
+    features: [
+      'Tout du forfait Petit Chasseur',
+      'Call hebdomadaire de 30 min',
+      'Optimisations en temps réel',
+      'Reporting détaillé',
+      'Support prioritaire',
+      'Formation équipe',
+      'Tests A/B'
+    ]
+  },
+  { 
+    id: 'LARGE_BUDGET', 
+    name: 'Grand Chasseur', 
+    price: 600, 
+    description: 'Pour les entreprises avec un budget média de 5000€ à 10000€/mois', 
+    features: [
+      'Tout du forfait Chasseur',
+      'Dédié account manager',
+      'Support 24/7',
+      'Stratégie personnalisée',
+      'Analytics avancées',
+      'Formation complète',
+      'Accompagnement prioritaire'
+    ]
+  }
+]
+
+const planData = {
+  SMALL_BUDGET: {
+    name: 'Petit Chasseur',
+    price: 200,
+    description: 'Pour les entreprises avec un budget média inférieur à 1000€/mois',
+    features: [
+      'Audit mensuel de vos campagnes',
+      'Optimisations techniques',
+      'Recommandations stratégiques',
+      'Support par email',
+      'Reporting mensuel',
+      "Accès à l'espace client"
+    ]
+  },
+  MEDIUM_BUDGET: {
+    name: 'Chasseur',
+    price: 400,
+    description: 'Pour les entreprises avec un budget média de 1000€ à 5000€/mois',
+    features: [
+      'Tout du forfait Petit Chasseur',
+      'Call hebdomadaire de 30 min',
+      'Optimisations en temps réel',
+      'Reporting détaillé',
+      'Support prioritaire',
+      'Formation équipe',
+      'Tests A/B'
+    ]
+  },
+  LARGE_BUDGET: {
+    name: 'Grand Chasseur',
+    price: 600,
+    description: 'Pour les entreprises avec un budget média de 5000€ à 10000€/mois',
+    features: [
+      'Tout du forfait Chasseur',
+      'Dédié account manager',
+      'Support 24/7',
+      'Stratégie personnalisée',
+      'Analytics avancées',
+      'Formation complète',
+      'Accompagnement prioritaire'
+    ]
+  }
+}
 
 export default function OnboardingPage() {
   const { user, isAuthenticated } = useAuth()
@@ -349,73 +420,190 @@ export default function OnboardingPage() {
     }
   }
 
+  const handleAppointment = async () => {
+    if (!user?.id) {
+      setMessage("Erreur d'authentification")
+      return
+    }
+
+    setIsLoading(true)
+    setMessage("")
+
+    try {
+      // Sauvegarder l'onboarding sans finaliser
+      const response = await fetch("/api/onboarding", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...onboardingData,
+          selectedPlan: onboardingData.selectedPlan || 'MEDIUM_BUDGET',
+          userId: user?.id,
+          appointmentMode: true // Mode RDV
+        }),
+      })
+
+      if (response.ok) {
+        setMessage("Onboarding sauvegardé ! Redirection vers la prise de RDV...")
+        
+        setTimeout(() => {
+          // Rediriger vers la page de prise de RDV
+          window.location.href = "/client/request-appointment"
+        }, 1500)
+      } else {
+        const error = await response.json()
+        setMessage(error.message || "Erreur lors de la sauvegarde")
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error)
+      setMessage("Erreur de connexion au serveur")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="companyName" className="text-lg font-medium">Nom de votre entreprise</Label>
-              <Input
-                id="companyName"
-                value={onboardingData.companyName}
-                onChange={(e) => handleInputChange("companyName", e.target.value)}
-                className="mt-2 text-lg p-4"
-                placeholder="Nom de votre entreprise"
-                autoFocus
-              />
-            </div>
-            <div>
-              <Label htmlFor="website" className="text-lg font-medium">Site web</Label>
-              <Input
-                id="website"
-                value={onboardingData.website}
-                onChange={(e) => handleInputChange("website", e.target.value)}
-                className="mt-2 text-lg p-4"
-                placeholder="https://votre-site.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="industry" className="text-lg font-medium">Secteur d&apos;activité</Label>
-              <select
-                id="industry"
-                value={onboardingData.industry}
-                onChange={(e) => handleInputChange("industry", e.target.value)}
-                className="mt-2 w-full text-lg p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Sélectionnez votre secteur</option>
-                {industryOptions.map(industry => (
-                  <option key={industry} value={industry}>{industry}</option>
-                ))}
-              </select>
+          <div>
+            <Label htmlFor="dailyBudget" className="text-lg font-medium">Budget publicitaire journalier</Label>
+            <p className="text-sm text-gray-600 mb-4">Saisissez votre budget journalier moyen en euros</p>
+            <div className="space-y-4">
+              <div>
+                <Input
+                  id="dailyBudget"
+                  type="number"
+                  value={onboardingData.dailyBudget}
+                  onChange={(e) => handleInputChange("dailyBudget", e.target.value)}
+                  className="text-lg p-4"
+                  placeholder="Ex: 50"
+                  min="0"
+                  step="1"
+                  autoFocus
+                />
+                <p className="text-sm text-gray-500 mt-1">Budget en euros par jour</p>
+              </div>
+              
+              {onboardingData.dailyBudget && (
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Budget mensuel estimé</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {parseInt(onboardingData.dailyBudget) * 30}€
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Calculé sur 30 jours</p>
+                      <p className="text-xs text-gray-500">({onboardingData.dailyBudget}€ × 30 jours)</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )
 
       case 2:
+        // Déterminer le plan recommandé selon le budget
+        let recommendedPlan = getRecommendedPlan(onboardingData.dailyBudget)
+        
+        // Si pas de budget ou budget invalide, utiliser MEDIUM_BUDGET par défaut
+        if (!recommendedPlan) {
+          recommendedPlan = 'MEDIUM_BUDGET'
+        }
+        
+        // Assigner automatiquement le plan recommandé si pas encore sélectionné
+        if (recommendedPlan && !onboardingData.selectedPlan) {
+          setOnboardingData(prev => ({ ...prev, selectedPlan: recommendedPlan }))
+        }
+        
+        const selectedPlanData = planData[recommendedPlan as keyof typeof planData] || planData.MEDIUM_BUDGET
+
         return (
           <div>
-            <Label className="text-lg font-medium mb-4 block">Sélectionnez vos objectifs principaux</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {goalOptions.map(goal => (
-                <button
-                  key={goal}
-                  type="button"
-                  onClick={() => handleGoalToggle(goal)}
-                  className={`p-4 text-left rounded-lg border-2 transition-all ${
-                    onboardingData.goals.includes(goal)
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-gray-200 hover:border-gray-300"
+            <Label className="text-lg font-medium mb-4 block">Choisissez votre forfait</Label>
+            <p className="text-sm text-gray-600 mb-6">
+              Basé sur votre budget de <strong>{onboardingData.dailyBudget ? (Number(onboardingData.dailyBudget) * 30) : 0}€/mois</strong> 
+              ({onboardingData.dailyBudget ? onboardingData.dailyBudget : 0}€/jour), 
+              voici le forfait qui vous convient :
+            </p>
+            
+            <div className="space-y-4">
+              {plans.map((plan) => (
+                <Card
+                  key={plan.id}
+                  className={`cursor-pointer transition-all ${
+                    onboardingData.selectedPlan === plan.id
+                      ? "ring-2 ring-blue-500 border-blue-500"
+                      : "hover:border-gray-300"
                   }`}
+                  onClick={() => handleInputChange("selectedPlan", plan.id)}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{goal}</span>
-                    {onboardingData.goals.includes(goal) && (
-                      <Check className="w-5 h-5 text-blue-600" />
-                    )}
-                  </div>
-                </button>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">{plan.name}</h3>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {plan.price}€<span className="text-sm text-gray-600">/mois</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600">{plan.description}</p>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <ul className="space-y-2 text-sm">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-center">
+                          <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
               ))}
+            </div>
+            
+            {onboardingData.selectedPlan && (
+              <div className="text-center mt-6">
+                <p className="text-green-600 font-medium">
+                  ✓ Plan sélectionné : {selectedPlanData.name}
+                </p>
+              </div>
+            )}
+            
+            {/* Garantie et preuve sociale */}
+            <div className="mt-6 space-y-4">
+              {/* Garantie */}
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="w-5 h-5 text-green-600" />
+                  <h4 className="font-medium text-green-900">Garantie sans engagement</h4>
+                </div>
+                <p className="text-sm text-green-800">
+                  Annulez à tout moment. Aucun engagement, aucune pénalité.
+                </p>
+              </div>
+              
+              {/* Preuve sociale */}
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                  <h4 className="font-medium text-purple-900">Résultats garantis</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-purple-600">+40%</p>
+                    <p className="text-purple-800">ROAS moyen</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-purple-600">-30%</p>
+                    <p className="text-purple-800">Coût acquisition</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )
@@ -505,13 +693,19 @@ export default function OnboardingPage() {
           </div>
         )
 
-      case 6:
+      case 2:
         return (
           <div>
-            <Label className="text-lg font-medium mb-4 block">Compte Google Ads</Label>
+            <Label className="text-lg font-medium mb-4 block">Configuration Google Ads</Label>
             <p className="text-sm text-gray-600 mb-4">
-              Nous avons besoin d'accéder à votre compte Google Ads pour créer et optimiser vos campagnes.
+              Parfait ! Votre abonnement est actif. Maintenant configurons votre compte Google Ads pour commencer l&apos;optimisation de vos campagnes.
             </p>
+            
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                ✅ Votre abonnement est actif ! Vous pouvez maintenant configurer Google Ads.
+              </p>
+            </div>
             
             <div className="space-y-3">
               <button
@@ -603,92 +797,236 @@ export default function OnboardingPage() {
           </div>
         )
 
-      case 7:
-        // Déterminer le plan recommandé selon le budget
-        let recommendedPlan = getRecommendedPlan(onboardingData.dailyBudget)
-        
-        // Si pas de budget ou budget invalide, utiliser MEDIUM_BUDGET par défaut
-        if (!recommendedPlan) {
-          recommendedPlan = 'MEDIUM_BUDGET'
-          // Mettre à jour le budget affiché pour qu'il soit cohérent
-          if (!onboardingData.dailyBudget || onboardingData.dailyBudget === '0') {
-            setOnboardingData(prev => ({ ...prev, dailyBudget: '40' })) // 40€/jour = 1200€/mois
-          }
-        }
-        
-        // Assigner automatiquement le plan recommandé si pas encore sélectionné
-        if (recommendedPlan && !onboardingData.selectedPlan) {
-          setOnboardingData(prev => ({ ...prev, selectedPlan: recommendedPlan }))
-        }
-        
-        const planData = {
-          'SMALL_BUDGET': {
-            name: 'Petit Chasseur',
-            price: 200,
-            description: 'Budget média < 1000€/mois',
-            features: ['Audit mensuel', 'Optimisations techniques', 'Support email']
-          },
-          'MEDIUM_BUDGET': {
-            name: 'Chasseur',
-            price: 400,
-            description: 'Budget média 1000€-5000€/mois',
-            features: ['Call hebdomadaire', 'Optimisations temps réel', 'Support prioritaire']
-          },
-          'LARGE_BUDGET': {
-            name: 'Grand Chasseur',
-            price: 600,
-            description: 'Budget média 5000€-10000€/mois',
-            features: ['Account manager dédié', 'Support 24/7', 'Stratégie personnalisée']
-          }
-        }
-
-        const selectedPlanData = planData[recommendedPlan as keyof typeof planData] || planData.MEDIUM_BUDGET
-
+      case 3:
         return (
-          <div className="space-y-6">
-                          <div className="text-center mb-6">
-                <p className="text-lg text-gray-600 mb-4">
-                  Basé sur votre budget de <strong>{onboardingData.dailyBudget ? (Number(onboardingData.dailyBudget) * 30) : 0}€/mois</strong> 
-                  ({onboardingData.dailyBudget ? onboardingData.dailyBudget : 0}€/jour), 
-                  voici le forfait qui vous convient :
-                </p>
-              </div>
-            
-            {/* Affichage du plan recommandé */}
-            <div className="max-w-md mx-auto">
-              <Card className="border-2 border-blue-500 bg-blue-50">
-                <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white">
-                  Recommandé pour vous
-                </Badge>
-                
-                <CardHeader className="text-center">
-                  <CardTitle className="text-xl">{selectedPlanData.name}</CardTitle>
-                  <div className="text-3xl font-bold text-gray-900">
-                    {selectedPlanData.price}€<span className="text-sm text-gray-600">/mois</span>
-                  </div>
-                  <p className="text-sm text-gray-600">{selectedPlanData.description}</p>
-                </CardHeader>
-                
-                <CardContent>
-                  <ul className="space-y-2 text-sm">
-                    {selectedPlanData.features.map((feature, index) => (
-                      <li key={index} className="flex items-center">
-                        <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
+          <div>
+            <Label className="text-lg font-medium mb-4 block">Configuration Google Ads</Label>
+            <p className="text-sm text-gray-600 mb-4">
+              Parfait ! Votre abonnement est actif. Maintenant configurons votre compte Google Ads pour commencer l&apos;optimisation de vos campagnes.
+            </p>
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                ✅ Votre abonnement est actif ! Vous pouvez maintenant configurer Google Ads.
+              </p>
             </div>
             
-            {onboardingData.selectedPlan && (
-              <div className="text-center mt-6">
-                <p className="text-green-600 font-medium">
-                  ✓ Plan sélectionné : {selectedPlanData.name}
+            {/* Choix du type de compte Google Ads */}
+            <div className="space-y-4 mb-6">
+              <Label className="text-base font-medium block">Avez-vous déjà un compte Google Ads ?</Label>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => handleInputChange("googleAdsAccount", "yes")}
+                  className={`p-4 text-left rounded-lg border-2 transition-all ${
+                    onboardingData.googleAdsAccount === "yes"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-medium">Oui, j&apos;ai un compte</span>
+                      <p className="text-sm text-gray-600 mt-1">Connecter mon compte existant</p>
+                    </div>
+                    {onboardingData.googleAdsAccount === "yes" && (
+                      <Check className="w-5 h-5 text-blue-600" />
+                    )}
+                  </div>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => handleInputChange("googleAdsAccount", "no")}
+                  className={`p-4 text-left rounded-lg border-2 transition-all ${
+                    onboardingData.googleAdsAccount === "no"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-medium">Non, créer un compte</span>
+                      <p className="text-sm text-gray-600 mt-1">Nous créons un compte pour vous</p>
+                    </div>
+                    {onboardingData.googleAdsAccount === "no" && (
+                      <Check className="w-5 h-5 text-blue-600" />
+                    )}
+                  </div>
+                </button>
+              </div>
+            </div>
+            
+            {/* Explication des permissions */}
+            {(onboardingData.googleAdsAccount === "yes" || onboardingData.googleAdsAccount === "no") && (
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Permissions nécessaires</h4>
+                <p className="text-sm text-blue-800 mb-3">
+                  Pour optimiser vos campagnes efficacement, nous aurons besoin d&apos;accéder à :
                 </p>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>✅ Vos données de campagne et performances</li>
+                  <li>✅ Créer de nouvelles campagnes optimisées</li>
+                  <li>✅ Modifier vos campagnes existantes</li>
+                  <li>✅ Ajuster vos enchères et budgets</li>
+                </ul>
+                <p className="text-xs text-blue-700 mt-3">
+                  Vos données restent confidentielles et ne sont utilisées que pour optimiser vos campagnes.
+                </p>
+                
+                {/* Bouton de connexion Google Ads */}
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={handleGoogleAdsConnection}
+                    disabled={isLoading}
+                    className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Connexion en cours...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center">
+                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        {onboardingData.googleAdsAccount === "yes" 
+                          ? "Connecter mon compte Google Ads" 
+                          : "Créer et connecter un compte Google Ads"
+                        }
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Complétez votre profil (optionnel)
+              </h3>
+              <p className="text-gray-600">
+                Ces informations nous aident à personnaliser votre expérience. Vous pouvez les compléter plus tard.
+              </p>
+            </div>
+
+            {/* Entreprise */}
+            <div>
+              <Label htmlFor="companyName" className="text-sm font-medium">Nom de l&apos;entreprise</Label>
+              <Input
+                id="companyName"
+                value={onboardingData.companyName}
+                onChange={(e) => handleInputChange("companyName", e.target.value)}
+                placeholder="Votre entreprise"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Site web */}
+            <div>
+              <Label htmlFor="website" className="text-sm font-medium">Site web</Label>
+              <Input
+                id="website"
+                value={onboardingData.website}
+                onChange={(e) => handleInputChange("website", e.target.value)}
+                placeholder="https://votre-site.com"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Secteur d&apos;activité */}
+            <div>
+              <Label htmlFor="industry" className="text-sm font-medium">Secteur d&apos;activité</Label>
+              <select
+                id="industry"
+                value={onboardingData.industry}
+                onChange={(e) => handleInputChange("industry", e.target.value)}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Sélectionnez votre secteur</option>
+                {industryOptions.map((industry) => (
+                  <option key={industry} value={industry}>{industry}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Objectifs */}
+            <div>
+              <Label className="text-sm font-medium block mb-3">Vos objectifs principaux</Label>
+              <div className="space-y-2">
+                {goalOptions.map((goal) => (
+                  <label key={goal} className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={onboardingData.goals.includes(goal)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setOnboardingData(prev => ({
+                            ...prev,
+                            goals: [...prev.goals, goal]
+                          }))
+                        } else {
+                          setOnboardingData(prev => ({
+                            ...prev,
+                            goals: prev.goals.filter(g => g !== goal)
+                          }))
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{goal}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Taille de l&apos;équipe */}
+            <div>
+              <Label htmlFor="teamSize" className="text-sm font-medium">Taille de l&apos;équipe</Label>
+              <select
+                id="teamSize"
+                value={onboardingData.teamSize}
+                onChange={(e) => handleInputChange("teamSize", e.target.value)}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Sélectionnez la taille</option>
+                {teamSizeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Défis actuels */}
+            <div>
+              <Label htmlFor="currentChallenges" className="text-sm font-medium">Vos principaux défis marketing</Label>
+              <textarea
+                id="currentChallenges"
+                value={onboardingData.currentChallenges}
+                onChange={(e) => handleInputChange("currentChallenges", e.target.value)}
+                placeholder="Décrivez vos défis actuels..."
+                rows={3}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="text-center pt-4">
+              <p className="text-sm text-gray-500">
+                Vous pouvez compléter ces informations plus tard dans vos paramètres.
+              </p>
+            </div>
           </div>
         )
 
@@ -700,9 +1038,15 @@ export default function OnboardingPage() {
   const canProceed = () => {
     const currentFields = onboardingSteps[currentStep - 1]?.fields || []
     
-    // Vérification spéciale pour l'étape 7 (sélection de plan)
-    if (currentStep === 7) {
+    // Vérification spéciale pour l'étape 2 (sélection de plan)
+    if (currentStep === 2) {
       // Permettre de continuer même sans plan sélectionné (il sera assigné automatiquement)
+      return true
+    }
+    
+    // Vérification spéciale pour l'étape 4 (détails optionnels)
+    if (currentStep === 4) {
+      // Toujours permettre de continuer car c'est optionnel
       return true
     }
     
@@ -712,7 +1056,7 @@ export default function OnboardingPage() {
         return value.length > 0
       }
       
-      // Vérification spéciale pour le budget (étape 3)
+      // Vérification spéciale pour le budget (étape 1)
       if (field === "dailyBudget") {
         return value && !isNaN(Number(value)) && Number(value) > 0
       }
@@ -800,23 +1144,35 @@ export default function OnboardingPage() {
 
                     <div className="flex items-center gap-2">
                       {currentStep === onboardingSteps.length ? (
-                        <Button
-                          onClick={handleSubmit}
-                          disabled={!canProceed() || isLoading}
-                          className="flex items-center bg-blue-600 hover:bg-blue-700"
-                        >
-                          {isLoading ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Finalisation...
-                            </>
-                          ) : (
-                            <>
-                              <Check className="w-4 h-4 mr-2" />
-                              Terminer l&apos;onboarding
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-3">
+                          <Button
+                            onClick={handleSubmit}
+                            disabled={!canProceed() || isLoading}
+                            className="flex items-center bg-blue-600 hover:bg-blue-700"
+                          >
+                            {isLoading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Finalisation...
+                              </>
+                            ) : (
+                              <>
+                                <Check className="w-4 h-4 mr-2" />
+                                Payer maintenant
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            onClick={handleAppointment}
+                            disabled={isLoading}
+                            variant="outline"
+                            className="flex items-center"
+                          >
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Prendre RDV avec un AM
+                          </Button>
+                        </div>
                       ) : (
                         <Button
                           onClick={handleNext}
@@ -827,26 +1183,6 @@ export default function OnboardingPage() {
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       )}
-
-                      {(() => {
-                        const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || "/client/request-appointment"
-                        const isExternal = calendlyUrl.startsWith("http")
-                        return isExternal ? (
-                          <a href={calendlyUrl} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-2" />
-                              Prendre RDV
-                            </Button>
-                          </a>
-                        ) : (
-                          <Link href={calendlyUrl}>
-                            <Button variant="outline" className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-2" />
-                              Prendre RDV
-                            </Button>
-                          </Link>
-                        )
-                      })()}
                     </div>
                   </div>
 

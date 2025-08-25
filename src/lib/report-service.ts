@@ -1,8 +1,9 @@
-import { db } from './db'
 import puppeteer from 'puppeteer'
 import ExcelJS from 'exceljs'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { GoogleAdsService } from './google-ads-service'
+import { db } from './db'
 
 export interface ReportData {
   clientName: string
@@ -10,59 +11,78 @@ export interface ReportData {
     start: Date
     end: Date
   }
-  campaigns: {
-    id: string
-    name: string
-    type: string
-    status: string
-    budget: number
-    spent: number
-    impressions: number
-    clicks: number
-    conversions: number
-    ctr: number
-    cpc: number
-    conversionRate: number
-    roas: number
-  }[]
-  summary: {
-    totalSpend: number
+  campaigns: any[]
+  metrics: {
     totalImpressions: number
     totalClicks: number
+    totalCost: number
     totalConversions: number
-    avgCtr: number
-    avgCpc: number
-    avgConversionRate: number
-    avgRoas: number
+    averageCtr: number
+    averageCpc: number
+    averageCpa: number
+    averageRoas: number
   }
+  recommendations: any[]
 }
 
 export interface ReportOptions {
   format: 'PDF' | 'EXCEL'
-  includeCharts: boolean
-  includeRecommendations: boolean
-  customStyling?: boolean
+  includeCharts?: boolean
+  includeRecommendations?: boolean
+  customPeriod?: {
+    start: Date
+    end: Date
+  }
 }
 
 export class ReportService {
   /**
-   * Génère un rapport complet
+   * Génère un rapport complet pour un client
    */
-  static async generateReport(
-    clientAccountId: string,
-    period: { start: Date; end: Date },
-    options: ReportOptions
+  static async generateClientReport(
+    clientAccountId: string, 
+    options: ReportOptions = { format: 'PDF' }
   ): Promise<Buffer> {
     try {
-      // Récupérer les données
-      const reportData = await this.getReportData(clientAccountId, period)
-      
+      // Récupérer les données du client
+      const clientAccount = await db.clientAccount.findUnique({
+        where: { id: clientAccountId },
+        include: {
+          user: true,
+          company: true,
+          campaigns: true
+        }
+      })
+
+      if (!clientAccount) {
+        throw new Error('Compte client non trouvé')
+      }
+
+      // Récupérer les données Google Ads si connecté
+      let googleAdsData = null
+      if (clientAccount.googleAdsConnected) {
+        googleAdsData = await this.getGoogleAdsData(clientAccount)
+      }
+
+      // Préparer les données du rapport
+      const reportData: ReportData = {
+        clientName: clientAccount.company?.name || clientAccount.user.firstName + ' ' + clientAccount.user.lastName,
+        period: {
+          start: options.customPeriod?.start || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 jours par défaut
+          end: options.customPeriod?.end || new Date()
+        },
+        campaigns: clientAccount.campaigns || [],
+        metrics: googleAdsData?.metrics || this.getDefaultMetrics(),
+        recommendations: googleAdsData?.recommendations || []
+      }
+
       // Générer le rapport selon le format demandé
       if (options.format === 'PDF') {
         return await this.generatePDFReport(reportData, options)
       } else {
         return await this.generateExcelReport(reportData, options)
       }
+
     } catch (error) {
       console.error('Erreur lors de la génération du rapport:', error)
       throw error
@@ -70,76 +90,14 @@ export class ReportService {
   }
 
   /**
-   * Récupère les données pour le rapport
-   */
-  private static async getReportData(
-    clientAccountId: string,
-    period: { start: Date; end: Date }
-  ): Promise<ReportData> {
-    const clientAccount = await db.clientAccount.findUnique({
-      where: { id: clientAccountId },
-      include: {
-        user: true,
-        company: true,
-        campaigns: true
-      }
-    })
-
-    if (!clientAccount) {
-      throw new Error('Client account not found')
-    }
-
-    // Filtrer les campagnes par période
-    const campaigns = clientAccount.campaigns.filter(campaign => {
-      const campaignDate = new Date(campaign.createdAt)
-      return campaignDate >= period.start && campaignDate <= period.end
-    })
-
-    // Calculer les métriques pour chaque campagne
-    const campaignsWithMetrics = campaigns.map(campaign => {
-      // TODO: Récupérer les vraies métriques depuis Google Ads API
-      const metrics = this.getSimulatedMetrics(campaign)
-      
-      return {
-        id: campaign.id,
-        name: campaign.name,
-        type: campaign.type,
-        status: campaign.status,
-        budget: campaign.budget,
-        spent: metrics.spent,
-        impressions: metrics.impressions,
-        clicks: metrics.clicks,
-        conversions: metrics.conversions,
-        ctr: metrics.ctr,
-        cpc: metrics.cpc,
-        conversionRate: metrics.conversionRate,
-        roas: metrics.roas
-      }
-    })
-
-    // Calculer le résumé
-    const summary = this.calculateSummary(campaignsWithMetrics)
-
-    return {
-      clientName: clientAccount.company.name,
-      period,
-      campaigns: campaignsWithMetrics,
-      summary
-    }
-  }
-
-  /**
    * Génère un rapport PDF
    */
-  private static async generatePDFReport(
-    data: ReportData,
-    options: ReportOptions
-  ): Promise<Buffer> {
+  private static async generatePDFReport(reportData: ReportData, options: ReportOptions): Promise<Buffer> {
     const browser = await puppeteer.launch({ headless: true })
     const page = await browser.newPage()
 
-    const html = this.generateReportHTML(data, options)
-    await page.setContent(html, { waitUntil: 'networkidle0' })
+    const html = this.generateReportHTML(reportData, options)
+    await page.setContent(html)
 
     const pdf = await page.pdf({
       format: 'A4',
@@ -153,370 +111,348 @@ export class ReportService {
     })
 
     await browser.close()
-    return pdf
+    return Buffer.from(pdf)
   }
 
   /**
    * Génère un rapport Excel
    */
-  private static async generateExcelReport(
-    data: ReportData,
-    options: ReportOptions
-  ): Promise<Buffer> {
+  private static async generateExcelReport(reportData: ReportData, options: ReportOptions): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook()
     
-    // Feuille de résumé
-    const summarySheet = workbook.addWorksheet('Résumé')
-    this.addSummarySheet(summarySheet, data)
-    
+    // Feuille de synthèse
+    const summarySheet = workbook.addWorksheet('Synthèse')
+    this.addSummarySheet(summarySheet, reportData)
+
     // Feuille des campagnes
     const campaignsSheet = workbook.addWorksheet('Campagnes')
-    this.addCampaignsSheet(campaignsSheet, data)
-    
+    this.addCampaignsSheet(campaignsSheet, reportData)
+
+    // Feuille des métriques détaillées
+    const metricsSheet = workbook.addWorksheet('Métriques')
+    this.addMetricsSheet(metricsSheet, reportData)
+
     // Feuille des recommandations
-    if (options.includeRecommendations) {
+    if (options.includeRecommendations && reportData.recommendations.length > 0) {
       const recommendationsSheet = workbook.addWorksheet('Recommandations')
-      this.addRecommendationsSheet(recommendationsSheet, data)
+      this.addRecommendationsSheet(recommendationsSheet, reportData)
     }
 
-    return await workbook.xlsx.writeBuffer()
+    const buffer = await workbook.xlsx.writeBuffer()
+    return Buffer.from(buffer)
   }
 
   /**
    * Génère le HTML pour le rapport PDF
    */
-  private static generateReportHTML(data: ReportData, options: ReportOptions): string {
-    const periodText = `${format(data.period.start, 'dd/MM/yyyy', { locale: fr })} - ${format(data.period.end, 'dd/MM/yyyy', { locale: fr })}`
-    
+  private static generateReportHTML(reportData: ReportData, options: ReportOptions): string {
     return `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Rapport Google Ads - ${data.clientName}</title>
+        <title>Rapport Google Ads - ${reportData.clientName}</title>
         <style>
-          body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-          }
-          .header {
-            text-align: center;
-            border-bottom: 3px solid #1d4ed8;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-          }
-          .header h1 {
-            color: #1d4ed8;
-            margin: 0;
-            font-size: 28px;
-          }
-          .header p {
-            color: #666;
-            margin: 5px 0;
-          }
-          .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
-          }
-          .summary-card {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            border-left: 4px solid #1d4ed8;
-          }
-          .summary-card h3 {
-            margin: 0 0 10px 0;
-            color: #1d4ed8;
-            font-size: 16px;
-          }
-          .summary-card .value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-          }
-          .campaigns-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-          }
-          .campaigns-table th,
-          .campaigns-table td {
-            border: 1px solid #e5e7eb;
-            padding: 12px;
-            text-align: left;
-          }
-          .campaigns-table th {
-            background: #1d4ed8;
-            color: white;
-            font-weight: 600;
-          }
-          .campaigns-table tr:nth-child(even) {
-            background: #f9fafb;
-          }
-          .status-active { color: #059669; }
-          .status-paused { color: #d97706; }
-          .recommendations {
-            background: #fef3c7;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #f59e0b;
-          }
-          .recommendations h3 {
-            margin-top: 0;
-            color: #92400e;
-          }
-          .recommendations ul {
-            margin: 10px 0;
-            padding-left: 20px;
-          }
-          .recommendations li {
-            margin-bottom: 8px;
-          }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2563eb; padding-bottom: 20px; }
+          .header h1 { color: #2563eb; margin: 0; }
+          .header p { color: #6b7280; margin: 5px 0; }
+          .section { margin: 30px 0; }
+          .section h2 { color: #1f2937; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; }
+          .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 20px 0; }
+          .metric-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center; }
+          .metric-value { font-size: 24px; font-weight: bold; color: #2563eb; }
+          .metric-label { color: #6b7280; margin-top: 5px; }
+          .campaigns-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .campaigns-table th, .campaigns-table td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+          .campaigns-table th { background: #f3f4f6; font-weight: bold; }
+          .recommendation { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 10px 0; border-radius: 4px; }
+          .recommendation h4 { margin: 0 0 10px 0; color: #92400e; }
+          .recommendation p { margin: 0; color: #78350f; }
+          .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
         </style>
       </head>
       <body>
         <div class="header">
           <h1>Rapport Google Ads</h1>
-          <p><strong>Client:</strong> ${data.clientName}</p>
-          <p><strong>Période:</strong> ${periodText}</p>
+          <p><strong>Client:</strong> ${reportData.clientName}</p>
+          <p><strong>Période:</strong> ${format(reportData.period.start, 'dd/MM/yyyy', { locale: fr })} - ${format(reportData.period.end, 'dd/MM/yyyy', { locale: fr })}</p>
           <p><strong>Généré le:</strong> ${format(new Date(), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
         </div>
 
-        <div class="summary-grid">
-          <div class="summary-card">
-            <h3>Dépenses Totales</h3>
-            <div class="value">${data.summary.totalSpend.toFixed(2)}€</div>
-          </div>
-          <div class="summary-card">
-            <h3>Impressions</h3>
-            <div class="value">${data.summary.totalImpressions.toLocaleString()}</div>
-          </div>
-          <div class="summary-card">
-            <h3>Clics</h3>
-            <div class="value">${data.summary.totalClicks.toLocaleString()}</div>
-          </div>
-          <div class="summary-card">
-            <h3>Conversions</h3>
-            <div class="value">${data.summary.totalConversions.toLocaleString()}</div>
-          </div>
-          <div class="summary-card">
-            <h3>CTR Moyen</h3>
-            <div class="value">${data.summary.avgCtr.toFixed(2)}%</div>
-          </div>
-          <div class="summary-card">
-            <h3>CPC Moyen</h3>
-            <div class="value">${data.summary.avgCpc.toFixed(2)}€</div>
-          </div>
-          <div class="summary-card">
-            <h3>Taux de Conversion</h3>
-            <div class="value">${data.summary.avgConversionRate.toFixed(2)}%</div>
-          </div>
-          <div class="summary-card">
-            <h3>ROAS Moyen</h3>
-            <div class="value">${data.summary.avgRoas.toFixed(2)}x</div>
+        <div class="section">
+          <h2>Synthèse des performances</h2>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-value">${reportData.metrics.totalImpressions.toLocaleString()}</div>
+              <div class="metric-label">Impressions</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">${reportData.metrics.totalClicks.toLocaleString()}</div>
+              <div class="metric-label">Clics</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">${reportData.metrics.averageCtr.toFixed(2)}%</div>
+              <div class="metric-label">CTR moyen</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">${reportData.metrics.totalCost.toFixed(2)}€</div>
+              <div class="metric-label">Coût total</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">${reportData.metrics.averageCpc.toFixed(2)}€</div>
+              <div class="metric-label">CPC moyen</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">${reportData.metrics.totalConversions.toLocaleString()}</div>
+              <div class="metric-label">Conversions</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">${reportData.metrics.averageCpa.toFixed(2)}€</div>
+              <div class="metric-label">CPA moyen</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">${reportData.metrics.averageRoas.toFixed(2)}x</div>
+              <div class="metric-label">ROAS moyen</div>
+            </div>
           </div>
         </div>
 
-        <h2>Détail des Campagnes</h2>
-        <table class="campaigns-table">
-          <thead>
-            <tr>
-              <th>Campagne</th>
-              <th>Type</th>
-              <th>Statut</th>
-              <th>Budget</th>
-              <th>Dépensé</th>
-              <th>Impressions</th>
-              <th>Clics</th>
-              <th>CTR</th>
-              <th>CPC</th>
-              <th>Conversions</th>
-              <th>ROAS</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.campaigns.map(campaign => `
+        <div class="section">
+          <h2>Campagnes</h2>
+          <table class="campaigns-table">
+            <thead>
               <tr>
-                <td>${campaign.name}</td>
-                <td>${campaign.type}</td>
-                <td class="status-${campaign.status.toLowerCase()}">${campaign.status}</td>
-                <td>${campaign.budget.toFixed(2)}€</td>
-                <td>${campaign.spent.toFixed(2)}€</td>
-                <td>${campaign.impressions.toLocaleString()}</td>
-                <td>${campaign.clicks.toLocaleString()}</td>
-                <td>${campaign.ctr.toFixed(2)}%</td>
-                <td>${campaign.cpc.toFixed(2)}€</td>
-                <td>${campaign.conversions.toLocaleString()}</td>
-                <td>${campaign.roas.toFixed(2)}x</td>
+                <th>Nom</th>
+                <th>Type</th>
+                <th>Statut</th>
+                <th>Budget</th>
+                <th>Impressions</th>
+                <th>Clics</th>
+                <th>CTR</th>
+                <th>Coût</th>
+                <th>ROAS</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${reportData.campaigns.map(campaign => `
+                <tr>
+                  <td>${campaign.name}</td>
+                  <td>${campaign.type}</td>
+                  <td>${campaign.status}</td>
+                  <td>${campaign.budget}€</td>
+                  <td>${campaign.impressions?.toLocaleString() || 'N/A'}</td>
+                  <td>${campaign.clicks?.toLocaleString() || 'N/A'}</td>
+                  <td>${campaign.ctr?.toFixed(2) || 'N/A'}%</td>
+                  <td>${campaign.cost?.toFixed(2) || 'N/A'}€</td>
+                  <td>${campaign.roas?.toFixed(2) || 'N/A'}x</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
 
-        ${options.includeRecommendations ? `
-          <div class="recommendations">
-            <h3>Recommandations d'Optimisation</h3>
-            <ul>
-              ${this.generateRecommendations(data).map(rec => `<li>${rec}</li>`).join('')}
-            </ul>
+        ${options.includeRecommendations && reportData.recommendations.length > 0 ? `
+          <div class="section">
+            <h2>Recommandations d'optimisation</h2>
+            ${reportData.recommendations.map(rec => `
+              <div class="recommendation">
+                <h4>${rec.title}</h4>
+                <p><strong>Impact estimé:</strong> ${rec.estimatedImprovement}% d'amélioration</p>
+                <p>${rec.description}</p>
+                <p><strong>Action recommandée:</strong> ${rec.action}</p>
+              </div>
+            `).join('')}
           </div>
         ` : ''}
+
+        <div class="footer">
+          <p>Rapport généré automatiquement par Inconnu OS</p>
+          <p>Pour toute question, contactez votre Account Manager</p>
+        </div>
       </body>
       </html>
     `
   }
 
   /**
-   * Ajoute la feuille de résumé au Excel
+   * Ajoute la feuille de synthèse au rapport Excel
    */
-  private static addSummarySheet(sheet: ExcelJS.Worksheet, data: ReportData): void {
-    sheet.columns = [
-      { header: 'Métrique', key: 'metric', width: 20 },
-      { header: 'Valeur', key: 'value', width: 15 }
-    ]
+  private static addSummarySheet(sheet: ExcelJS.Worksheet, reportData: ReportData) {
+    // Titre
+    sheet.addRow(['Rapport Google Ads - Synthèse'])
+    sheet.addRow([])
+    
+    // Informations client
+    sheet.addRow(['Client:', reportData.clientName])
+    sheet.addRow(['Période:', `${format(reportData.period.start, 'dd/MM/yyyy')} - ${format(reportData.period.end, 'dd/MM/yyyy')}`])
+    sheet.addRow(['Généré le:', format(new Date(), 'dd/MM/yyyy à HH:mm')])
+    sheet.addRow([])
 
-    sheet.addRow({ metric: 'Client', value: data.clientName })
-    sheet.addRow({ metric: 'Période', value: `${format(data.period.start, 'dd/MM/yyyy')} - ${format(data.period.end, 'dd/MM/yyyy')}` })
-    sheet.addRow({ metric: '', value: '' })
-    sheet.addRow({ metric: 'Dépenses Totales', value: `${data.summary.totalSpend.toFixed(2)}€` })
-    sheet.addRow({ metric: 'Impressions', value: data.summary.totalImpressions.toLocaleString() })
-    sheet.addRow({ metric: 'Clics', value: data.summary.totalClicks.toLocaleString() })
-    sheet.addRow({ metric: 'Conversions', value: data.summary.totalConversions.toLocaleString() })
-    sheet.addRow({ metric: 'CTR Moyen', value: `${data.summary.avgCtr.toFixed(2)}%` })
-    sheet.addRow({ metric: 'CPC Moyen', value: `${data.summary.avgCpc.toFixed(2)}€` })
-    sheet.addRow({ metric: 'Taux de Conversion', value: `${data.summary.avgConversionRate.toFixed(2)}%` })
-    sheet.addRow({ metric: 'ROAS Moyen', value: `${data.summary.avgRoas.toFixed(2)}x` })
+    // Métriques principales
+    sheet.addRow(['Métriques principales'])
+    sheet.addRow(['Impressions', 'Clics', 'CTR moyen', 'Coût total', 'CPC moyen', 'Conversions', 'CPA moyen', 'ROAS moyen'])
+    sheet.addRow([
+      reportData.metrics.totalImpressions,
+      reportData.metrics.totalClicks,
+      `${reportData.metrics.averageCtr.toFixed(2)}%`,
+      `${reportData.metrics.totalCost.toFixed(2)}€`,
+      `${reportData.metrics.averageCpc.toFixed(2)}€`,
+      reportData.metrics.totalConversions,
+      `${reportData.metrics.averageCpa.toFixed(2)}€`,
+      `${reportData.metrics.averageRoas.toFixed(2)}x`
+    ])
+
+    // Formatage
+    sheet.getCell('A1').font = { bold: true, size: 16 }
+    sheet.getCell('A6').font = { bold: true, size: 14 }
+    sheet.getCell('A7').font = { bold: true }
+    sheet.getCell('A8').font = { bold: true }
   }
 
   /**
-   * Ajoute la feuille des campagnes au Excel
+   * Ajoute la feuille des campagnes au rapport Excel
    */
-  private static addCampaignsSheet(sheet: ExcelJS.Worksheet, data: ReportData): void {
-    sheet.columns = [
-      { header: 'Campagne', key: 'name', width: 25 },
-      { header: 'Type', key: 'type', width: 12 },
-      { header: 'Statut', key: 'status', width: 12 },
-      { header: 'Budget', key: 'budget', width: 12 },
-      { header: 'Dépensé', key: 'spent', width: 12 },
-      { header: 'Impressions', key: 'impressions', width: 12 },
-      { header: 'Clics', key: 'clicks', width: 12 },
-      { header: 'CTR', key: 'ctr', width: 10 },
-      { header: 'CPC', key: 'cpc', width: 10 },
-      { header: 'Conversions', key: 'conversions', width: 12 },
-      { header: 'ROAS', key: 'roas', width: 10 }
-    ]
-
-    data.campaigns.forEach(campaign => {
-      sheet.addRow({
-        name: campaign.name,
-        type: campaign.type,
-        status: campaign.status,
-        budget: campaign.budget,
-        spent: campaign.spent,
-        impressions: campaign.impressions,
-        clicks: campaign.clicks,
-        ctr: campaign.ctr,
-        cpc: campaign.cpc,
-        conversions: campaign.conversions,
-        roas: campaign.roas
-      })
+  private static addCampaignsSheet(sheet: ExcelJS.Worksheet, reportData: ReportData) {
+    sheet.addRow(['Détail des campagnes'])
+    sheet.addRow([])
+    
+    // En-têtes
+    sheet.addRow(['Nom', 'Type', 'Statut', 'Budget', 'Impressions', 'Clics', 'CTR', 'Coût', 'ROAS', 'Score d\'optimisation'])
+    
+    // Données des campagnes
+    reportData.campaigns.forEach(campaign => {
+      sheet.addRow([
+        campaign.name,
+        campaign.type,
+        campaign.status,
+        `${campaign.budget}€`,
+        campaign.impressions || 0,
+        campaign.clicks || 0,
+        campaign.ctr ? `${campaign.ctr.toFixed(2)}%` : 'N/A',
+        campaign.cost ? `${campaign.cost.toFixed(2)}€` : 'N/A',
+        campaign.roas ? `${campaign.roas.toFixed(2)}x` : 'N/A',
+        campaign.optimizationScore ? `${campaign.optimizationScore}%` : 'N/A'
+      ])
     })
+
+    // Formatage
+    sheet.getCell('A1').font = { bold: true, size: 14 }
+    sheet.getCell('A3').font = { bold: true }
   }
 
   /**
-   * Ajoute la feuille des recommandations au Excel
+   * Ajoute la feuille des métriques au rapport Excel
    */
-  private static addRecommendationsSheet(sheet: ExcelJS.Worksheet, data: ReportData): void {
-    sheet.columns = [
-      { header: 'Recommandation', key: 'recommendation', width: 50 },
-      { header: 'Priorité', key: 'priority', width: 15 },
-      { header: 'Impact Estimé', key: 'impact', width: 20 }
-    ]
+  private static addMetricsSheet(sheet: ExcelJS.Worksheet, reportData: ReportData) {
+    sheet.addRow(['Métriques détaillées'])
+    sheet.addRow([])
+    
+    // Métriques par jour (simulées)
+    const days = 30
+    sheet.addRow(['Date', 'Impressions', 'Clics', 'CTR', 'Coût', 'Conversions', 'CPA', 'ROAS'])
+    
+    for (let i = 0; i < days; i++) {
+      const date = new Date(reportData.period.end)
+      date.setDate(date.getDate() - (days - i - 1))
+      
+      // Simuler des données quotidiennes
+      const dailyImpressions = Math.floor(reportData.metrics.totalImpressions / days * (0.8 + Math.random() * 0.4))
+      const dailyClicks = Math.floor(reportData.metrics.totalClicks / days * (0.8 + Math.random() * 0.4))
+      const dailyCTR = dailyImpressions > 0 ? (dailyClicks / dailyImpressions) * 100 : 0
+      const dailyCost = (reportData.metrics.totalCost / days) * (0.8 + Math.random() * 0.4)
+      const dailyConversions = Math.floor(reportData.metrics.totalConversions / days * (0.8 + Math.random() * 0.4))
+      const dailyCPA = dailyConversions > 0 ? dailyCost / dailyConversions : 0
+      const dailyROAS = dailyConversions > 0 ? (dailyConversions * 50) / dailyCost : 0 // Simuler un CA de 50€ par conversion
+      
+      sheet.addRow([
+        format(date, 'dd/MM/yyyy'),
+        dailyImpressions,
+        dailyClicks,
+        `${dailyCTR.toFixed(2)}%`,
+        `${dailyCost.toFixed(2)}€`,
+        dailyConversions,
+        `${dailyCPA.toFixed(2)}€`,
+        `${dailyROAS.toFixed(2)}x`
+      ])
+    }
 
-    const recommendations = this.generateRecommendations(data)
-    recommendations.forEach(rec => {
-      sheet.addRow({
-        recommendation: rec,
-        priority: 'Moyenne',
-        impact: '+10-20%'
-      })
+    // Formatage
+    sheet.getCell('A1').font = { bold: true, size: 14 }
+    sheet.getCell('A3').font = { bold: true }
+  }
+
+  /**
+   * Ajoute la feuille des recommandations au rapport Excel
+   */
+  private static addRecommendationsSheet(sheet: ExcelJS.Worksheet, reportData: ReportData) {
+    sheet.addRow(['Recommandations d\'optimisation'])
+    sheet.addRow([])
+    
+    // En-têtes
+    sheet.addRow(['Type', 'Priorité', 'Titre', 'Description', 'Impact estimé', 'Action recommandée'])
+    
+    // Données des recommandations
+    reportData.recommendations.forEach(rec => {
+      sheet.addRow([
+        rec.type,
+        rec.priority,
+        rec.title,
+        rec.description,
+        `${rec.estimatedImprovement}%`,
+        rec.action
+      ])
     })
+
+    // Formatage
+    sheet.getCell('A1').font = { bold: true, size: 14 }
+    sheet.getCell('A3').font = { bold: true }
   }
 
   /**
-   * Calcule le résumé des métriques
+   * Récupère les données Google Ads d'un client
    */
-  private static calculateSummary(campaigns: any[]): any {
-    const totalSpend = campaigns.reduce((sum, c) => sum + c.spent, 0)
-    const totalImpressions = campaigns.reduce((sum, c) => sum + c.impressions, 0)
-    const totalClicks = campaigns.reduce((sum, c) => sum + c.clicks, 0)
-    const totalConversions = campaigns.reduce((sum, c) => sum + c.conversions, 0)
+  private static async getGoogleAdsData(clientAccount: any) {
+    try {
+      if (!clientAccount.googleAdsConnection) {
+        return null
+      }
 
+      const { customerId, refreshToken } = clientAccount.googleAdsConnection
+      
+      // Récupérer les campagnes
+      const campaigns = await GoogleAdsService.getCampaigns(customerId, refreshToken)
+      
+      // Récupérer les métriques globales
+      const metrics = await GoogleAdsService.getAccountMetrics(customerId, refreshToken)
+      
+      // Récupérer les recommandations
+      const recommendations = await GoogleAdsService.getOptimizationRecommendations(customerId, refreshToken)
+
+      return {
+        campaigns,
+        metrics,
+        recommendations
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des données Google Ads:', error)
+      return null
+    }
+  }
+
+  /**
+   * Retourne des métriques par défaut si pas de données Google Ads
+   */
+  private static getDefaultMetrics() {
     return {
-      totalSpend,
-      totalImpressions,
-      totalClicks,
-      totalConversions,
-      avgCtr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
-      avgCpc: totalClicks > 0 ? totalSpend / totalClicks : 0,
-      avgConversionRate: totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0,
-      avgRoas: totalSpend > 0 ? (totalConversions * 50) / totalSpend : 0 // Valeur moyenne par conversion estimée à 50€
-    }
-  }
-
-  /**
-   * Génère des recommandations basées sur les données
-   */
-  private static generateRecommendations(data: ReportData): string[] {
-    const recommendations = []
-
-    if (data.summary.avgCtr < 2) {
-      recommendations.push('Optimiser les annonces pour améliorer le CTR (actuellement faible)')
-    }
-
-    if (data.summary.avgCpc > 3) {
-      recommendations.push('Réviser les enchères pour réduire le CPC moyen')
-    }
-
-    if (data.summary.avgConversionRate < 3) {
-      recommendations.push('Améliorer les pages de destination pour augmenter le taux de conversion')
-    }
-
-    if (data.summary.avgRoas < 2) {
-      recommendations.push('Optimiser le ciblage et les mots-clés pour améliorer le ROAS')
-    }
-
-    if (recommendations.length === 0) {
-      recommendations.push('Les performances sont bonnes, continuer à surveiller et optimiser progressivement')
-    }
-
-    return recommendations
-  }
-
-  /**
-   * Récupère des métriques simulées pour une campagne
-   */
-  private static getSimulatedMetrics(campaign: any): any {
-    const baseBudget = campaign.budget || 1000
-    const spent = baseBudget * (0.3 + Math.random() * 0.7) // 30-100% du budget
-    const impressions = spent * (100 + Math.random() * 200) // 100-300 impressions par euro
-    const clicks = impressions * (0.01 + Math.random() * 0.04) // 1-5% CTR
-    const conversions = clicks * (0.02 + Math.random() * 0.08) // 2-10% conversion rate
-
-    return {
-      spent: Math.round(spent * 100) / 100,
-      impressions: Math.round(impressions),
-      clicks: Math.round(clicks),
-      conversions: Math.round(conversions),
-      ctr: Math.round((clicks / impressions) * 10000) / 100,
-      cpc: Math.round((spent / clicks) * 100) / 100,
-      conversionRate: Math.round((conversions / clicks) * 10000) / 100,
-      roas: Math.round(((conversions * 50) / spent) * 100) / 100 // Valeur moyenne par conversion estimée à 50€
+      totalImpressions: 0,
+      totalClicks: 0,
+      totalCost: 0,
+      totalConversions: 0,
+      averageCtr: 0,
+      averageCpc: 0,
+      averageCpa: 0,
+      averageRoas: 0
     }
   }
 } 

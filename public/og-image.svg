@@ -1,0 +1,51 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fond avec dégradé -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E293B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0F172A;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F1F5F9;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fond -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Motif de fond subtil -->
+  <circle cx="100" cy="100" r="50" fill="white" opacity="0.05"/>
+  <circle cx="1100" cy="530" r="80" fill="white" opacity="0.05"/>
+  <circle cx="200" cy="500" r="30" fill="white" opacity="0.05"/>
+  
+  <!-- Logo "On" stylisé -->
+  <g transform="translate(400, 200)">
+    <!-- Forme "O" -->
+    <circle cx="100" cy="80" r="60" fill="none" stroke="white" stroke-width="8"/>
+    <circle cx="100" cy="80" r="40" fill="url(#bgGradient)"/>
+    
+    <!-- Forme "n" -->
+    <path d="M180 40L180 120M260 40L260 120M180 40C180 40 200 40 220 40C240 40 260 40 260 40" 
+          stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
+  </g>
+  
+  <!-- Texte principal -->
+  <text x="600" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="url(#textGradient)">
+    AGENCE INCONNU
+  </text>
+  
+  <!-- Sous-titre -->
+  <text x="600" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="white" opacity="0.8">
+    Expert Google Ads & SEA
+  </text>
+  
+  <!-- Description -->
+  <text x="600" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="white" opacity="0.7">
+    Optimisation de campagnes • Gestion de comptes • ROI maximal
+  </text>
+  
+  <!-- Éléments décoratifs -->
+  <rect x="50" y="50" width="4" height="100" fill="white" opacity="0.3"/>
+  <rect x="1146" y="480" width="4" height="100" fill="white" opacity="0.3"/>
+</svg> 

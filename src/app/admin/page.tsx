@@ -107,7 +107,9 @@ export default function AdminPage() {
                     <DollarSign className="w-8 h-8 text-yellow-600 mr-4" />
                     <div>
                       <p className="text-sm text-gray-600">Chiffre d&apos;affaires</p>
-                      <p className="text-2xl font-bold text-gray-900">€12,450</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats?.mrr ? `€${stats.mrr.toLocaleString()}` : '€0'}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -119,7 +121,9 @@ export default function AdminPage() {
                     <FileText className="w-8 h-8 text-purple-600 mr-4" />
                     <div>
                       <p className="text-sm text-gray-600">Tickets Ouverts</p>
-                      <p className="text-2xl font-bold text-gray-900">8</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats?.openTickets || 0}
+                      </p>
                     </div>
                   </div>
                 </CardContent>

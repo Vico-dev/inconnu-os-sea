@@ -512,17 +512,70 @@ Format de réponse:
         return { recommendations: [] }
       }
 
+      const enhancedPrompt = `
+${request.prompt}
+
+Analyse ces données de performance et génère des recommandations d'optimisation spécifiques et actionnables.
+
+Retourne la réponse au format JSON strict :
+{
+  "recommendations": [
+    {
+      "id": "unique-id",
+      "type": "BUDGET|BID|KEYWORD|TARGETING|CREATIVE",
+      "priority": "HIGH|MEDIUM|LOW",
+      "title": "Titre de la recommandation",
+      "description": "Description détaillée",
+      "impact": "POSITIVE|NEGATIVE|NEUTRAL",
+      "estimatedImprovement": 15,
+      "action": "Action spécifique à effectuer",
+      "applied": false
+    }
+  ]
+}
+
+Assure-toi que la réponse est un JSON valide et parsable.
+`
+
       const completion = await openai.chat.completions.create({
         model: "gpt-4",
-        messages: [{ role: "user", content: request.prompt }],
-        max_tokens: 1000,
+        messages: [
+          {
+            role: "system",
+            content: "Tu es un expert en optimisation Google Ads. Réponds uniquement en JSON valide."
+          },
+          {
+            role: "user",
+            content: enhancedPrompt
+          }
+        ],
+        max_tokens: 1500,
         temperature: 0.3,
       })
 
       const response = completion.choices[0]?.message?.content
       
-      // TODO: Parser la réponse JSON structurée
-      return { recommendations: [] }
+      if (!response) {
+        console.log('⚠️ Réponse OpenAI vide')
+        return { recommendations: [] }
+      }
+
+      try {
+        // Essayer de parser la réponse JSON
+        const parsedResponse = JSON.parse(response)
+        
+        if (parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations)) {
+          console.log('✅ Recommandations générées avec succès:', parsedResponse.recommendations.length)
+          return parsedResponse
+        } else {
+          console.log('⚠️ Format de réponse invalide')
+          return { recommendations: [] }
+        }
+      } catch (parseError) {
+        console.error('❌ Erreur parsing JSON OpenAI:', parseError)
+        console.log('Réponse brute:', response)
+        return { recommendations: [] }
+      }
     } catch (error) {
       console.error('Erreur génération recommandations OpenAI:', error)
       return { recommendations: [] }

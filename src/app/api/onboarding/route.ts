@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
       teamSize,
       goals,
       googleAdsAccount,
-      currentChallenges
+      currentChallenges,
+      appointmentMode
     } = await request.json()
 
     const cleanGoals = Array.isArray(goals)
@@ -33,11 +34,20 @@ export async function POST(request: NextRequest) {
     })
 
     // Validation des champs requis
-    if (!userId || !companyName || !industry) {
+    if (!userId) {
       return NextResponse.json(
-        { message: "Champs requis manquants" },
+        { message: "Erreur d'authentification" },
         { status: 400 }
       )
+    }
+
+    // Validation des champs essentiels avec valeurs par défaut
+    if (!companyName || companyName.trim() === "") {
+      companyName = "Entreprise non spécifiée"
+    }
+    
+    if (!industry || industry.trim() === "") {
+      industry = "Autre"
     }
 
     // Calcul du budget mensuel
@@ -80,7 +90,7 @@ export async function POST(request: NextRequest) {
       updatedClientAccount = await prisma.clientAccount.update({
         where: { userId: userId },
         data: {
-          onboardingCompleted: true,
+          onboardingCompleted: !appointmentMode, // Ne pas finaliser si mode RDV
           monthlyBudget
         }
       })

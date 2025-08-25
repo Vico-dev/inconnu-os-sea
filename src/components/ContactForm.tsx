@@ -179,12 +179,13 @@ export default function ContactForm() {
 
           <div className="space-y-2">
             <Label htmlFor="company" className="text-sm font-medium text-gray-700">
-              Entreprise
+              Entreprise *
             </Label>
             <Input
               id="company"
               name="company"
               type="text"
+              required
               value={formData.company}
               onChange={handleInputChange}
               className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"

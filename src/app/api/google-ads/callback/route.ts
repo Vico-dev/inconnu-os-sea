@@ -129,32 +129,46 @@ export async function GET(request: NextRequest) {
     const customerName = customerInfo?.descriptiveName || 'Unknown Account'
     const isManager = customerInfo?.manager || false
     
-    await prisma.googleAdsConnection.upsert({
-      where: { userId: actualUserId },
-      update: {
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
-        accounts: JSON.stringify([{ customerId: customerIdFromAPI, name: customerName, isManager }]),
-        isConnected: true,
-        connectedAt: new Date(),
-      },
-      create: {
-        userId: actualUserId,
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
-        accounts: JSON.stringify([{ customerId: customerIdFromAPI, name: customerName, isManager }]),
-        isConnected: true,
-        connectedAt: new Date(),
-      }
-    })
-
-    // Mettre à jour le statut dans le compte client
-    await prisma.clientAccount.updateMany({
-      where: { userId: actualUserId },
-      data: { googleAdsConnected: true }
-    })
+    // Vérifier si c'est une connexion multiple ou une nouvelle connexion
+    const isMultipleConnection = request.nextUrl.searchParams.get('multiple') === 'true'
+    
+    if (isMultipleConnection) {
+      // Ajouter un nouveau compte à la liste existante
+      await prisma.googleAdsConnection.create({
+        data: {
+          userId: actualUserId,
+          customerId: customerIdFromAPI,
+          customerName: customerName,
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
+          isConnected: true,
+          isPrimary: false, // Pas le compte principal par défaut
+          connectedAt: new Date(),
+        }
+      })
+    } else {
+      // Remplacer la connexion existante ou créer la première
+      // D'abord, supprimer toutes les connexions existantes
+      await prisma.googleAdsConnection.deleteMany({
+        where: { userId: actualUserId }
+      })
+      
+      // Créer la nouvelle connexion comme principale
+      await prisma.googleAdsConnection.create({
+        data: {
+          userId: actualUserId,
+          customerId: customerIdFromAPI,
+          customerName: customerName,
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
+          isConnected: true,
+          isPrimary: true, // Compte principal
+          connectedAt: new Date(),
+        }
+      })
+    }
 
     // Rediriger selon le type de connexion
     if (connectionType === 'onboarding') {

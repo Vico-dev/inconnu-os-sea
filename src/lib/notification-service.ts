@@ -93,7 +93,7 @@ export class NotificationService {
         type: 'ALERT',
         title: `Alerte: ${rule.name}`,
         message: `La condition "${rule.condition.metric} ${rule.condition.operator} ${rule.condition.threshold}" a été déclenchée.`,
-        userId: data.userId,
+          userId: data.userId,
         metadata: {
           ruleId: rule.id,
           triggeredValue: data.currentValue,

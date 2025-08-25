@@ -23,7 +23,9 @@ import {
   Building,
   Target,
   CheckSquare,
-  Brain
+  Brain,
+  Zap,
+  ShoppingCart
 } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
@@ -117,22 +119,30 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
       current: pathname === "/admin/prospects"
     },
     {
-      name: "Campagnes",
-      href: "/admin/campaigns",
+      name: "Campaign Operator",
+      href: "/admin/campaign-operator",
       icon: Target,
-      current: pathname === "/admin/campaigns"
-    },
-    {
-      name: "Approbations",
-      href: "/admin/approvals",
-      icon: CheckSquare,
-      current: pathname === "/admin/approvals"
-    },
-    {
-      name: "Intelligence IA",
-      href: "/admin/ai-intelligence",
-      icon: Brain,
-      current: pathname === "/admin/ai-intelligence"
+      current: pathname.startsWith("/admin/campaign-operator"),
+      subItems: [
+        {
+          name: "Campaign Creator",
+          href: "/admin/campaign-operator/creator",
+          icon: Target,
+          current: pathname === "/admin/campaign-operator/creator"
+        },
+        {
+          name: "Campaign Optimizer",
+          href: "/admin/campaign-operator/optimizer",
+          icon: Zap,
+          current: pathname === "/admin/campaign-operator/optimizer"
+        },
+        {
+          name: "Feed Manager",
+          href: "/admin/campaign-operator/feed-manager",
+          icon: ShoppingCart,
+          current: pathname === "/admin/campaign-operator/feed-manager"
+        }
+      ]
     }
   ]
 
@@ -165,30 +175,54 @@ export function Sidebar({ ticketStats, billingStats }: SidebarProps) {
         {navigation.map((item) => {
           const Icon = item.icon
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                item.current
-                  ? "bg-blue-50 text-blue-700 border border-blue-200"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {!isCollapsed && (
-                <div className="flex items-center justify-between w-full">
-                  <span className="text-sm font-medium">{item.name}</span>
-                  {item.badge && (
-                    <Badge 
-                      variant={item.badge.includes("non assignés") || item.badge.includes("en attente") ? "destructive" : "secondary"}
-                      className="text-xs"
-                    >
-                      {item.badge}
-                    </Badge>
-                  )}
+            <div key={item.name}>
+              <Link
+                href={item.href}
+                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                  item.current
+                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                {!isCollapsed && (
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-sm font-medium">{item.name}</span>
+                    {item.badge && (
+                      <Badge 
+                        variant={item.badge.includes("non assignés") || item.badge.includes("en attente") ? "destructive" : "secondary"}
+                        className="text-xs"
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </Link>
+              
+              {/* Sous-onglets pour Campaign Operator */}
+              {item.subItems && item.current && !isCollapsed && (
+                <div className="ml-6 mt-2 space-y-1">
+                  {item.subItems.map((subItem) => {
+                    const SubIcon = subItem.icon
+                    return (
+                      <Link
+                        key={subItem.name}
+                        href={subItem.href}
+                        className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
+                          subItem.current
+                            ? "bg-blue-100 text-blue-800"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                      >
+                        <SubIcon className="w-4 h-4" />
+                        <span>{subItem.name}</span>
+                      </Link>
+                    )
+                  })}
                 </div>
               )}
-            </Link>
+            </div>
           )
         })}
       </nav>

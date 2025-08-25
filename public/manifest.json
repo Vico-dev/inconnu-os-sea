@@ -1,0 +1,31 @@
+{
+  "name": "Agence Inconnu - Expert Google Ads & SEA",
+  "short_name": "Agence Inconnu",
+  "description": "Agence spécialisée en Google Ads et SEA. Optimisation de campagnes et accompagnement personnalisé.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1E293B",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "productivity", "marketing"],
+  "lang": "fr",
+  "dir": "ltr"
+} 
