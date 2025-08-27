@@ -609,12 +609,6 @@ export default function OnboardingPage() {
         )
 
       case 3:
-        // Étape 3: Google Ads (la saisie du budget ne doit apparaître qu'à l'étape 1)
-        return (
-          <></>
-        )
-
-      case 4:
         return (
           <div>
             <Label className="text-lg font-medium mb-4 block">Taille de votre équipe</Label>
@@ -657,14 +651,6 @@ export default function OnboardingPage() {
             />
           </div>
         )
-
-      case 2:
-        // Étape 2: choix du plan (le bloc Google Ads en doublon est supprimé)
-        return (
-          <></>
-        )
-
-      case 3:
         return (
           <div>
             <Label className="text-lg font-medium mb-4 block">Configuration Google Ads</Label>
