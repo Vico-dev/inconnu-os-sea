@@ -13,7 +13,12 @@ export class EmailService {
   ) {
     try {
       if (!resend) {
-        console.log('Resend non configuré, email de validation ignoré')
+        console.log('⚠️ Resend non configuré - Email de validation ignoré')
+        // En mode développement, on peut valider automatiquement
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔧 Mode développement - Validation automatique activée')
+          return { success: true, mode: 'development' }
+        }
         return null
       }
 
@@ -36,10 +41,15 @@ export class EmailService {
         html: emailHtml,
       })
 
-      console.log('Email de validation envoyé:', result)
+      console.log('✅ Email de validation envoyé:', result)
       return result
     } catch (error) {
-      console.error('Erreur envoi email de validation:', error)
+      console.error('❌ Erreur envoi email de validation:', error)
+      // En mode développement, on peut continuer sans email
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔧 Mode développement - Validation automatique activée')
+        return { success: true, mode: 'development' }
+      }
       throw error
     }
   }

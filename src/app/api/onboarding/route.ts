@@ -4,7 +4,8 @@ import { EmailService } from "@/lib/email-service"
 
 export async function POST(request: NextRequest) {
   try {
-    const {
+    const body = await request.json()
+    let {
       userId,
       companyName,
       website,
@@ -14,8 +15,9 @@ export async function POST(request: NextRequest) {
       goals,
       googleAdsAccount,
       currentChallenges,
-      appointmentMode
-    } = await request.json()
+      appointmentMode,
+      selectedPlan
+    } = body
 
     const cleanGoals = Array.isArray(goals)
       ? goals.map((g: string) => (typeof g === 'string' ? g.replace(/&apos;/g, "'") : g))
@@ -23,6 +25,9 @@ export async function POST(request: NextRequest) {
     const cleanCurrentChallenges = typeof currentChallenges === 'string'
       ? currentChallenges.replace(/&apos;/g, "'")
       : currentChallenges
+    const safePlan = (typeof selectedPlan === 'string' && ['SMALL_BUDGET','MEDIUM_BUDGET','LARGE_BUDGET'].includes(selectedPlan))
+      ? selectedPlan
+      : 'MEDIUM_BUDGET'
 
     console.log("Données reçues:", {
       userId,
@@ -100,7 +105,7 @@ export async function POST(request: NextRequest) {
         await prisma.subscription.create({
           data: {
             clientAccountId: updatedClientAccount.id,
-            plan: "BASIC",
+            plan: safePlan,
             status: "TRIAL",
             amount: 0,
             currency: "EUR",
@@ -118,9 +123,9 @@ export async function POST(request: NextRequest) {
           website: website || null,
           industry,
           teamSize: teamSize || null,
-          goals: goals ? JSON.stringify(goals) : null,
+          goals: cleanGoals ? JSON.stringify(cleanGoals) : null,
           googleAdsAccount: googleAdsAccount || null,
-          currentChallenges: currentChallenges || null
+          currentChallenges: cleanCurrentChallenges || null
         }
       })
 
@@ -138,7 +143,7 @@ export async function POST(request: NextRequest) {
       await prisma.subscription.create({
         data: {
           clientAccountId: updatedClientAccount.id,
-          plan: "BASIC",
+          plan: safePlan,
           status: "TRIAL",
           amount: 0,
           currency: "EUR",

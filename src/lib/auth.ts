@@ -29,8 +29,8 @@ export const authOptions: AuthOptions = {
             return null
           }
 
-          // Vérifier que l'email est validé (sauf pour les admins)
-          if (user.role !== 'ADMIN' && !user.emailVerified) {
+          // Vérifier que l'email est validé (sauf pour les admins et en mode développement)
+          if (user.role !== 'ADMIN' && !user.emailVerified && process.env.NODE_ENV !== 'development') {
             throw new Error('Veuillez valider votre email avant de vous connecter. Vérifiez votre boîte de réception.')
           }
 
