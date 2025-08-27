@@ -21,7 +21,9 @@ import {
   TrendingUp,
   Shield,
   Users,
-  Building2
+  Building2,
+  Zap,
+  Crown
 } from "lucide-react"
 import Link from "next/link"
 import ContactForm from "@/components/ContactForm"
@@ -337,6 +339,91 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+        </div>
+      </section>
+
+      {/* Offres */}
+      <section id="offers" className="py-24 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold text-blue-900 mb-4">Nos offres</h2>
+            <p className="text-blue-700">Choisissez le forfait adapté à votre budget média et à vos objectifs.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {/* Petit Chasseur */}
+            <Card className="border border-blue-200 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <CardContent className="p-8">
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center mr-3">
+                    <Zap className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-blue-900">Petit Chasseur</h3>
+                </div>
+                <p className="text-blue-700 mb-4">Budget média &lt; 1000€/mois</p>
+                <div className="text-3xl font-bold text-blue-900 mb-6">200€<span className="text-base font-normal text-blue-700">/mois</span></div>
+                <ul className="space-y-2 text-blue-700 mb-6">
+                  <li>Audit mensuel, optimisations techniques</li>
+                  <li>Recommandations stratégiques</li>
+                  <li>Reporting mensuel</li>
+                </ul>
+                <Link href="/pricing">
+                  <Button className="w-full bg-blue-900 hover:bg-blue-800 text-white">Voir le détail</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Chasseur (populaire) */}
+            <Card className="relative border-2 border-blue-500 shadow-lg">
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-900 text-white">Recommandé</Badge>
+              <CardContent className="p-8">
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center mr-3">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-blue-900">Chasseur</h3>
+                </div>
+                <p className="text-blue-700 mb-4">Budget média 1000€ - 5000€/mois</p>
+                <div className="text-3xl font-bold text-blue-900 mb-6">400€<span className="text-base font-normal text-blue-700">/mois</span></div>
+                <ul className="space-y-2 text-blue-700 mb-6">
+                  <li>Call hebdomadaire, optimisations en temps réel</li>
+                  <li>Reporting détaillé, support prioritaire</li>
+                  <li>Tests A/B, formation équipe</li>
+                </ul>
+                <Link href="/pricing">
+                  <Button className="w-full bg-blue-900 hover:bg-blue-800 text-white">Voir le détail</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Grand Chasseur */}
+            <Card className="border border-blue-200 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <CardContent className="p-8">
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center mr-3">
+                    <Crown className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-blue-900">Grand Chasseur</h3>
+                </div>
+                <p className="text-blue-700 mb-4">Budget média 5000€ - 10000€/mois</p>
+                <div className="text-3xl font-bold text-blue-900 mb-6">600€<span className="text-base font-normal text-blue-700">/mois</span></div>
+                <ul className="space-y-2 text-blue-700 mb-6">
+                  <li>Account manager dédié, stratégie personnalisée</li>
+                  <li>Support 24/7, analytics avancées</li>
+                  <li>Accompagnement prioritaire</li>
+                </ul>
+                <Link href="/pricing">
+                  <Button variant="outline" className="w-full border-blue-300 text-blue-700 hover:bg-blue-50">Voir le détail</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-10">
+            <Link href="/pricing">
+              <Button size="lg" className="bg-blue-900 hover:bg-blue-800 text-white">Comparer tous les plans</Button>
+            </Link>
+          </div>
         </div>
       </section>
 
