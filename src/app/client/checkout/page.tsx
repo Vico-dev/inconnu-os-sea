@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const [creating, setCreating] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [publishableKey, setPublishableKey] = useState<string | null>(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || null)
 
   const plan = searchParams?.get('plan')
 
@@ -57,6 +58,22 @@ export default function CheckoutPage() {
 
     fetchClientAccount()
   }, [session, status, router, plan])
+
+  // Charger dynamiquement la clé publique si absente au build
+  useEffect(() => {
+    const loadKey = async () => {
+      if (publishableKey) return
+      try {
+        const res = await fetch('/api/stripe/public-key', { cache: 'no-store' })
+        if (!res.ok) throw new Error('Failed to fetch public key')
+        const data = await res.json()
+        if (data.publishableKey) setPublishableKey(data.publishableKey)
+      } catch (e) {
+        console.error('Erreur chargement clé Stripe:', e)
+      }
+    }
+    void loadKey()
+  }, [publishableKey])
 
   // Déclenchement automatique une fois les CGV acceptées
   useEffect(() => {
@@ -132,7 +149,6 @@ export default function CheckoutPage() {
     )
   }
 
-  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string | undefined
   const stripePromise = publishableKey ? loadStripe(publishableKey) : null
 
   return (
