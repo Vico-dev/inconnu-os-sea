@@ -717,12 +717,6 @@ export default function OnboardingPage() {
                     )}
                   </button>
                 </div>
-                          : "Créer et connecter un compte Google Ads"
-                        }
-                      </span>
-                    )}
-                  </button>
-                </div>
               </div>
             )}
           </div>
