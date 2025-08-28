@@ -19,6 +19,8 @@ export default function CheckoutPage() {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [acceptCgv, setAcceptCgv] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const plan = searchParams?.get('plan')
 
@@ -67,6 +69,8 @@ export default function CheckoutPage() {
 
   const createEmbeddedCheckout = async (accountId: string) => {
     try {
+      setStatusMessage('Création de la session de paiement…')
+      setErrorMessage(null)
       const response = await fetch('/api/stripe/checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,16 +93,21 @@ export default function CheckoutPage() {
       const data = await response.json()
       if (data.clientSecret) {
         setClientSecret(data.clientSecret)
+        setStatusMessage('Session prête, affichage du module Stripe…')
         return
       }
       if (data.url) {
+        setStatusMessage('Redirection vers Stripe…')
         window.location.href = data.url
         return
       }
       throw new Error('Données de paiement introuvables')
     } catch (error: any) {
       console.error('Erreur création paiement:', error)
+      setErrorMessage(error?.message || 'Erreur lors de la création du paiement')
       toast.error(error?.message || 'Erreur lors de la création du paiement')
+    } finally {
+      setStatusMessage(null)
     }
   }
 
@@ -123,7 +132,8 @@ export default function CheckoutPage() {
     )
   }
 
-  const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string)
+  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string | undefined
+  const stripePromise = publishableKey ? loadStripe(publishableKey) : null
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
@@ -166,15 +176,32 @@ export default function CheckoutPage() {
           )}
 
           {acceptCgv && !clientSecret && (
-            <div className="w-full text-center text-sm text-gray-600">Le module Stripe apparaîtra ici dès qu’il est prêt.</div>
+            <div className="w-full text-center text-sm text-gray-600 mb-2">{statusMessage || 'Le module Stripe apparaîtra ici dès qu’il est prêt.'}</div>
           )}
 
-          {clientSecret && (
+          {errorMessage && (
+            <div className="text-sm text-red-600 mb-3">{errorMessage}</div>
+          )}
+
+          {/* Panneau de diagnostic */}
+          <div className="text-xs text-gray-500 border border-dashed rounded p-3 mb-4">
+            <div>Diag:</div>
+            <div>plan: <span className="font-mono">{String(plan)}</span></div>
+            <div>clientAccountId: <span className="font-mono">{String(clientAccountId)}</span></div>
+            <div>publishableKey présent: <span className="font-mono">{publishableKey ? 'oui' : 'non'}</span></div>
+            <div>clientSecret reçu: <span className="font-mono">{clientSecret ? 'oui' : 'non'}</span></div>
+          </div>
+
+          {clientSecret && stripePromise && (
             <div className="mt-6">
               <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
                 <EmbeddedCheckout />
               </EmbeddedCheckoutProvider>
             </div>
+          )}
+
+          {clientSecret && !stripePromise && (
+            <div className="text-sm text-red-600">Clé Stripe publique manquante côté client. Configure NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.</div>
           )}
         </CardContent>
       </Card>
