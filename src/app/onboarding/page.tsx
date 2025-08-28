@@ -611,48 +611,6 @@ export default function OnboardingPage() {
       case 3:
         return (
           <div>
-            <Label className="text-lg font-medium mb-4 block">Taille de votre équipe</Label>
-            <div className="space-y-3">
-              {teamSizeOptions.map(option => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleInputChange("teamSize", option.value)}
-                  className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
-                    onboardingData.teamSize === option.value
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{option.label}</span>
-                    {onboardingData.teamSize === option.value && (
-                      <Check className="w-5 h-5 text-blue-600" />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )
-
-      case 5:
-        return (
-          <div>
-            <Label htmlFor="currentChallenges" className="text-lg font-medium">Vos défis actuels</Label>
-            <textarea
-              id="currentChallenges"
-              value={onboardingData.currentChallenges}
-              onChange={(e) => handleInputChange("currentChallenges", e.target.value)}
-              className="mt-2 w-full text-lg p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={4}
-              placeholder="Décrivez vos principaux défis marketing actuels..."
-              autoFocus
-            />
-          </div>
-        )
-        return (
-          <div>
             <Label className="text-lg font-medium mb-4 block">Configuration Google Ads</Label>
             <p className="text-sm text-gray-600 mb-4">
               Parfait ! Votre abonnement est actif. Maintenant configurons votre compte Google Ads pour commencer l&apos;optimisation de vos campagnes.
@@ -753,6 +711,12 @@ export default function OnboardingPage() {
                         </svg>
                         {onboardingData.googleAdsAccount === "yes" 
                           ? "Connecter mon compte Google Ads" 
+                          : "Créer et connecter un compte Google Ads"
+                        }
+                      </span>
+                    )}
+                  </button>
+                </div>
                           : "Créer et connecter un compte Google Ads"
                         }
                       </span>
