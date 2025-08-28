@@ -5,7 +5,9 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, ArrowRight, CheckSquare } from 'lucide-react'
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js'
+import { loadStripe } from '@stripe/stripe-js'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 export default function CheckoutPage() {
@@ -14,6 +16,7 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(true)
   const [clientAccountId, setClientAccountId] = useState<string | null>(null)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [acceptCgv, setAcceptCgv] = useState(false)
 
   const plan = searchParams?.get('plan')
@@ -52,7 +55,16 @@ export default function CheckoutPage() {
     fetchClientAccount()
   }, [session, status, router, plan])
 
-  const redirectToStripeCheckout = async (accountId: string) => {
+  // Créer la session Embedded uniquement après acceptation des CGV
+  useEffect(() => {
+    if (!clientAccountId || !plan) return
+    if (!acceptCgv) return
+    if (clientSecret) return
+    createEmbeddedCheckout(clientAccountId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientAccountId, plan, acceptCgv])
+
+  const createEmbeddedCheckout = async (accountId: string) => {
     try {
       const response = await fetch('/api/stripe/checkout-session', {
         method: 'POST',
@@ -74,11 +86,15 @@ export default function CheckoutPage() {
       }
 
       const data = await response.json()
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret)
+        return
+      }
       if (data.url) {
         window.location.href = data.url
         return
       }
-      toast.error('URL de paiement introuvable')
+      toast.error('Données de paiement introuvables')
       router.push('/client/subscribe')
     } catch (error) {
       console.error('Erreur:', error)
@@ -101,6 +117,8 @@ export default function CheckoutPage() {
     )
   }
 
+  const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
       <Card className="w-full max-w-lg">
@@ -117,7 +135,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <label className="flex items-start gap-3 mb-6 cursor-pointer">
+          <label className="flex items-start gap-3 mb-4 cursor-pointer">
             <input
               type="checkbox"
               className="mt-1 h-4 w-4"
@@ -129,13 +147,21 @@ export default function CheckoutPage() {
             </span>
           </label>
 
-          <Button
-            className="w-full"
-            disabled={!clientAccountId || !acceptCgv}
-            onClick={() => clientAccountId && redirectToStripeCheckout(clientAccountId)}
-          >
-            Payer avec Stripe <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+          {!acceptCgv && (
+            <div className="text-xs text-gray-500 mb-2">Cochez la case ci-dessus pour afficher le module de paiement.</div>
+          )}
+
+          {!acceptCgv ? (
+            <div className="w-full text-center text-sm text-gray-600">En attente d’acceptation des CGV…</div>
+          ) : !clientSecret ? (
+            <div className="w-full text-center text-sm text-gray-600">Initialisation du paiement sécurisé…</div>
+          ) : (
+            <div className="mt-6">
+              <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
