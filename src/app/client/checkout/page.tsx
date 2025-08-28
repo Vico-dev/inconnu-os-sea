@@ -18,6 +18,7 @@ export default function CheckoutPage() {
   const [clientAccountId, setClientAccountId] = useState<string | null>(null)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [acceptCgv, setAcceptCgv] = useState(false)
+  const [creating, setCreating] = useState(false)
 
   const plan = searchParams?.get('plan')
 
@@ -55,12 +56,12 @@ export default function CheckoutPage() {
     fetchClientAccount()
   }, [session, status, router, plan])
 
-  // Créer la session Embedded uniquement après acceptation des CGV
+  // Déclenchement automatique une fois les CGV acceptées
   useEffect(() => {
     if (!clientAccountId || !plan) return
     if (!acceptCgv) return
-    if (clientSecret) return
-    createEmbeddedCheckout(clientAccountId)
+    if (clientSecret || creating) return
+    void handleStartPayment()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientAccountId, plan, acceptCgv])
 
@@ -81,8 +82,8 @@ export default function CheckoutPage() {
       })
 
       if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err.error || 'Erreur Stripe')
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || `Erreur Stripe (${response.status})`)
       }
 
       const data = await response.json()
@@ -94,13 +95,18 @@ export default function CheckoutPage() {
         window.location.href = data.url
         return
       }
-      toast.error('Données de paiement introuvables')
-      router.push('/client/subscribe')
-    } catch (error) {
-      console.error('Erreur:', error)
-      toast.error('Erreur lors de la création du paiement')
-      router.push('/client/subscribe')
+      throw new Error('Données de paiement introuvables')
+    } catch (error: any) {
+      console.error('Erreur création paiement:', error)
+      toast.error(error?.message || 'Erreur lors de la création du paiement')
     }
+  }
+
+  const handleStartPayment = async () => {
+    if (!clientAccountId) return
+    setCreating(true)
+    await createEmbeddedCheckout(clientAccountId)
+    setCreating(false)
   }
 
   if (status === 'loading' || isLoading) {
@@ -110,7 +116,7 @@ export default function CheckoutPage() {
           <CardContent className="p-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
             <h2 className="text-xl font-semibold mb-2">Préparation du paiement</h2>
-            <p className="text-gray-600">Redirection vers le checkout sécurisé...</p>
+            <p className="text-gray-600">Chargement…</p>
           </CardContent>
         </Card>
       </div>
@@ -135,7 +141,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <label className="flex items-start gap-3 mb-4 cursor-pointer">
+          <label className="flex items-start gap-3 mb-3 cursor-pointer">
             <input
               type="checkbox"
               className="mt-1 h-4 w-4"
@@ -148,14 +154,22 @@ export default function CheckoutPage() {
           </label>
 
           {!acceptCgv && (
-            <div className="text-xs text-gray-500 mb-2">Cochez la case ci-dessus pour afficher le module de paiement.</div>
+            <div className="text-xs text-gray-500 mb-4">Cochez la case pour accéder au paiement.</div>
           )}
 
-          {!acceptCgv ? (
-            <div className="w-full text-center text-sm text-gray-600">En attente d’acceptation des CGV…</div>
-          ) : !clientSecret ? (
-            <div className="w-full text-center text-sm text-gray-600">Initialisation du paiement sécurisé…</div>
-          ) : (
+          {acceptCgv && !clientSecret && (
+            <div className="flex items-center gap-3 mb-2">
+              <Button onClick={handleStartPayment} disabled={creating} className="ml-auto">
+                {creating ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Initialisation…</>) : 'Accéder au paiement sécurisé'}
+              </Button>
+            </div>
+          )}
+
+          {acceptCgv && !clientSecret && (
+            <div className="w-full text-center text-sm text-gray-600">Le module Stripe apparaîtra ici dès qu’il est prêt.</div>
+          )}
+
+          {clientSecret && (
             <div className="mt-6">
               <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
                 <EmbeddedCheckout />
