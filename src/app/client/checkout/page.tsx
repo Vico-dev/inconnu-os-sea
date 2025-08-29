@@ -21,7 +21,8 @@ export default function CheckoutPage() {
   const [creating, setCreating] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [publishableKey, setPublishableKey] = useState<string | null>(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || null)
+  const [publishableKey, setPublishableKey] = useState<string | null>(null)
+  const [keyLoading, setKeyLoading] = useState(true)
 
   const plan = searchParams?.get('plan')
 
@@ -59,21 +60,32 @@ export default function CheckoutPage() {
     fetchClientAccount()
   }, [session, status, router, plan])
 
-  // Charger dynamiquement la clé publique si absente au build
+  // Charger la clé publique via l'API (plus fiable que build-time)
   useEffect(() => {
     const loadKey = async () => {
-      if (publishableKey) return
       try {
-        const res = await fetch('/api/stripe/public-key', { cache: 'no-store' })
+        setKeyLoading(true)
+        const res = await fetch('/api/stripe/public-key', { 
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        })
         if (!res.ok) throw new Error('Failed to fetch public key')
         const data = await res.json()
-        if (data.publishableKey) setPublishableKey(data.publishableKey)
+        if (data.publishableKey) {
+          setPublishableKey(data.publishableKey)
+          console.log('✅ Clé Stripe chargée via API')
+        } else {
+          throw new Error('No publishable key in response')
+        }
       } catch (e) {
-        console.error('Erreur chargement clé Stripe:', e)
+        console.error('❌ Erreur chargement clé Stripe:', e)
+        setErrorMessage('Impossible de charger la configuration de paiement')
+      } finally {
+        setKeyLoading(false)
       }
     }
     void loadKey()
-  }, [publishableKey])
+  }, [])
 
   // Déclenchement automatique une fois les CGV acceptées
   useEffect(() => {
@@ -135,14 +147,14 @@ export default function CheckoutPage() {
     setCreating(false)
   }
 
-  if (status === 'loading' || isLoading) {
+  if (status === 'loading' || isLoading || keyLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
             <h2 className="text-xl font-semibold mb-2">Préparation du paiement</h2>
-            <p className="text-gray-600">Chargement…</p>
+            <p className="text-gray-600">Chargement de la configuration sécurisée...</p>
           </CardContent>
         </Card>
       </div>
@@ -175,7 +187,7 @@ export default function CheckoutPage() {
               onChange={(e) => setAcceptCgv(e.target.checked)}
             />
             <span className="text-sm text-gray-700">
-              J’ai lu et j’accepte les <a href="/cgv" target="_blank" className="text-blue-700 underline">Conditions Générales de Vente</a>.
+              J'ai lu et j'accepte les <a href="/cgv" target="_blank" className="text-blue-700 underline">Conditions Générales de Vente</a>.
             </span>
           </label>
 
@@ -192,7 +204,7 @@ export default function CheckoutPage() {
           )}
 
           {acceptCgv && !clientSecret && (
-            <div className="w-full text-center text-sm text-gray-600 mb-2">{statusMessage || 'Le module Stripe apparaîtra ici dès qu’il est prêt.'}</div>
+            <div className="w-full text-center text-sm text-gray-600 mb-2">{statusMessage || 'Le module Stripe apparaîtra ici dès qu\'il est prêt.'}</div>
           )}
 
           {errorMessage && (
@@ -217,7 +229,7 @@ export default function CheckoutPage() {
           )}
 
           {clientSecret && !stripePromise && (
-            <div className="text-sm text-red-600">Clé Stripe publique manquante côté client. Configure NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.</div>
+            <div className="text-sm text-red-600">Configuration de paiement manquante. Veuillez rafraîchir la page.</div>
           )}
         </CardContent>
       </Card>
