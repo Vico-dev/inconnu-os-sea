@@ -198,6 +198,8 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
+  const [savedProgress, setSavedProgress] = useState<any>(null)
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true)
 
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     companyName: "",
@@ -242,14 +244,79 @@ export default function OnboardingPage() {
     }
   }, [isAuthenticated, router, searchParams])
 
+  // Charger l'avancement existant au montage
+  useEffect(() => {
+    const loadProgress = async () => {
+      try {
+        const response = await fetch('/api/onboarding/load-progress')
+        const data = await response.json()
+        
+        if (data.success) {
+          setSavedProgress(data.progress)
+          setCurrentStep(data.currentStep)
+          
+          // Pré-remplir les données si elles existent
+          if (data.progress.company) {
+            setOnboardingData(prev => ({
+              ...prev,
+              companyName: data.progress.company.companyName || '',
+              website: data.progress.company.website || '',
+              industry: data.progress.company.industry || '',
+              teamSize: data.progress.company.size || ''
+            }))
+          }
+          
+          if (data.progress.budget) {
+            setOnboardingData(prev => ({
+              ...prev,
+              dailyBudget: data.progress.budget.budget || ''
+            }))
+          }
+          
+          if (data.progress.plan) {
+            setOnboardingData(prev => ({
+              ...prev,
+              selectedPlan: data.progress.plan.plan || ''
+            }))
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement:', error)
+      } finally {
+        setIsLoadingProgress(false)
+      }
+    }
+    
+    if (isAuthenticated) {
+      loadProgress()
+    }
+  }, [isAuthenticated])
+
   const currentStepData = onboardingSteps.find(step => step.id === currentStep)
   const progress = (currentStep / onboardingSteps.length) * 100
 
-  const handleNext = () => {
-    // Étape 3: rediriger vers le checkout Stripe avec le plan choisi
-    if (currentStep === 3) {
+  const handleNext = async () => {
+    // Sauvegarder l'étape actuelle avant de passer à la suivante
+    if (currentStep === 1) {
+      // Sauvegarder les données de l'entreprise
+      await saveProgress('company', {
+        companyName: onboardingData.companyName,
+        industry: onboardingData.industry,
+        size: onboardingData.teamSize,
+        website: onboardingData.website
+      })
+    } else if (currentStep === 2) {
+      // Sauvegarder le budget
+      await saveProgress('budget', {
+        budget: onboardingData.dailyBudget
+      })
+    } else if (currentStep === 3) {
+      // Sauvegarder le plan sélectionné
       const recommended = getRecommendedPlan(onboardingData.dailyBudget || '') || 'MEDIUM_BUDGET'
       const planToUse = onboardingData.selectedPlan || recommended
+      await saveProgress('plan', { plan: planToUse })
+      
+      // Rediriger vers le checkout Stripe
       window.location.href = `/client/checkout?plan=${planToUse}`
       return
     }
@@ -299,6 +366,19 @@ export default function OnboardingPage() {
       
       return newData
     })
+  }
+
+  // Fonction pour sauvegarder l'avancement
+  const saveProgress = async (step: string, data: any) => {
+    try {
+      await fetch('/api/onboarding/save-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step, data })
+      })
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error)
+    }
   }
 
   const handleGoalToggle = (goal: string) => {
