@@ -211,15 +211,6 @@ export default function CheckoutPage() {
             <div className="text-sm text-red-600 mb-3">{errorMessage}</div>
           )}
 
-          {/* Panneau de diagnostic */}
-          <div className="text-xs text-gray-500 border border-dashed rounded p-3 mb-4">
-            <div>Diag:</div>
-            <div>plan: <span className="font-mono">{String(plan)}</span></div>
-            <div>clientAccountId: <span className="font-mono">{String(clientAccountId)}</span></div>
-            <div>publishableKey présent: <span className="font-mono">{publishableKey ? 'oui' : 'non'}</span></div>
-            <div>clientSecret reçu: <span className="font-mono">{clientSecret ? 'oui' : 'non'}</span></div>
-          </div>
-
           {clientSecret && stripePromise && (
             <div className="mt-6">
               <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
