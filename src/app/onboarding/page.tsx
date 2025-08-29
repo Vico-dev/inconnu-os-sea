@@ -253,7 +253,16 @@ export default function OnboardingPage() {
         
         if (data.success) {
           setSavedProgress(data.progress)
-          setCurrentStep(data.currentStep)
+          
+          // Si l'onboarding est terminé, rediriger vers l'espace client
+          if (data.onboardingCompleted) {
+            router.push('/client')
+            return
+          }
+          
+          // Sinon, définir l'étape actuelle (max 4 étapes)
+          const stepToShow = Math.min(data.currentStep, onboardingSteps.length)
+          setCurrentStep(stepToShow)
           
           // Pré-remplir les données si elles existent
           if (data.progress.company) {
@@ -290,7 +299,7 @@ export default function OnboardingPage() {
     if (isAuthenticated) {
       loadProgress()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, router])
 
   const currentStepData = onboardingSteps.find(step => step.id === currentStep)
   const progress = (currentStep / onboardingSteps.length) * 100
