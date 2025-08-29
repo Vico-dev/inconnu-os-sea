@@ -8,8 +8,22 @@ const SCOPES = [
 
 // Configuration de l'authentification Google
 export function createGoogleAuth() {
+  const keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS
+  const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
+
+  if (credentialsJson && credentialsJson.trim().length > 0) {
+    // Utiliser les credentials fournis en JSON (pratique pour Railway)
+    const credentials = JSON.parse(credentialsJson)
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: SCOPES,
+    })
+    return auth
+  }
+
+  // Fallback: utiliser un chemin de fichier local si fourni
   const auth = new google.auth.GoogleAuth({
-    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS, // Chemin vers le fichier de service
+    keyFile, // Chemin vers le fichier de service
     scopes: SCOPES,
   })
 
