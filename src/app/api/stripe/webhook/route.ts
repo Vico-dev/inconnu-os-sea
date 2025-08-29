@@ -84,20 +84,23 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const sub = await stripe.subscriptions.retrieve(subscriptionId)
 
-  // Mettre à jour le ClientAccount avec l'acceptation des CGV
-  if (cgvAccepted && clientAccountId) {
+  // Mettre à jour le ClientAccount avec l'acceptation des CGV et marquer l'onboarding comme terminé
+  if (clientAccountId) {
     try {
       // Utiliser une requête SQL brute pour éviter les problèmes de types Prisma
       await prisma.$executeRaw`
         UPDATE "ClientAccount" 
-        SET "cgvAccepted" = true, 
+        SET "cgvAccepted" = ${cgvAccepted || false}, 
             "cgvVersion" = ${cgvVersion || '1.0'}, 
-            "cgvAcceptedAt" = ${cgvAcceptedAt ? new Date(cgvAcceptedAt) : new Date()}
+            "cgvAcceptedAt" = ${cgvAcceptedAt ? new Date(cgvAcceptedAt) : new Date()},
+            "onboardingCompleted" = true,
+            "subscriptionPlan" = ${plan}
         WHERE id = ${clientAccountId}
       `
+      console.log(`✅ Onboarding marqué comme terminé pour le client ${clientAccountId}`)
     } catch (error) {
-      console.warn('Erreur lors de la mise à jour CGV (champs peut-être non disponibles):', error)
-      // Continue sans échouer si les champs CGV ne sont pas encore disponibles
+      console.warn('Erreur lors de la mise à jour ClientAccount:', error)
+      // Continue sans échouer si les champs ne sont pas encore disponibles
     }
   }
 
