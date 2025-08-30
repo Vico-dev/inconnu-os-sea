@@ -44,20 +44,24 @@ export async function GET(request: NextRequest) {
     // Étape 1: Profil entreprise
     if (user.clientAccount.company) {
       progress.company = {
-        companyName: user.clientAccount.company.name,
-        industry: user.clientAccount.company.industry,
-        size: user.clientAccount.company.size,
-        website: user.clientAccount.company.website
+        companyName: user.clientAccount.company.name || '',
+        industry: user.clientAccount.company.industry || '',
+        size: user.clientAccount.company.size || '',
+        website: user.clientAccount.company.website || ''
       }
       currentStep = 2
     }
 
-    // Étape 2: Budget Google Ads
-    if (user.clientAccount.googleAdsBudget) {
-      progress.budget = {
-        budget: user.clientAccount.googleAdsBudget
+    // Étape 2: Budget Google Ads (vérifier si le champ existe)
+    try {
+      if (user.clientAccount.googleAdsBudget) {
+        progress.budget = {
+          budget: user.clientAccount.googleAdsBudget
+        }
+        currentStep = 3
       }
-      currentStep = 3
+    } catch (error) {
+      console.log('Champ googleAdsBudget non disponible')
     }
 
     // Étape 3: Plan sélectionné
@@ -68,32 +72,43 @@ export async function GET(request: NextRequest) {
       currentStep = 4
     }
 
-    // Étape 4: Paiement
-    if (user.clientAccount.paymentCompleted || user.clientAccount.subscription?.status === 'ACTIVE') {
-      progress.payment = {
-        completed: true
+    // Étape 4: Paiement (vérifier si le champ existe)
+    try {
+      if (user.clientAccount.paymentCompleted || user.clientAccount.subscription?.status === 'ACTIVE') {
+        progress.payment = {
+          completed: true
+        }
+        currentStep = 5
       }
-      currentStep = 5
+    } catch (error) {
+      console.log('Champ paymentCompleted non disponible')
     }
 
-    // Étape 5: Connexion Google Ads
-    if (user.clientAccount.googleAdsConnected) {
-      progress.googleAds = {
-        connected: true
+    // Étape 5: Connexion Google Ads (vérifier si le champ existe)
+    try {
+      if (user.clientAccount.googleAdsConnected) {
+        progress.googleAds = {
+          connected: true
+        }
+        currentStep = 6 // Onboarding terminé
       }
-      currentStep = 6 // Onboarding terminé
+    } catch (error) {
+      console.log('Champ googleAdsConnected non disponible')
     }
 
     return NextResponse.json({
       success: true,
       currentStep,
       progress,
-      onboardingCompleted: user.clientAccount.onboardingCompleted,
+      onboardingCompleted: user.clientAccount.onboardingCompleted || false,
       clientAccountId: user.clientAccount.id
     })
 
   } catch (error) {
     console.error('Erreur lors du chargement:', error)
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Erreur interne du serveur',
+      details: error instanceof Error ? error.message : 'Erreur inconnue'
+    }, { status: 500 })
   }
 } 

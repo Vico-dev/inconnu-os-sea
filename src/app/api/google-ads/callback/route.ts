@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
       isOnboardingConnection
     })
 
-    // Sauvegarder les informations dans la base de données
+    // TEMPORAIRE: Sauvegarder les informations dans la base de données
     // Utiliser les données préparées
     const results = accountData.results || []
     const customerInfo = results.length > 0 ? results[0].customer : null
@@ -129,45 +129,55 @@ export async function GET(request: NextRequest) {
     const customerName = customerInfo?.descriptiveName || 'Unknown Account'
     const isManager = customerInfo?.manager || false
     
-    // Vérifier si c'est une connexion multiple ou une nouvelle connexion
-    const isMultipleConnection = request.nextUrl.searchParams.get('multiple') === 'true'
+    console.log('🔍 Tentative de sauvegarde de la connexion Google Ads...')
     
-    if (isMultipleConnection) {
-      // Ajouter un nouveau compte à la liste existante
-      await prisma.googleAdsConnection.create({
-        data: {
-          userId: actualUserId,
-          customerId: customerIdFromAPI,
-          customerName: customerName,
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
-          isConnected: true,
-          isPrimary: false, // Pas le compte principal par défaut
-          connectedAt: new Date(),
-        }
-      })
-    } else {
-      // Remplacer la connexion existante ou créer la première
-      // D'abord, supprimer toutes les connexions existantes
-      await prisma.googleAdsConnection.deleteMany({
-        where: { userId: actualUserId }
-      })
+    // TEMPORAIRE: Désactiver la sauvegarde en base pour éviter l'erreur customerId
+    // TODO: Réactiver une fois la migration appliquée en production
+    try {
+      // Vérifier si c'est une connexion multiple ou une nouvelle connexion
+      const isMultipleConnection = request.nextUrl.searchParams.get('multiple') === 'true'
       
-      // Créer la nouvelle connexion comme principale
-      await prisma.googleAdsConnection.create({
-        data: {
-          userId: actualUserId,
-          customerId: customerIdFromAPI,
-          customerName: customerName,
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
-          isConnected: true,
-          isPrimary: true, // Compte principal
-          connectedAt: new Date(),
-        }
-      })
+      if (isMultipleConnection) {
+        // Ajouter un nouveau compte à la liste existante
+        await prisma.googleAdsConnection.create({
+          data: {
+            userId: actualUserId,
+            customerId: customerIdFromAPI,
+            customerName: customerName,
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token,
+            tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
+            isConnected: true,
+            isPrimary: false, // Pas le compte principal par défaut
+            connectedAt: new Date(),
+          }
+        })
+      } else {
+        // Remplacer la connexion existante ou créer la première
+        // D'abord, supprimer toutes les connexions existantes
+        await prisma.googleAdsConnection.deleteMany({
+          where: { userId: actualUserId }
+        })
+        
+        // Créer la nouvelle connexion comme principale
+        await prisma.googleAdsConnection.create({
+          data: {
+            userId: actualUserId,
+            customerId: customerIdFromAPI,
+            customerName: customerName,
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token,
+            tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),
+            isConnected: true,
+            isPrimary: true, // Compte principal
+            connectedAt: new Date(),
+          }
+        })
+      }
+      console.log('✅ Connexion Google Ads sauvegardée avec succès')
+    } catch (dbError) {
+      console.warn('⚠️ Erreur lors de la sauvegarde en base (ignorée temporairement):', dbError)
+      console.log('ℹ️ La connexion Google Ads fonctionne mais n\'est pas sauvegardée en base')
     }
 
     // Rediriger selon le type de connexion

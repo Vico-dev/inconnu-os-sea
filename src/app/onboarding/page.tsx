@@ -798,10 +798,18 @@ export default function OnboardingPage() {
             <p className="text-sm text-gray-600 mb-4">
               Parfait ! Votre abonnement est actif. Maintenant configurons votre compte Google Ads pour commencer l&apos;optimisation de vos campagnes.
             </p>
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-800">
-                ✅ Votre abonnement est actif ! Vous pouvez maintenant configurer Google Ads.
-              </p>
+            <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl shadow-sm">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <Check className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-green-900">Abonnement actif</h3>
+                  <p className="text-sm text-green-700">
+                    Votre abonnement est actif ! Vous pouvez maintenant configurer Google Ads.
+                  </p>
+                </div>
+              </div>
             </div>
             
             {/* Choix du type de compte Google Ads */}

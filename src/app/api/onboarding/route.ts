@@ -153,10 +153,16 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Vérifier si Google Ads est connecté
-    const googleAdsConnection = await prisma.googleAdsConnection.findFirst({
-      where: { userId }
-    })
+    // TEMPORAIRE: Vérifier si Google Ads est connecté (désactivé pour éviter l'erreur customerId)
+    let googleAdsConnection = null
+    try {
+      googleAdsConnection = await prisma.googleAdsConnection.findFirst({
+        where: { userId }
+      })
+    } catch (dbError) {
+      console.warn('⚠️ Erreur lors de la vérification Google Ads (ignorée temporairement):', dbError)
+      googleAdsConnection = null
+    }
 
     console.log("Onboarding terminé pour l&apos;utilisateur:", userId)
     console.log("Connexion Google Ads:", googleAdsConnection ? "Connecté" : "Non connecté")
