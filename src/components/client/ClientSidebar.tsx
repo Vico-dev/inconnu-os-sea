@@ -16,7 +16,8 @@ import {
   Menu,
   X,
   LogOut,
-  FileText
+  FileText,
+  ShoppingCart
 } from "lucide-react"
 
 export function ClientSidebar() {
@@ -64,6 +65,12 @@ export function ClientSidebar() {
       href: "/client/google-ads",
       icon: BarChart3,
       current: pathname === "/client/google-ads"
+    },
+    {
+      name: "Feed Manager",
+      href: "/client/feed-manager",
+      icon: ShoppingCart,
+      current: pathname === "/client/feed-manager"
     },
     {
       name: "Mandat",
