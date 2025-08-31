@@ -326,12 +326,12 @@ export class ShopifyService {
     let score = 50 // Score de base
 
     // Bonus pour les produits avec images
-    if (product.images.length > 0) score += 10
-    if (product.images.length > 3) score += 5
+    if (product.images && product.images.length > 0) score += 10
+    if (product.images && product.images.length > 3) score += 5
 
     // Bonus pour les descriptions complètes
-    if (product.description.length > 100) score += 10
-    if (product.description.length > 500) score += 5
+    if (product.description && product.description.length > 100) score += 10
+    if (product.description && product.description.length > 500) score += 5
 
     // Bonus pour les tags
     if (Array.isArray(product.tags) && product.tags.length > 0) score += 5
@@ -341,7 +341,7 @@ export class ShopifyService {
     if (Array.isArray(product.collections) && product.collections.length > 0) score += 5
 
     // Bonus pour les variantes
-    if (product.variants.length > 1) score += 5
+    if (product.variants && product.variants.length > 1) score += 5
 
     return Math.min(score, 100)
   }
