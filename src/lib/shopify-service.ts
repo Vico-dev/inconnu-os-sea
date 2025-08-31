@@ -79,8 +79,10 @@ export class ShopifyService {
       throw new Error('Configuration Shopify manquante')
     }
 
+    // Ajouter .myshopify.com si pas déjà présent
+    const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
     const scopeString = scopes.join(',')
-    return `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopeString}&redirect_uri=${redirectUri}&state=${Date.now()}`
+    return `https://${fullShopDomain}/admin/oauth/authorize?client_id=${clientId}&scope=${scopeString}&redirect_uri=${redirectUri}&state=${Date.now()}`
   }
 
   /**
@@ -94,7 +96,9 @@ export class ShopifyService {
       throw new Error('Configuration Shopify manquante')
     }
 
-    const response = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    // Ajouter .myshopify.com si pas déjà présent
+    const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
+    const response = await fetch(`https://${fullShopDomain}/admin/oauth/access_token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -121,7 +125,9 @@ export class ShopifyService {
    * Récupère les informations du store
    */
   static async getShopInfo(shop: string, accessToken: string): Promise<Partial<ShopifyStore>> {
-    const response = await fetch(`${this.baseUrl}/shop.json`, {
+    // Ajouter .myshopify.com si pas déjà présent
+    const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
+    const response = await fetch(`https://${fullShopDomain}/admin/api/2024-01/shop.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
       },
@@ -146,13 +152,15 @@ export class ShopifyService {
    * Récupère tous les produits du store
    */
   static async getProducts(shop: string, accessToken: string, limit: number = 250): Promise<ShopifyProduct[]> {
+    // Ajouter .myshopify.com si pas déjà présent
+    const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
     const products: ShopifyProduct[] = []
     let nextPageInfo: string | null = null
 
     do {
       const url = nextPageInfo 
-        ? `${this.baseUrl}/products.json?limit=${limit}&page_info=${nextPageInfo}`
-        : `${this.baseUrl}/products.json?limit=${limit}`
+        ? `https://${fullShopDomain}/admin/api/2024-01/products.json?limit=${limit}&page_info=${nextPageInfo}`
+        : `https://${fullShopDomain}/admin/api/2024-01/products.json?limit=${limit}`
 
       const response = await fetch(url, {
         headers: {
