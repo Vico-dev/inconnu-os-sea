@@ -39,12 +39,12 @@ export async function GET(request: NextRequest) {
     // Récupérer les produits
     const products = await ShopifyService.getProducts(store.domain, store.accessToken, limit)
 
-    // Optimiser les produits pour GMC
-    const optimizedProducts = products.map(product => ShopifyService.optimizeProductForGMC(product))
+    // Optimiser les produits pour GMC (temporairement désactivé)
+    // const optimizedProducts = products.map(product => ShopifyService.optimizeProductForGMC(product))
 
     return NextResponse.json({
       success: true,
-      products: optimizedProducts,
+      products: products, // Retourner les produits bruts pour l'instant
       total: products.length,
       store: {
         id: store.id,
