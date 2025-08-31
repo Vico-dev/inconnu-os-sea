@@ -313,8 +313,8 @@ export class ShopifyService {
       condition: 'new',
       product_type: product.productType,
       google_product_category: this.mapToGoogleCategory(product.productType),
-      custom_label_0: product.tags?.join(',') || '',
-      custom_label_1: product.collections?.join(',') || '',
+      custom_label_0: Array.isArray(product.tags) ? product.tags.join(',') : (product.tags || ''),
+      custom_label_1: Array.isArray(product.collections) ? product.collections.join(',') : (product.collections || ''),
       custom_label_2: this.calculatePerformanceScore(product).toString(),
     }
   }
@@ -334,11 +334,11 @@ export class ShopifyService {
     if (product.description.length > 500) score += 5
 
     // Bonus pour les tags
-    if (product.tags && product.tags.length > 0) score += 5
-    if (product.tags && product.tags.length > 5) score += 5
+    if (Array.isArray(product.tags) && product.tags.length > 0) score += 5
+    if (Array.isArray(product.tags) && product.tags.length > 5) score += 5
 
     // Bonus pour les collections
-    if (product.collections && product.collections.length > 0) score += 5
+    if (Array.isArray(product.collections) && product.collections.length > 0) score += 5
 
     // Bonus pour les variantes
     if (product.variants.length > 1) score += 5
