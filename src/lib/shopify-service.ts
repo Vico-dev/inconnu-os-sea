@@ -294,28 +294,43 @@ export class ShopifyService {
    * Optimise les données produit pour Google Merchant Center
    */
   static optimizeProductForGMC(product: ShopifyProduct): any {
-    const primaryVariant = product.variants[0]
-    const primaryImage = product.images[0]
+    // Version simplifiée qui évite les erreurs
+    const primaryVariant = product.variants?.[0] || {}
+    const primaryImage = product.images?.[0] || {}
+    const score = this.calculatePerformanceScore(product)
+    const recommendations = this.generateImprovementRecommendations(product)
 
     return {
-      id: product.id.toString(),
-      title: product.title,
-      description: product.description,
-      link: `https://${product.vendor}.myshopify.com/products/${product.handle}`,
-      image_link: primaryImage?.src,
-      additional_image_link: product.images.slice(1, 10).map(img => img.src),
-      availability: primaryVariant.inventoryQuantity > 0 ? 'in stock' : 'out of stock',
-      price: `${primaryVariant.price} ${product.currency || 'EUR'}`,
+      id: product.id?.toString() || '',
+      title: product.title || '',
+      description: product.description || '',
+      link: product.handle ? `https://${product.vendor || 'shop'}.myshopify.com/products/${product.handle}` : '',
+      image_link: primaryImage?.src || '',
+      additional_image_link: product.images?.slice(1, 10).map(img => img?.src || '').filter(Boolean) || [],
+      availability: (primaryVariant.inventoryQuantity || 0) > 0 ? 'in stock' : 'out of stock',
+      price: `${primaryVariant.price || '0'} ${product.currency || 'EUR'}`,
       sale_price: primaryVariant.compareAtPrice ? `${primaryVariant.compareAtPrice} ${product.currency || 'EUR'}` : undefined,
-      brand: product.vendor,
-      gtin: primaryVariant.barcode,
-      mpn: primaryVariant.sku,
+      brand: product.vendor || '',
+      gtin: primaryVariant.barcode || '',
+      mpn: primaryVariant.sku || '',
       condition: 'new',
-      product_type: product.productType,
-      google_product_category: this.mapToGoogleCategory(product.productType),
+      product_type: product.productType || '',
+      google_product_category: this.mapToGoogleCategory(product.productType || ''),
       custom_label_0: Array.isArray(product.tags) ? product.tags.join(',') : (product.tags || ''),
       custom_label_1: Array.isArray(product.collections) ? product.collections.join(',') : (product.collections || ''),
-      custom_label_2: this.calculatePerformanceScore(product).toString(),
+      custom_label_2: score.toString(),
+      // Données d'analyse IA
+      ai_analysis: {
+        score,
+        recommendations,
+        image_count: product.images?.length || 0,
+        description_length: product.description?.length || 0,
+        tags_count: Array.isArray(product.tags) ? product.tags.length : 0,
+        collections_count: Array.isArray(product.collections) ? product.collections.length : 0,
+        variants_count: product.variants?.length || 0,
+        has_stock: (primaryVariant.inventoryQuantity || 0) > 0,
+        price_valid: (primaryVariant.price || 0) > 0
+      }
     }
   }
 
@@ -325,25 +340,81 @@ export class ShopifyService {
   private static calculatePerformanceScore(product: ShopifyProduct): number {
     let score = 50 // Score de base
 
-    // Bonus pour les produits avec images
-    if (product.images && product.images.length > 0) score += 10
-    if (product.images && product.images.length > 3) score += 5
+    try {
+      // Bonus pour les produits avec images
+      if (product.images && Array.isArray(product.images) && product.images.length > 0) score += 10
+      if (product.images && Array.isArray(product.images) && product.images.length > 3) score += 5
 
-    // Bonus pour les descriptions complètes
-    if (product.description && product.description.length > 100) score += 10
-    if (product.description && product.description.length > 500) score += 5
+      // Bonus pour les descriptions complètes
+      if (product.description && typeof product.description === 'string' && product.description.length > 100) score += 10
+      if (product.description && typeof product.description === 'string' && product.description.length > 500) score += 5
 
-    // Bonus pour les tags
-    if (Array.isArray(product.tags) && product.tags.length > 0) score += 5
-    if (Array.isArray(product.tags) && product.tags.length > 5) score += 5
+      // Bonus pour les tags
+      if (Array.isArray(product.tags) && product.tags.length > 0) score += 5
+      if (Array.isArray(product.tags) && product.tags.length > 5) score += 5
 
-    // Bonus pour les collections
-    if (Array.isArray(product.collections) && product.collections.length > 0) score += 5
+      // Bonus pour les collections
+      if (Array.isArray(product.collections) && product.collections.length > 0) score += 5
 
-    // Bonus pour les variantes
-    if (product.variants && product.variants.length > 1) score += 5
+      // Bonus pour les variantes
+      if (product.variants && Array.isArray(product.variants) && product.variants.length > 1) score += 5
+    } catch (error) {
+      console.error('Erreur lors du calcul du score:', error)
+      return 50 // Score de base en cas d'erreur
+    }
 
     return Math.min(score, 100)
+  }
+
+  /**
+   * Génère des recommandations d'amélioration pour un produit
+   */
+  private static generateImprovementRecommendations(product: ShopifyProduct): string[] {
+    const recommendations: string[] = []
+
+    // Vérifier les images
+    if (!product.images || !Array.isArray(product.images) || product.images.length === 0) {
+      recommendations.push('Ajouter au moins une image au produit')
+    } else if (product.images.length < 3) {
+      recommendations.push('Ajouter plus d\'images (minimum 3 recommandé)')
+    }
+
+    // Vérifier la description
+    if (!product.description || product.description.length < 100) {
+      recommendations.push('Améliorer la description (minimum 100 caractères)')
+    } else if (product.description.length < 500) {
+      recommendations.push('Enrichir la description avec plus de détails')
+    }
+
+    // Vérifier les tags
+    if (!Array.isArray(product.tags) || product.tags.length === 0) {
+      recommendations.push('Ajouter des tags pour améliorer la visibilité')
+    } else if (product.tags.length < 5) {
+      recommendations.push('Ajouter plus de tags (minimum 5 recommandé)')
+    }
+
+    // Vérifier les collections
+    if (!Array.isArray(product.collections) || product.collections.length === 0) {
+      recommendations.push('Associer le produit à des collections')
+    }
+
+    // Vérifier le stock
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      const hasStock = product.variants.some(variant => (variant.inventoryQuantity || 0) > 0)
+      if (!hasStock) {
+        recommendations.push('Mettre à jour le stock du produit')
+      }
+    }
+
+    // Vérifier le prix
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      const variant = product.variants[0]
+      if (!variant.price || variant.price <= 0) {
+        recommendations.push('Définir un prix valide pour le produit')
+      }
+    }
+
+    return recommendations
   }
 
   /**

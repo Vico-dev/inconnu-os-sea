@@ -20,7 +20,8 @@ import {
   CheckCircle,
   AlertCircle,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Lightbulb
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
@@ -359,6 +360,7 @@ export default function FeedManagerPage() {
                 <div className="space-y-4">
                   {products.slice(0, 10).map((product) => {
                     const score = getPerformanceScore(product.custom_label_2)
+                    const aiAnalysis = product.ai_analysis
                     return (
                       <div key={product.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                         <div className="flex items-start gap-4">
@@ -373,14 +375,40 @@ export default function FeedManagerPage() {
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold">{product.title}</h3>
                               <Badge className={score.color}>{score.label}</Badge>
+                              <span className="text-xs text-gray-500">Score: {aiAnalysis?.score || product.custom_label_2}</span>
                             </div>
-                            <p className="text-gray-600 text-sm mb-2">{product.description.substring(0, 100)}...</p>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <p className="text-gray-600 text-sm mb-2">
+                              {product.description ? product.description.substring(0, 100) + '...' : 'Aucune description'}
+                            </p>
+                            <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
                               <span>Prix: {product.price}</span>
                               <span>Marque: {product.brand}</span>
                               <span>Type: {product.product_type}</span>
                               <span>Disponibilité: {product.availability}</span>
                             </div>
+                            
+                            {/* Analyse IA et recommandations */}
+                            {aiAnalysis && aiAnalysis.recommendations && aiAnalysis.recommendations.length > 0 && (
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                                  <Lightbulb className="w-4 h-4" />
+                                  Recommandations d'amélioration
+                                </h4>
+                                <ul className="space-y-1">
+                                  {aiAnalysis.recommendations.slice(0, 3).map((rec, index) => (
+                                    <li key={index} className="text-sm text-blue-800 flex items-start gap-2">
+                                      <span className="text-blue-600 mt-1">•</span>
+                                      {rec}
+                                    </li>
+                                  ))}
+                                </ul>
+                                {aiAnalysis.recommendations.length > 3 && (
+                                  <p className="text-xs text-blue-600 mt-2">
+                                    +{aiAnalysis.recommendations.length - 3} autres recommandations...
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
