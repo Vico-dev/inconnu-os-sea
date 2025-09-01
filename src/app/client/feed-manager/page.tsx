@@ -685,6 +685,7 @@ export default function FeedManagerPage() {
                           <Copy className="w-3 h-3 mr-1" />
                           Copier
                         </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
