@@ -21,7 +21,8 @@ import {
   AlertCircle,
   BarChart3,
   TrendingUp,
-  Lightbulb
+  Lightbulb,
+  Copy
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
@@ -58,6 +59,11 @@ export default function FeedManagerPage() {
   const [showConnectDialog, setShowConnectDialog] = useState(false)
   const [shopName, setShopName] = useState('')
   const [activeTab, setActiveTab] = useState('stores')
+  const [showContentAnalysisModal, setShowContentAnalysisModal] = useState(false)
+  const [showABTestingModal, setShowABTestingModal] = useState(false)
+  const [selectedProductForAnalysis, setSelectedProductForAnalysis] = useState<any>(null)
+  const [contentAnalysis, setContentAnalysis] = useState<any>(null)
+  const [abTestingData, setAbTestingData] = useState<any>(null)
 
   useEffect(() => {
     fetchStores()
@@ -164,6 +170,58 @@ export default function FeedManagerPage() {
     } catch (error) {
       toast.dismiss()
       toast.error('Erreur lors de l\'export')
+    }
+  }
+
+  const showContentAnalysis = async (productId: string, storeId: string) => {
+    try {
+      const product = products.find(p => p.id === productId)
+      if (!product) return
+
+      setSelectedProductForAnalysis(product)
+      
+      const response = await fetch('/api/shopify/ai-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, storeId, analysisType: 'content' })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setContentAnalysis(data)
+        setShowContentAnalysisModal(true)
+      } else {
+        toast.error('Erreur lors de l\'analyse du contenu')
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      toast.error('Erreur lors de l\'analyse du contenu')
+    }
+  }
+
+  const showABTesting = async (productId: string, storeId: string) => {
+    try {
+      const product = products.find(p => p.id === productId)
+      if (!product) return
+
+      setSelectedProductForAnalysis(product)
+      
+      const response = await fetch('/api/shopify/ai-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, storeId, analysisType: 'ab_testing' })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setAbTestingData(data)
+        setShowABTestingModal(true)
+      } else {
+        toast.error('Erreur lors de la génération des variantes A/B')
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      toast.error('Erreur lors de la génération des variantes A/B')
     }
   }
 
@@ -409,6 +467,28 @@ export default function FeedManagerPage() {
                                 )}
                               </div>
                             )}
+
+                            {/* Boutons d'analyse IA avancée */}
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => showContentAnalysis(product.id, selectedStore)}
+                                className="text-xs"
+                              >
+                                <BarChart3 className="w-3 h-3 mr-1" />
+                                Analyse Contenu
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => showABTesting(product.id, selectedStore)}
+                                className="text-xs"
+                              >
+                                <TrendingUp className="w-3 h-3 mr-1" />
+                                A/B Testing
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -482,6 +562,172 @@ export default function FeedManagerPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal d'analyse de contenu */}
+      <Dialog open={showContentAnalysisModal} onOpenChange={setShowContentAnalysisModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Analyse IA du Contenu - {selectedProductForAnalysis?.title}</DialogTitle>
+          </DialogHeader>
+          
+          {contentAnalysis && (
+            <div className="space-y-6">
+              {/* Analyse du titre */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Analyse du Titre</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Titre actuel:</strong> {contentAnalysis.analysis.title.current}</p>
+                    <p><strong>Longueur:</strong> {contentAnalysis.analysis.title.length} caractères</p>
+                    <p><strong>Contient des mots-clés:</strong> {contentAnalysis.analysis.title.hasKeywords ? '✅' : '❌'}</p>
+                    <p><strong>Contient la marque:</strong> {contentAnalysis.analysis.title.hasBrand ? '✅' : '❌'}</p>
+                    <p><strong>Contient la catégorie:</strong> {contentAnalysis.analysis.title.hasCategory ? '✅' : '❌'}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-2">Suggestions d'amélioration:</p>
+                    <ul className="space-y-1">
+                      {contentAnalysis.analysis.title.suggestions.map((suggestion: string, index: number) => (
+                        <li key={index} className="text-blue-600">• {suggestion}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Analyse de la description */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Analyse de la Description</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Longueur:</strong> {contentAnalysis.analysis.description.length} caractères</p>
+                    <p><strong>Contient des bénéfices:</strong> {contentAnalysis.analysis.description.hasBenefits ? '✅' : '❌'}</p>
+                    <p><strong>Contient des caractéristiques:</strong> {contentAnalysis.analysis.description.hasFeatures ? '✅' : '❌'}</p>
+                    <p><strong>Contient un CTA:</strong> {contentAnalysis.analysis.description.hasCallToAction ? '✅' : '❌'}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-yellow-800">Suggestions d'amélioration:</p>
+                    <ul className="space-y-1">
+                      {contentAnalysis.analysis.description.suggestions.map((suggestion: string, index: number) => (
+                        <li key={index} className="text-blue-600">• {suggestion}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Variantes de titre suggérées */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Variantes de Titre Optimisées</h3>
+                <div className="space-y-2">
+                  {contentAnalysis.title_variants.map((variant: string, index: number) => (
+                    <div key={index} className="p-3 bg-gray-50 rounded border">
+                      <p className="font-medium">Variante {index + 1}:</p>
+                      <p className="text-gray-700">{variant}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Variantes de description suggérées */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Variantes de Description Optimisées</h3>
+                <div className="space-y-2">
+                  {contentAnalysis.description_variants.map((variant: string, index: number) => (
+                    <div key={index} className="p-3 bg-gray-50 rounded border">
+                      <p className="font-medium">Variante {index + 1}:</p>
+                      <p className="text-gray-700">{variant}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal d'A/B Testing */}
+      <Dialog open={showABTestingModal} onOpenChange={setShowABTestingModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>A/B Testing - {selectedProductForAnalysis?.title}</DialogTitle>
+          </DialogHeader>
+          
+          {abTestingData && (
+            <div className="space-y-6">
+              {/* Contenu actuel */}
+              <div className="border rounded-lg p-4 bg-blue-50">
+                <h3 className="font-semibold mb-3 text-blue-900">Contenu Actuel</h3>
+                <div className="space-y-2">
+                  <p><strong>Titre:</strong> {abTestingData.current_content.title}</p>
+                  <p><strong>Description:</strong> {abTestingData.current_content.description}</p>
+                </div>
+              </div>
+
+              {/* Variantes de titre pour A/B testing */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Variantes de Titre pour A/B Testing</h3>
+                <div className="space-y-3">
+                  {abTestingData.title_variants.map((variant: string, index: number) => (
+                    <div key={index} className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-purple-900">Variante {index + 1}</span>
+                        <Badge variant="outline" className="text-xs">Test A/B</Badge>
+                      </div>
+                      <p className="text-gray-800 mb-3">{variant}</p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="text-xs">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Tester cette variante
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-xs">
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copier
+                        </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Variantes de description pour A/B testing */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Variantes de Description pour A/B Testing</h3>
+                <div className="space-y-3">
+                  {abTestingData.description_variants.map((variant: string, index: number) => (
+                    <div key={index} className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-green-900">Variante {index + 1}</span>
+                        <Badge variant="outline" className="text-xs">Test A/B</Badge>
+                      </div>
+                      <p className="text-gray-800 mb-3 text-sm leading-relaxed">{variant}</p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="text-xs">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Tester cette variante
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-xs">
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copier
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Plan de test A/B */}
+              <div className="border rounded-lg p-4 bg-yellow-50">
+                <h3 className="font-semibold mb-3 text-yellow-900">Plan de Test A/B Recommandé</h3>
+                <div className="space-y-2 text-sm text-yellow-800">
+                  <p>• <strong>Durée:</strong> 2-4 semaines pour des résultats significatifs</p>
+                  <p>• <strong>Trafic:</strong> Diviser équitablement entre variantes</p>
+                  <p>• <strong>Métriques:</strong> CTR, conversions, temps sur page</p>
+                  <p>• <strong>Outils:</strong> Google Optimize, VWO, ou Optimizely</p>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

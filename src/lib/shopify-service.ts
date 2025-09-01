@@ -299,6 +299,9 @@ export class ShopifyService {
     const primaryImage = product.images?.[0] || {}
     const score = this.calculatePerformanceScore(product)
     const recommendations = this.generateImprovementRecommendations(product)
+    const contentAnalysis = this.analyzeContent(product)
+    const titleVariants = this.generateTitleVariants(product)
+    const descriptionVariants = this.generateDescriptionVariants(product)
 
     return {
       id: product.id?.toString() || '',
@@ -329,7 +332,11 @@ export class ShopifyService {
         collections_count: Array.isArray(product.collections) ? product.collections.length : 0,
         variants_count: product.variants?.length || 0,
         has_stock: (primaryVariant.inventoryQuantity || 0) > 0,
-        price_valid: (primaryVariant.price || 0) > 0
+        price_valid: (primaryVariant.price || 0) > 0,
+        // Nouvelles analyses de contenu
+        content_analysis: contentAnalysis,
+        title_variants: titleVariants,
+        description_variants: descriptionVariants
       }
     }
   }
@@ -415,6 +422,137 @@ export class ShopifyService {
     }
 
     return recommendations
+  }
+
+  /**
+   * Analyse IA du titre et de la description d'un produit
+   */
+  private static analyzeContent(product: ShopifyProduct): any {
+    const analysis = {
+      title: {
+        current: product.title || '',
+        length: (product.title || '').length,
+        hasKeywords: false,
+        hasBrand: false,
+        hasCategory: false,
+        suggestions: [] as string[]
+      },
+      description: {
+        current: product.description || '',
+        length: (product.description || '').length,
+        hasBenefits: false,
+        hasFeatures: false,
+        hasCallToAction: false,
+        suggestions: [] as string[]
+      }
+    }
+
+    // Analyse du titre
+    const title = product.title?.toLowerCase() || ''
+    const brand = product.vendor?.toLowerCase() || ''
+    const category = product.productType?.toLowerCase() || ''
+
+    // Vérifier la présence d'éléments clés
+    analysis.title.hasKeywords = title.includes('nouveau') || title.includes('meilleur') || title.includes('qualité')
+    analysis.title.hasBrand = brand && title.includes(brand)
+    analysis.title.hasCategory = category && title.includes(category)
+
+    // Suggestions pour le titre
+    if (!analysis.title.hasBrand && brand) {
+      analysis.title.suggestions.push(`Inclure la marque "${product.vendor}" dans le titre`)
+    }
+    if (!analysis.title.hasCategory && category) {
+      analysis.title.suggestions.push(`Ajouter la catégorie "${product.productType}"`)
+    }
+    if (title.length < 30) {
+      analysis.title.suggestions.push('Titre trop court - ajouter des mots-clés descriptifs')
+    }
+    if (title.length > 100) {
+      analysis.title.suggestions.push('Titre trop long - simplifier pour plus d\'impact')
+    }
+
+    // Analyse de la description
+    const description = product.description?.toLowerCase() || ''
+    
+    analysis.description.hasBenefits = description.includes('bénéfice') || description.includes('avantage') || description.includes('pourquoi')
+    analysis.description.hasFeatures = description.includes('caractéristique') || description.includes('spécification') || description.includes('détail')
+    analysis.description.hasCallToAction = description.includes('acheter') || description.includes('commander') || description.includes('découvrir')
+
+    // Suggestions pour la description
+    if (!analysis.description.hasBenefits) {
+      analysis.description.suggestions.push('Ajouter les bénéfices et avantages du produit')
+    }
+    if (!analysis.description.hasFeatures) {
+      analysis.description.suggestions.push('Détailler les caractéristiques techniques')
+    }
+    if (!analysis.description.hasCallToAction) {
+      analysis.description.suggestions.push('Ajouter un appel à l\'action (CTA)')
+    }
+    if (description.length < 200) {
+      analysis.description.suggestions.push('Description trop courte - enrichir avec plus de détails')
+    }
+
+    return analysis
+  }
+
+  /**
+   * Génère des variantes de titre optimisées pour A/B testing
+   */
+  private static generateTitleVariants(product: ShopifyProduct): string[] {
+    const variants: string[] = []
+    const title = product.title || 'Produit'
+    const brand = product.vendor || 'Marque'
+    const category = product.productType || 'Catégorie'
+
+    // Variante 1: Focus sur la marque
+    variants.push(`${brand} - ${title} | Qualité Premium`)
+
+    // Variante 2: Focus sur la catégorie
+    variants.push(`${title} - ${category} de Qualité`)
+
+    // Variante 3: Focus sur les bénéfices
+    variants.push(`${title} | Solution ${category} Innovante`)
+
+    // Variante 4: Focus sur l'urgence/rareté
+    variants.push(`${title} - ${category} Exclusif ${brand}`)
+
+    // Variante 5: Focus sur la valeur
+    variants.push(`${title} | Meilleur ${category} ${brand}`)
+
+    return variants
+  }
+
+  /**
+   * Génère des variantes de description optimisées pour A/B testing
+   */
+  private static generateDescriptionVariants(product: ShopifyProduct): string[] {
+    const variants: string[] = []
+    const title = product.title || 'Produit'
+    const brand = product.vendor || 'Marque'
+    const category = product.productType || 'Catégorie'
+
+    // Variante 1: Focus sur les bénéfices
+    variants.push(
+      `Découvrez ${title}, la solution ${category} qui va transformer votre expérience. ` +
+      `Avec ${brand}, profitez d'une qualité exceptionnelle et d'un design innovant. ` +
+      `Commandez maintenant et bénéficiez de notre garantie satisfaction !`
+    )
+
+    // Variante 2: Focus sur les caractéristiques
+    variants.push(
+      `${title} combine technologie de pointe et design élégant. ` +
+      `Spécifications techniques : matériaux premium, finition soignée, garantie étendue. ` +
+      `Choisissez ${brand} pour l'excellence en ${category}.`
+    )
+
+    // Variante 3: Focus sur l'émotion
+    variants.push(
+      `Imaginez la perfection avec ${title}. Plus qu'un simple ${category}, ` +
+      `c'est une expérience unique signée ${brand}. ` +
+      `Offrez-vous l'excellence dès aujourd'hui !`
+    )
+
+    return variants
   }
 
   /**
