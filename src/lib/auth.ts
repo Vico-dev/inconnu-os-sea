@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/db"
 
 export const authOptions: AuthOptions = {
-  // Fait confiance aux en-têtes de proxy (Railway)
+  // Configuration originale qui fonctionnait
   trustHost: true,
   providers: [
     CredentialsProvider({
@@ -84,8 +84,5 @@ export const authOptions: AuthOptions = {
     strategy: "jwt" as const,
     maxAge: 30 * 24 * 60 * 60, // 30 jours
   },
-  secret: process.env.NEXTAUTH_SECRET,
-  // Configuration simplifiée pour Railway
-  useSecureCookies: false,
-  debug: true
+  secret: process.env.NEXTAUTH_SECRET
 } 

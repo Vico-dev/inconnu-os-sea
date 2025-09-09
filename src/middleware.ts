@@ -2,40 +2,8 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // Routes publiques qui ne nécessitent pas d'authentification
-  const publicRoutes = [
-    '/login',
-    '/register',
-    '/api/auth',
-    '/api/health',
-    '/api/test-auth',
-    '/api/google-ads/auth',
-    '/api/google-ads/callback'
-  ]
-
-  // Vérifier si c'est une route publique
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
-  
-  if (isPublicRoute) {
-    return NextResponse.next()
-  }
-
-  // Protection des routes sensibles
-  const protectedRoutes = ['/admin', '/am', '/client']
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-
-  if (isProtectedRoute) {
-    // Vérifier l'authentification avec le nom de cookie standard
-    const sessionToken = request.cookies.get('next-auth.session-token')?.value
-
-    // Si pas de token, on ne redirige que les pages HTML, pas les assets/API
-    if (!sessionToken && request.headers.get('accept')?.includes('text/html')) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-  }
-
+  // TEMPORAIRE : Désactivation complète du middleware pour diagnostiquer NextAuth
+  // TODO: Réactiver une fois NextAuth fonctionnel
   return NextResponse.next()
   
   /* CODE ORIGINAL COMMENTÉ POUR DIAGNOSTIC
