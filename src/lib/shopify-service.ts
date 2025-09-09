@@ -16,18 +16,24 @@ export interface ShopifyStore {
 export interface ShopifyProduct {
   id: string
   title: string
-  description: string
+  body_html?: string // Description HTML de Shopify
+  description?: string // Alias pour body_html
   vendor: string
-  productType: string
-  tags: string[]
+  product_type?: string // Format Shopify
+  productType?: string // Alias pour product_type
+  tags: string
   status: 'active' | 'archived' | 'draft'
-  publishedAt: string
-  createdAt: string
-  updatedAt: string
+  published_at?: string // Format Shopify
+  publishedAt?: string // Alias
+  created_at?: string // Format Shopify
+  createdAt?: string // Alias
+  updated_at?: string // Format Shopify
+  updatedAt?: string // Alias
+  currency?: string
   variants: ShopifyVariant[]
   images: ShopifyImage[]
-  collections: string[]
-  seo: {
+  collections?: string[]
+  seo?: {
     title: string
     description: string
   }
@@ -36,16 +42,21 @@ export interface ShopifyProduct {
 export interface ShopifyVariant {
   id: string
   title: string
-  sku: string
+  sku?: string
   price: string
-  compareAtPrice: string
-  inventoryQuantity: number
-  inventoryPolicy: string
-  weight: number
-  weightUnit: string
-  requiresShipping: boolean
-  taxable: boolean
-  barcode: string
+  compare_at_price?: string // Format Shopify
+  compareAtPrice?: string // Alias
+  inventory_quantity?: number // Format Shopify
+  inventoryQuantity?: number // Alias
+  inventory_policy?: string // Format Shopify
+  inventoryPolicy?: string // Alias
+  weight?: number
+  weight_unit?: string // Format Shopify
+  weightUnit?: string // Alias
+  requires_shipping?: boolean // Format Shopify
+  requiresShipping?: boolean // Alias
+  taxable?: boolean
+  barcode?: string
 }
 
 export interface ShopifyImage {
@@ -65,7 +76,7 @@ export interface ShopifyCollection {
   productsCount: number
 }
 
-export class ShopifyService {
+export class ShopifyGraphQLService {
   private static baseUrl = 'https://api.shopify.com/admin/api/2024-01'
 
   /**
@@ -83,6 +94,98 @@ export class ShopifyService {
     const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
     const scopeString = scopes.join(',')
     return `https://${fullShopDomain}/admin/oauth/authorize?client_id=${clientId}&scope=${scopeString}&redirect_uri=${redirectUri}&state=${Date.now()}`
+  }
+
+  /**
+   * Récupère les commandes payées avec pagination, filtrées par date
+   */
+  static async getPaidOrders(shop: string, accessToken: string, createdAtMin?: string): Promise<any[]> {
+    const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
+    const orders: any[] = []
+    let pageInfo: string | null = null
+    const base = `https://${fullShopDomain}/admin/api/2024-01/orders.json?status=any&financial_status=paid&limit=250${createdAtMin ? `&created_at_min=${encodeURIComponent(createdAtMin)}` : ''}`
+
+    do {
+      const url = pageInfo ? `${base}&page_info=${pageInfo}` : base
+      const response = await fetch(url, {
+        headers: { 'X-Shopify-Access-Token': accessToken },
+      })
+      if (!response.ok) throw new Error('Erreur lors de la récupération des commandes')
+      const data = await response.json()
+      orders.push(...(data.orders || []))
+      pageInfo = this.extractNextPageInfo(response.headers.get('Link'))
+    } while (pageInfo)
+
+    return orders
+  }
+
+  /**
+   * Calcule les stats de recrutement par produit à partir des commandes payées
+   * - Recrutement = première commande d'un client contenant le produit
+   */
+  static async computeRecruitmentStats(shop: string, accessToken: string, windowDays: number = 90) {
+    const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString()
+    const orders = await this.getPaidOrders(shop, accessToken, since)
+
+    // Map clientId -> first order created_at
+    const customerFirstOrderAt = new Map<string, { orderId: number; createdAt: string }>()
+    for (const o of orders) {
+      if (!o.customer) continue
+      const cid = String(o.customer.id)
+      const created = o.created_at
+      const prev = customerFirstOrderAt.get(cid)
+      if (!prev || new Date(created) < new Date(prev.createdAt)) {
+        customerFirstOrderAt.set(cid, { orderId: o.id, createdAt: created })
+      }
+    }
+
+    // Compter par produit les first orders
+    const productRecruits = new Map<string, number>()
+    const productFirstOrderCount = new Map<string, number>()
+    const productOrderCount = new Map<string, number>()
+
+    for (const o of orders) {
+      const cid = o.customer ? String(o.customer.id) : null
+      const isFirst = cid ? customerFirstOrderAt.get(cid)?.orderId === o.id : false
+      const items: any[] = o.line_items || []
+      const uniqueProductIds = Array.from(new Set(items.map(i => String(i.product_id))))
+
+      // Total commandes contenant le produit
+      for (const pid of uniqueProductIds) {
+        productOrderCount.set(pid, (productOrderCount.get(pid) || 0) + 1)
+      }
+
+      if (isFirst) {
+        const weight = 1 / Math.max(1, uniqueProductIds.length) // attribution fractionnelle simple
+        for (const pid of uniqueProductIds) {
+          productRecruits.set(pid, (productRecruits.get(pid) || 0) + weight)
+          productFirstOrderCount.set(pid, (productFirstOrderCount.get(pid) || 0) + 1)
+        }
+      }
+    }
+
+    // Normalisation simple vs médiane
+    const recruitsValues = Array.from(productRecruits.values())
+    const median = recruitsValues.length ? recruitsValues.sort((a,b)=>a-b)[Math.floor(recruitsValues.length/2)] : 0
+
+    const stats = Array.from(productOrderCount.keys()).map(pid => {
+      const recruits = productRecruits.get(pid) || 0
+      const ordersWithProduct = productOrderCount.get(pid) || 0
+      const firstOrders = productFirstOrderCount.get(pid) || 0
+      const firstOrderRate = ordersWithProduct ? firstOrders / ordersWithProduct : 0
+      const weightedNorm = median ? Math.min(2, recruits / median) : (recruits > 0 ? 1 : 0) // 0..2
+      return {
+        productId: pid,
+        recruits: Number(recruits.toFixed(2)),
+        first_orders: firstOrders,
+        orders_with_product: ordersWithProduct,
+        first_order_rate: Number(firstOrderRate.toFixed(3)),
+        weighted_norm: Number(weightedNorm.toFixed(3)),
+        window_days: windowDays,
+      }
+    })
+
+    return { stats, median: Number(median.toFixed(2)), total_orders: orders.length }
   }
 
   /**
@@ -173,6 +276,12 @@ export class ShopifyService {
       }
 
       const data = await response.json()
+      
+      // Debug: afficher la structure des premiers produits
+      if (products.length === 0 && data.products.length > 0) {
+        console.log('🔍 Debug - Premier produit Shopify:', JSON.stringify(data.products[0], null, 2))
+      }
+      
       products.push(...data.products)
 
       // Récupérer le lien vers la page suivante
@@ -297,41 +406,80 @@ export class ShopifyService {
     // Version simplifiée qui évite les erreurs
     const primaryVariant = product.variants?.[0] || {}
     const primaryImage = product.images?.[0] || {}
-    const score = this.calculatePerformanceScore(product)
+    // Nouveau système de scoring: sous-scores + poids
+    const weights = { base: 0.5, margin: 0.25, recruitment: 0.25 }
+
+    const baseQualityScore = this.computeBaseQualityScore(product) // 0-50
+    const marginScore = this.computeMarginScore(product) // 0-25
+    const recruitmentScore = this.computeRecruitmentHeuristicScore(product) // 0-25 (heuristique initiale)
+
+    const score = Math.min(
+      Math.max(
+        Math.round(
+          (baseQualityScore) * weights.base +
+          (marginScore) * (weights.margin / 0.25) * 0.25 +
+          (recruitmentScore) * (weights.recruitment / 0.25) * 0.25
+        ),
+        0
+      ),
+      100
+    )
     const recommendations = this.generateImprovementRecommendations(product)
     const contentAnalysis = this.analyzeContent(product)
     const titleVariants = this.generateTitleVariants(product)
     const descriptionVariants = this.generateDescriptionVariants(product)
 
+    // Debug: afficher les données du produit avant mapping
+    console.log('🔍 Debug - Produit avant mapping:', {
+      id: product.id,
+      title: product.title,
+      body_html: product.body_html,
+      description: product.description,
+      vendor: product.vendor,
+      product_type: product.product_type,
+      productType: product.productType,
+      currency: product.currency,
+      variants: product.variants?.length,
+      images: product.images?.length,
+      tags: product.tags,
+      collections: product.collections
+    });
+
     return {
       id: product.id?.toString() || '',
-      title: product.title || '',
-      description: product.description || '',
+      title: product.title || 'Sans titre',
+      description: this.cleanHtmlDescription(product.body_html || product.description || 'Aucune description disponible'),
       link: product.handle ? `https://${product.vendor || 'shop'}.myshopify.com/products/${product.handle}` : '',
       image_link: primaryImage?.src || '',
       additional_image_link: product.images?.slice(1, 10).map(img => img?.src || '').filter(Boolean) || [],
-      availability: (primaryVariant.inventoryQuantity || 0) > 0 ? 'in stock' : 'out of stock',
+      availability: (primaryVariant.inventory_quantity || primaryVariant.inventoryQuantity || 0) > 0 ? 'in stock' : 'out of stock',
       price: `${primaryVariant.price || '0'} ${product.currency || 'EUR'}`,
-      sale_price: primaryVariant.compareAtPrice ? `${primaryVariant.compareAtPrice} ${product.currency || 'EUR'}` : undefined,
-      brand: product.vendor || '',
+      sale_price: (primaryVariant.compare_at_price || primaryVariant.compareAtPrice) ? `${primaryVariant.compare_at_price || primaryVariant.compareAtPrice} ${product.currency || 'EUR'}` : undefined,
+      brand: product.vendor || 'Marque non spécifiée',
       gtin: primaryVariant.barcode || '',
       mpn: primaryVariant.sku || '',
       condition: 'new',
-      product_type: product.productType || '',
-      google_product_category: this.mapToGoogleCategory(product.productType || ''),
+      product_type: product.product_type || product.productType || 'Type non spécifié',
+      google_product_category: this.mapToGoogleCategory(product.product_type || product.productType || ''),
       custom_label_0: Array.isArray(product.tags) ? product.tags.join(',') : (product.tags || ''),
       custom_label_1: Array.isArray(product.collections) ? product.collections.join(',') : (product.collections || ''),
       custom_label_2: score.toString(),
       // Données d'analyse IA
       ai_analysis: {
         score,
+        subscores: {
+          base_quality: baseQualityScore,
+          margin: marginScore,
+          recruitment: recruitmentScore,
+          weights
+        },
         recommendations,
         image_count: product.images?.length || 0,
-        description_length: product.description?.length || 0,
+        description_length: (product.body_html || product.description || '')?.length || 0,
         tags_count: Array.isArray(product.tags) ? product.tags.length : 0,
         collections_count: Array.isArray(product.collections) ? product.collections.length : 0,
         variants_count: product.variants?.length || 0,
-        has_stock: (primaryVariant.inventoryQuantity || 0) > 0,
+        has_stock: (primaryVariant.inventory_quantity || primaryVariant.inventoryQuantity || 0) > 0,
         price_valid: (primaryVariant.price || 0) > 0,
         // Nouvelles analyses de contenu
         content_analysis: contentAnalysis,
@@ -342,10 +490,10 @@ export class ShopifyService {
   }
 
   /**
-   * Calcule un score de performance pour le produit
+   * Calcule le sous-score de qualité de fiche (0-50)
    */
-  private static calculatePerformanceScore(product: ShopifyProduct): number {
-    let score = 50 // Score de base
+  private static computeBaseQualityScore(product: ShopifyProduct): number {
+    let score = 30 // Base neutre
 
     try {
       // Bonus pour les produits avec images
@@ -353,8 +501,9 @@ export class ShopifyService {
       if (product.images && Array.isArray(product.images) && product.images.length > 3) score += 5
 
       // Bonus pour les descriptions complètes
-      if (product.description && typeof product.description === 'string' && product.description.length > 100) score += 10
-      if (product.description && typeof product.description === 'string' && product.description.length > 500) score += 5
+      const description = product.body_html || product.description || ''
+      if (description && typeof description === 'string' && description.length > 100) score += 10
+      if (description && typeof description === 'string' && description.length > 500) score += 5
 
       // Bonus pour les tags
       if (Array.isArray(product.tags) && product.tags.length > 0) score += 5
@@ -367,10 +516,92 @@ export class ShopifyService {
       if (product.variants && Array.isArray(product.variants) && product.variants.length > 1) score += 5
     } catch (error) {
       console.error('Erreur lors du calcul du score:', error)
-      return 50 // Score de base en cas d'erreur
+      return 30 // Base en cas d'erreur
     }
 
-    return Math.min(score, 100)
+    return Math.max(0, Math.min(score, 50))
+  }
+
+  /**
+   * Calcule un sous-score de marge (0-25). Essaie de lire une marge%, sinon heuristique avec compare_at_price.
+   */
+  private static computeMarginScore(product: ShopifyProduct): number {
+    const primaryVariant: any = product.variants?.[0] || {}
+    const price = parseFloat(primaryVariant.price || '0')
+    const compareAt = parseFloat(primaryVariant.compare_at_price || primaryVariant.compareAtPrice || '0')
+
+    // Heuristique: si compare_at_price > price, utiliser le discount comme proxy de marge
+    let estimatedMarginPercent = 0
+    if (compareAt && price && compareAt > price) {
+      estimatedMarginPercent = Math.max(0, Math.min(90, ((compareAt - price) / compareAt) * 100))
+    }
+
+    // Barème continu
+    let score = 0
+    if (estimatedMarginPercent <= 10) score = 0
+    else if (estimatedMarginPercent <= 30) score = 12 * ((estimatedMarginPercent - 10) / 20)
+    else if (estimatedMarginPercent <= 60) score = 12 + 10 * ((estimatedMarginPercent - 30) / 30)
+    else score = 25
+
+    return Math.max(0, Math.min(25, Math.round(score)))
+  }
+
+  /**
+   * Nettoie le HTML pour extraire le texte pur
+   */
+  private static cleanHtmlDescription(html: string): string {
+    if (!html) return 'Aucune description disponible'
+    
+    // Supprimer les balises HTML courantes
+    return html
+      .replace(/<p[^>]*>/gi, '') // Supprimer <p>
+      .replace(/<\/p>/gi, '\n') // Remplacer </p> par un saut de ligne
+      .replace(/<br\s*\/?>/gi, '\n') // Remplacer <br> par un saut de ligne
+      .replace(/<[^>]*>/g, '') // Supprimer toutes les autres balises
+      .replace(/&nbsp;/g, ' ') // Remplacer &nbsp; par un espace
+      .replace(/&amp;/g, '&') // Remplacer &amp; par &
+      .replace(/&lt;/g, '<') // Remplacer &lt; par <
+      .replace(/&gt;/g, '>') // Remplacer &gt; par >
+      .replace(/\n\s*\n/g, '\n') // Supprimer les lignes vides multiples
+      .trim() // Supprimer les espaces en début/fin
+  }
+
+  /**
+   * Heuristique initiale pour le sous-score recrutement (0-25) en l'absence de stats historiques.
+   */
+  private static computeRecruitmentHeuristicScore(product: ShopifyProduct): number {
+    const primaryVariant: any = product.variants?.[0] || {}
+    const price = parseFloat(primaryVariant.price || '0')
+    const compareAt = parseFloat(primaryVariant.compare_at_price || primaryVariant.compareAtPrice || '0')
+    const discount = compareAt && compareAt > price ? (compareAt - price) / compareAt : 0
+    const stock = Number(primaryVariant.inventory_quantity || primaryVariant.inventoryQuantity || 0)
+    const variantsCount = Array.isArray(product.variants) ? product.variants.length : 0
+
+    // Prix d'entrée: sans distribution, on donne un léger bonus si discount et variantes
+    let priceEntryScore = 0
+    if (discount >= 0.2) priceEntryScore = 6
+    else if (discount >= 0.1) priceEntryScore = 3
+
+    // Universalité simple via tags/typologie
+    const text = `${product.title} ${product.product_type || product.productType || ''} ${Array.isArray(product.tags) ? product.tags.join(' ') : product.tags || ''}`.toLowerCase()
+    const universalKeywords = ['basique', 'classique', 'starter', 'kit', 'universel']
+    const specificKeywords = ['édition limitée', 'premium', 'luxe']
+    let universality = 0
+    if (universalKeywords.some(k => text.includes(k))) universality += 4
+    if (specificKeywords.some(k => text.includes(k))) universality -= 2
+    universality = Math.max(0, Math.min(6, universality))
+
+    // Stock
+    const stockScore = Math.max(0, Math.min(4, Math.floor(Math.min(stock / 20, 1) * 4)))
+
+    // Promo
+    const promoScore = discount >= 0.2 ? 4 : discount >= 0.1 ? 2 : 0
+
+    // Variantes
+    const variantsScore = variantsCount >= 3 ? 3 : variantsCount === 2 ? 1 : 0
+
+    const total = priceEntryScore + universality + stockScore + promoScore + variantsScore
+    return Math.max(0, Math.min(25, total))
   }
 
   /**

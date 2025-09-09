@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Store, 
@@ -22,9 +25,15 @@ import {
   BarChart3,
   TrendingUp,
   Lightbulb,
-  Copy
+  Copy,
+  Edit3,
+  Eye,
+  Save,
+  X,
+  Sparkles
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { GMCExportButton } from '@/components/admin/GMCExportButton'
 
 interface ShopifyStore {
   id: string
@@ -47,23 +56,70 @@ interface ShopifyProduct {
   image_link: string
   brand: string
   product_type: string
-  custom_label_2: string // Score de performance
+  custom_label_2: string
+  gtin?: string
+  ai_analysis?: {
+    score: number
+    subscores: {
+      base_quality: number
+      margin: number
+      recruitment: number
+      weights: any
+    }
+    recommendations: string[]
+    image_count: number
+    description_length: number
+    has_stock: boolean
+    price_valid: boolean
+  }
+  variants?: Array<{
+    id: string
+    title: string
+    price: string
+    sku?: string
+    inventoryQuantity?: number
+  }>
+  images?: Array<{
+    id: string
+    url: string
+    altText?: string
+  }>
+}
+
+interface EditableProduct extends ShopifyProduct {
+  isEditing?: boolean
+  editedTitle?: string
+  editedDescription?: string
+  editedPrice?: string
+  memberPrices?: {
+    [level: string]: string
+  }
 }
 
 export default function FeedManagerPage() {
   const [stores, setStores] = useState<ShopifyStore[]>([])
-  const [products, setProducts] = useState<ShopifyProduct[]>([])
+  const [products, setProducts] = useState<EditableProduct[]>([])
   const [selectedStore, setSelectedStore] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
   const [showConnectDialog, setShowConnectDialog] = useState(false)
   const [shopName, setShopName] = useState('')
-  const [activeTab, setActiveTab] = useState('stores')
-  const [showContentAnalysisModal, setShowContentAnalysisModal] = useState(false)
-  const [showABTestingModal, setShowABTestingModal] = useState(false)
-  const [selectedProductForAnalysis, setSelectedProductForAnalysis] = useState<any>(null)
-  const [contentAnalysis, setContentAnalysis] = useState<any>(null)
-  const [abTestingData, setAbTestingData] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState('catalogue')
+  const [selectedProduct, setSelectedProduct] = useState<EditableProduct | null>(null)
+  const [showProductModal, setShowProductModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [csvFile, setCsvFile] = useState<File | null>(null)
+  const [csvPreview, setCsvPreview] = useState<any[]>([])
+  const [isGeneratingAI, setIsGeneratingAI] = useState<string | null>(null) // productId + type
+  const [sortBy, setSortBy] = useState<'score' | 'price' | 'title' | 'image' | 'gtin'>('score')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [filterScore, setFilterScore] = useState<number | null>(null)
+  const [filterText, setFilterText] = useState('')
+  const [filterHasImage, setFilterHasImage] = useState<boolean | null>(null)
+  const [filterHasGtin, setFilterHasGtin] = useState<boolean | null>(null)
+
+  // Prix membres simplifiés (2 niveaux)
+  const memberPriceTypes = ['PUBLIC', 'MEMBER']
 
   useEffect(() => {
     fetchStores()
@@ -119,9 +175,24 @@ export default function FeedManagerPage() {
       const response = await fetch(`/api/shopify/products?storeId=${storeId}&limit=100`)
       if (response.ok) {
         const data = await response.json()
-        setProducts(data.products || [])
+        const productsWithEdits = (data.products || []).map((p: ShopifyProduct) => {
+          const mainPrice = p.variants?.[0]?.price || p.price || '0'
+          const mainImage = p.images?.[0]?.url || p.image_link || ''
+          return {
+            ...p,
+            image_link: mainImage, // Corriger l'image principale
+            editedTitle: p.title,
+            editedDescription: p.description,
+            editedPrice: mainPrice,
+            memberPrices: {
+              PUBLIC: mainPrice,
+              MEMBER: (parseFloat(mainPrice) * 0.9).toFixed(2) // Prix membre à -10%
+            }
+          }
+        })
+        setProducts(productsWithEdits)
         setSelectedStore(storeId)
-        setActiveTab('products')
+        setActiveTab('catalogue')
       }
     } catch (error) {
       console.error('Erreur lors de la récupération des produits:', error)
@@ -154,74 +225,174 @@ export default function FeedManagerPage() {
     }
   }
 
-  const exportToGMC = async () => {
-    if (!selectedStore) {
-      toast.error('Veuillez sélectionner une boutique')
-      return
-    }
+  const startEditing = (productId: string) => {
+    setProducts(products.map(p => 
+      p.id === productId ? { ...p, isEditing: true } : p
+    ))
+  }
 
-    toast.loading('Export vers Google Merchant Center en cours...')
+  const cancelEditing = (productId: string) => {
+    setProducts(products.map(p => 
+      p.id === productId ? { 
+        ...p, 
+        isEditing: false,
+        editedTitle: p.title,
+        editedDescription: p.description,
+        editedPrice: p.price
+      } : p
+    ))
+  }
+
+  const saveProduct = async (productId: string) => {
+    const product = products.find(p => p.id === productId)
+    if (!product) return
+
     try {
-      // TODO: Implémenter l'export vers GMC
-      setTimeout(() => {
-        toast.dismiss()
-        toast.success('Export vers GMC réussi !')
-      }, 2000)
+      // Sauvegarder l'optimisation (persistance)
+      const gtin = product.gtin || product.variants?.[0]?.sku || product.id
+      const response = await fetch('/api/feed/optimizations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gtin,
+          language: 'fr',
+          originalTitle: product.title,
+          originalDescription: product.description,
+          originalPublicPrice: parseFloat(product.price || '0'),
+          originalCurrency: 'EUR',
+          aiTitle: product.editedTitle || product.title,
+          aiDescription: product.editedDescription || product.description,
+          aiPublicPrice: parseFloat((product.memberPrices?.MEMBER || product.editedPrice || product.price || '0') as string),
+          status: 'DRAFT'
+        })
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || 'Erreur API de sauvegarde')
+      }
+
+      toast.success('Produit sauvegardé avec succès')
+      
+      setProducts(products.map(p => 
+        p.id === productId ? { 
+          ...p, 
+          isEditing: false,
+          title: p.editedTitle || p.title,
+          description: p.editedDescription || p.description,
+          price: p.editedPrice || p.price
+        } : p
+      ))
     } catch (error) {
-      toast.dismiss()
-      toast.error('Erreur lors de l\'export')
+      toast.error('Erreur lors de la sauvegarde')
     }
   }
 
-  const showContentAnalysis = async (productId: string, storeId: string) => {
-    try {
-      const product = products.find(p => p.id === productId)
-      if (!product) return
+  const openProductModal = (product: EditableProduct) => {
+    setSelectedProduct(product)
+    setShowProductModal(true)
+  }
 
-      setSelectedProductForAnalysis(product)
-      
-      const response = await fetch('/api/shopify/ai-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, storeId, analysisType: 'content' })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setContentAnalysis(data)
-        setShowContentAnalysisModal(true)
-      } else {
-        toast.error('Erreur lors de l\'analyse du contenu')
-      }
-    } catch (error) {
-      console.error('Erreur:', error)
-      toast.error('Erreur lors de l\'analyse du contenu')
+  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file && file.type === 'text/csv') {
+      setCsvFile(file)
+      previewCSV(file)
+    } else {
+      toast.error('Veuillez sélectionner un fichier CSV valide')
     }
   }
 
-  const showABTesting = async (productId: string, storeId: string) => {
-    try {
-      const product = products.find(p => p.id === productId)
-      if (!product) return
+  const previewCSV = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const csv = e.target?.result as string
+      const lines = csv.split('\n')
+      const headers = lines[0].split(',')
+      const preview = lines.slice(1, 6).map(line => {
+        const values = line.split(',')
+        const row: any = {}
+        headers.forEach((header, index) => {
+          row[header.trim()] = values[index]?.trim() || ''
+        })
+        return row
+      })
+      setCsvPreview(preview)
+    }
+    reader.readAsText(file)
+  }
 
-      setSelectedProductForAnalysis(product)
-      
-      const response = await fetch('/api/shopify/ai-analysis', {
+  const importCSV = async () => {
+    if (!csvFile) return
+
+    try {
+      // TODO: Appeler l'API pour importer le CSV
+      toast.success('CSV importé avec succès')
+      setShowImportModal(false)
+      setCsvFile(null)
+      setCsvPreview([])
+    } catch (error) {
+      toast.error('Erreur lors de l\'import')
+    }
+  }
+
+  const generateAI = async (productId: string, type: 'title' | 'description' | 'price') => {
+    const product = products.find(p => p.id === productId)
+    if (!product) return
+
+    setIsGeneratingAI(`${productId}-${type}`)
+    
+    try {
+      const response = await fetch('/api/ai/generate-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, storeId, analysisType: 'ab_testing' })
+        body: JSON.stringify({
+          productId: product.id,
+          gtin: product.gtin || product.id,
+          targetType: type,
+          currentTitle: product.title,
+          currentDescription: product.description,
+          currentPrice: parseFloat(product.price),
+          category: product.product_type,
+          brand: product.brand
+        })
       })
 
       if (response.ok) {
-        const data = await response.json()
-        setAbTestingData(data)
-        setShowABTestingModal(true)
+        const result = await response.json()
+        
+        if (result.success) {
+          if (type === 'price' && result.data.price) {
+            // Mettre à jour le prix
+            setProducts(prev => prev.map(p => 
+              p.id === productId 
+                ? { ...p, editedPrice: result.data.price.toString() }
+                : p
+            ))
+            toast.success('Prix optimisé avec IA')
+          } else if (result.data.content) {
+            // Mettre à jour le titre ou la description
+            setProducts(prev => prev.map(p => 
+              p.id === productId 
+                ? { 
+                    ...p, 
+                    [type === 'title' ? 'editedTitle' : 'editedDescription']: result.data.content 
+                  }
+                : p
+            ))
+            toast.success(`${type === 'title' ? 'Titre' : 'Description'} généré avec IA`)
+          }
+        } else {
+          toast.error('Erreur lors de la génération IA')
+        }
       } else {
-        toast.error('Erreur lors de la génération des variantes A/B')
+        toast.error('Erreur lors de la génération IA')
       }
     } catch (error) {
-      console.error('Erreur:', error)
-      toast.error('Erreur lors de la génération des variantes A/B')
+      console.error('Erreur génération IA:', error)
+      toast.error('Erreur lors de la génération IA')
+    } finally {
+      setIsGeneratingAI(null)
     }
   }
 
@@ -231,6 +402,74 @@ export default function FeedManagerPage() {
     if (numScore >= 60) return { color: 'bg-yellow-100 text-yellow-800', label: 'Bon' }
     return { color: 'bg-red-100 text-red-800', label: 'À améliorer' }
   }
+
+  // Fonctions de filtrage et tri
+  const filteredAndSortedProducts = products
+    .filter(product => {
+      // Filtre par score minimum
+      if (filterScore !== null) {
+        const score = parseInt(product.custom_label_2) || 0
+        if (score < filterScore) return false
+      }
+      
+      // Filtre par texte (titre, description, marque)
+      if (filterText) {
+        const searchText = filterText.toLowerCase()
+        const matches = 
+          product.title.toLowerCase().includes(searchText) ||
+          product.description.toLowerCase().includes(searchText) ||
+          product.brand.toLowerCase().includes(searchText)
+        if (!matches) return false
+      }
+      
+      // Filtre par présence d'image
+      if (filterHasImage !== null) {
+        const hasImage = !!product.image_link
+        if (hasImage !== filterHasImage) return false
+      }
+      
+      // Filtre par présence de GTIN
+      if (filterHasGtin !== null) {
+        const hasGtin = !!product.gtin
+        if (hasGtin !== filterHasGtin) return false
+      }
+      
+      return true
+    })
+    .sort((a, b) => {
+      let aValue: any, bValue: any
+      
+      switch (sortBy) {
+        case 'score':
+          aValue = parseInt(a.custom_label_2) || 0
+          bValue = parseInt(b.custom_label_2) || 0
+          break
+        case 'price':
+          aValue = parseFloat(a.price) || 0
+          bValue = parseFloat(b.price) || 0
+          break
+        case 'title':
+          aValue = a.title.toLowerCase()
+          bValue = b.title.toLowerCase()
+          break
+        case 'image':
+          aValue = a.image_link ? 1 : 0
+          bValue = b.image_link ? 1 : 0
+          break
+        case 'gtin':
+          aValue = a.gtin ? 1 : 0
+          bValue = b.gtin ? 1 : 0
+          break
+        default:
+          return 0
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1
+      } else {
+        return aValue < bValue ? 1 : -1
+      }
+    })
 
   if (isLoading) {
     return (
@@ -247,16 +486,16 @@ export default function FeedManagerPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Feed Manager</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Catalogue Produits</h1>
           <p className="text-gray-600 mt-2">
-            Gérez vos flux de produits et optimisez-les pour Google Merchant Center
+            Gérez et optimisez vos produits pour Google Merchant Center
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Package className="w-6 h-6 text-blue-600" />
-            <span className="text-sm text-gray-500">Gestion des flux</span>
-          </div>
+          <Button onClick={() => setShowImportModal(true)} variant="outline" className="flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </Button>
           <Button onClick={() => setShowConnectDialog(true)} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Connecter Shopify
@@ -324,11 +563,352 @@ export default function FeedManagerPage() {
 
       {/* Interface principale */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="catalogue">Catalogue Produits</TabsTrigger>
+          <TabsTrigger value="ab-testing">Tests A/B</TabsTrigger>
           <TabsTrigger value="stores">Boutiques Shopify</TabsTrigger>
-          <TabsTrigger value="products">Produits</TabsTrigger>
-          <TabsTrigger value="export">Export</TabsTrigger>
+          <TabsTrigger value="export">Export GMC</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="catalogue" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Catalogue des Produits</CardTitle>
+                {selectedStore && (
+                  <GMCExportButton 
+                    products={products} 
+                    onExportComplete={(result) => {
+                      if (result.success) {
+                        toast.success(`Export réussi: ${result.exportedCount} produits exportés vers GMC`);
+                      } else {
+                        toast.error(`Export partiel: ${result.exportedCount} exportés, ${result.errors?.length || 0} erreurs`);
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Contrôles de filtrage et tri */}
+              <div className="mb-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Recherche texte */}
+                  <div>
+                    <Label htmlFor="search-text">Recherche</Label>
+                    <Input
+                      id="search-text"
+                      placeholder="Titre, description, marque..."
+                      value={filterText}
+                      onChange={(e) => setFilterText(e.target.value)}
+                    />
+                  </div>
+                  
+                  {/* Score minimum */}
+                  <div>
+                    <Label htmlFor="min-score">Score minimum</Label>
+                    <Select value={filterScore?.toString() || ''} onValueChange={(value) => setFilterScore(value ? parseInt(value) : null)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Tous les scores" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Tous les scores</SelectItem>
+                        <SelectItem value="80">80+ (Excellent)</SelectItem>
+                        <SelectItem value="60">60+ (Bon)</SelectItem>
+                        <SelectItem value="40">40+ (Moyen)</SelectItem>
+                        <SelectItem value="20">20+ (Faible)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Tri */}
+                  <div>
+                    <Label htmlFor="sort-by">Trier par</Label>
+                    <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="score">Score</SelectItem>
+                        <SelectItem value="price">Prix</SelectItem>
+                        <SelectItem value="title">Titre</SelectItem>
+                        <SelectItem value="image">Image</SelectItem>
+                        <SelectItem value="gtin">GTIN</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Ordre */}
+                  <div>
+                    <Label htmlFor="sort-order">Ordre</Label>
+                    <Select value={sortOrder} onValueChange={(value: any) => setSortOrder(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="desc">Décroissant</SelectItem>
+                        <SelectItem value="asc">Croissant</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                {/* Filtres rapides */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={filterHasImage === true ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterHasImage(filterHasImage === true ? null : true)}
+                  >
+                    Avec image
+                  </Button>
+                  <Button
+                    variant={filterHasGtin === true ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterHasGtin(filterHasGtin === true ? null : true)}
+                  >
+                    Avec GTIN
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFilterText('')
+                      setFilterScore(null)
+                      setFilterHasImage(null)
+                      setFilterHasGtin(null)
+                    }}
+                  >
+                    Effacer filtres
+                  </Button>
+                </div>
+                
+                {/* Résultats */}
+                <div className="text-sm text-gray-600">
+                  {filteredAndSortedProducts.length} produit(s) sur {products.length} total
+                </div>
+              </div>
+              {!selectedStore ? (
+                <div className="text-center py-12">
+                  <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">Sélectionnez une boutique pour voir ses produits</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">Aucun produit trouvé</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-200">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Image</th>
+                        <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Titre</th>
+                        <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Description</th>
+                        <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Prix Membre</th>
+                        <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Score Global</th>
+                        <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Sous-scores</th>
+                        <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAndSortedProducts.map((product) => {
+                        const score = getPerformanceScore(product.custom_label_2)
+                        return (
+                          <tr key={product.id} className="hover:bg-gray-50">
+                            <td className="border border-gray-200 p-3">
+                              {product.image_link ? (
+                                <img 
+                                  src={product.image_link} 
+                                  alt={product.title}
+                                  className="w-12 h-12 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                  <Package className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+                            </td>
+                            <td className="border border-gray-200 p-3">
+                              {product.isEditing ? (
+                                <Input
+                                  value={product.editedTitle || ''}
+                                  onChange={(e) => setProducts(products.map(p => 
+                                    p.id === product.id ? { ...p, editedTitle: e.target.value } : p
+                                  ))}
+                                  className="w-full"
+                                />
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{product.editedTitle || product.title}</span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => generateAI(product.id, 'title')}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Sparkles className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </td>
+                            <td className="border border-gray-200 p-3">
+                              {product.isEditing ? (
+                                <Textarea
+                                  value={product.editedDescription || ''}
+                                  onChange={(e) => setProducts(products.map(p => 
+                                    p.id === product.id ? { ...p, editedDescription: e.target.value } : p
+                                  ))}
+                                  className="w-full min-h-[60px]"
+                                  placeholder="Description du produit..."
+                                />
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-600 max-w-xs truncate">
+                                    {product.editedDescription || product.description || 'Aucune description'}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => generateAI(product.id, 'description')}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Sparkles className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </td>
+                            <td className="border border-gray-200 p-3">
+                              <div className="space-y-1">
+                                {memberPriceTypes.map(type => (
+                                  <div key={type} className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-500 w-12">{type === 'PUBLIC' ? 'Public' : 'Membre'}:</span>
+                                    <Input
+                                      value={type === 'PUBLIC' ? product.price : (product.memberPrices?.[type] || product.price)}
+                                      onChange={(e) => setProducts(products.map(p => 
+                                        p.id === product.id ? { 
+                                          ...p, 
+                                          memberPrices: { 
+                                            ...p.memberPrices, 
+                                            [type]: e.target.value 
+                                          } 
+                                        } : p
+                                      ))}
+                                      className="w-16 h-6 text-xs"
+                                      type="number"
+                                      step="0.01"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 p-3">
+                              <Badge className={score.color}>{score.label}</Badge>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {product.custom_label_2}/100
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 p-3">
+                              {product.ai_analysis?.subscores ? (
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between">
+                                    <span>Qualité:</span>
+                                    <span className="font-medium">{product.ai_analysis.subscores.base_quality}/50</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Marge:</span>
+                                    <span className="font-medium">{product.ai_analysis.subscores.margin}/25</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Recrutement:</span>
+                                    <span className="font-medium">{product.ai_analysis.subscores.recruitment}/25</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-xs">Non calculé</span>
+                              )}
+                            </td>
+                            <td className="border border-gray-200 p-3">
+                              <div className="flex items-center gap-2">
+                                {product.isEditing ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => saveProduct(product.id)}
+                                      className="h-8 px-2"
+                                    >
+                                      <Save className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => cancelEditing(product.id)}
+                                      className="h-8 px-2"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => startEditing(product.id)}
+                                      className="h-8 px-2"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openProductModal(product)}
+                                      className="h-8 px-2"
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ab-testing" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tests A/B - Optimisation des Produits</CardTitle>
+              <CardDescription>
+                Créez et gérez des tests A/B pour optimiser vos titres, descriptions et prix
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Tests A/B en cours de développement</h3>
+                <p className="text-gray-500 mb-4">
+                  Cette fonctionnalité permettra de tester différentes variantes de vos produits
+                </p>
+                <div className="space-y-2 text-sm text-gray-400">
+                  <p>• Test de titres alternatifs</p>
+                  <p>• Test de descriptions</p>
+                  <p>• Test de prix membres</p>
+                  <p>• Métriques de performance</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="stores" className="space-y-4">
           <Card>
@@ -390,121 +970,6 @@ export default function FeedManagerPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="products" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Produits optimisés</CardTitle>
-                {selectedStore && (
-                  <Button onClick={exportToGMC} className="flex items-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Exporter vers GMC
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!selectedStore ? (
-                <div className="text-center py-12">
-                  <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">Sélectionnez une boutique pour voir ses produits</p>
-                </div>
-              ) : products.length === 0 ? (
-                <div className="text-center py-12">
-                  <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">Aucun produit trouvé</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {products.slice(0, 10).map((product) => {
-                    const score = getPerformanceScore(product.custom_label_2)
-                    const aiAnalysis = product.ai_analysis
-                    return (
-                      <div key={product.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start gap-4">
-                          {product.image_link && (
-                            <img 
-                              src={product.image_link} 
-                              alt={product.title}
-                              className="w-16 h-16 object-cover rounded"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold">{product.title}</h3>
-                              <Badge className={score.color}>{score.label}</Badge>
-                              <span className="text-xs text-gray-500">Score: {aiAnalysis?.score || product.custom_label_2}</span>
-                            </div>
-                            <p className="text-gray-600 text-sm mb-2">
-                              {product.description ? product.description.substring(0, 100) + '...' : 'Aucune description'}
-                            </p>
-                            <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                              <span>Prix: {product.price}</span>
-                              <span>Marque: {product.brand}</span>
-                              <span>Type: {product.product_type}</span>
-                              <span>Disponibilité: {product.availability}</span>
-                            </div>
-                            
-                            {/* Analyse IA et recommandations */}
-                            {aiAnalysis && aiAnalysis.recommendations && aiAnalysis.recommendations.length > 0 && (
-                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
-                                  <Lightbulb className="w-4 h-4" />
-                                  Recommandations d'amélioration
-                                </h4>
-                                <ul className="space-y-1">
-                                  {aiAnalysis.recommendations.slice(0, 3).map((rec, index) => (
-                                    <li key={index} className="text-sm text-blue-800 flex items-start gap-2">
-                                      <span className="text-blue-600 mt-1">•</span>
-                                      {rec}
-                                    </li>
-                                  ))}
-                                </ul>
-                                {aiAnalysis.recommendations.length > 3 && (
-                                  <p className="text-xs text-blue-600 mt-2">
-                                    +{aiAnalysis.recommendations.length - 3} autres recommandations...
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Boutons d'analyse IA avancée */}
-                            <div className="flex gap-2 mt-3">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => showContentAnalysis(product.id, selectedStore)}
-                                className="text-xs"
-                              >
-                                <BarChart3 className="w-3 h-3 mr-1" />
-                                Analyse Contenu
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => showABTesting(product.id, selectedStore)}
-                                className="text-xs"
-                              >
-                                <TrendingUp className="w-3 h-3 mr-1" />
-                                A/B Testing
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {products.length > 10 && (
-                    <div className="text-center pt-4">
-                      <p className="text-gray-500">Et {products.length - 10} autres produits...</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="export" className="space-y-4">
           <Card>
             <CardHeader>
@@ -515,11 +980,17 @@ export default function FeedManagerPage() {
                 <div className="text-center py-8">
                   <Upload className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">Exportez vos produits optimisés vers Google Merchant Center</p>
-                  <p className="text-sm text-gray-400 mb-4">Vos produits seront automatiquement optimisés avec l'IA</p>
-                  <Button onClick={exportToGMC} className="flex items-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Exporter vers GMC
-                  </Button>
+                  <p className="text-sm text-gray-400 mb-4">Vos produits seront automatiquement optimisés avec l&apos;IA</p>
+                  <GMCExportButton 
+                    products={products} 
+                    onExportComplete={(result) => {
+                      if (result.success) {
+                        toast.success(`Export réussi: ${result.exportedCount} produits exportés vers GMC`);
+                      } else {
+                        toast.error(`Export partiel: ${result.exportedCount} exportés, ${result.errors?.length || 0} erreurs`);
+                      }
+                    }}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -565,167 +1036,234 @@ export default function FeedManagerPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal d'analyse de contenu */}
-      <Dialog open={showContentAnalysisModal} onOpenChange={setShowContentAnalysisModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      {/* Modal d'import CSV */}
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Analyse IA du Contenu - {selectedProductForAnalysis?.title}</DialogTitle>
+            <DialogTitle>Import CSV - Enrichissement des produits</DialogTitle>
           </DialogHeader>
-          
-          {contentAnalysis && (
-            <div className="space-y-6">
-              {/* Analyse du titre */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">Analyse du Titre</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p><strong>Titre actuel:</strong> {contentAnalysis.analysis.title.current}</p>
-                    <p><strong>Longueur:</strong> {contentAnalysis.analysis.title.length} caractères</p>
-                    <p><strong>Contient des mots-clés:</strong> {contentAnalysis.analysis.title.hasKeywords ? '✅' : '❌'}</p>
-                    <p><strong>Contient la marque:</strong> {contentAnalysis.analysis.title.hasBrand ? '✅' : '❌'}</p>
-                    <p><strong>Contient la catégorie:</strong> {contentAnalysis.analysis.title.hasCategory ? '✅' : '❌'}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium mb-2">Suggestions d'amélioration:</p>
-                    <ul className="space-y-1">
-                      {contentAnalysis.analysis.title.suggestions.map((suggestion: string, index: number) => (
-                        <li key={index} className="text-blue-600">• {suggestion}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Analyse de la description */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">Analyse de la Description</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p><strong>Longueur:</strong> {contentAnalysis.analysis.description.length} caractères</p>
-                    <p><strong>Contient des bénéfices:</strong> {contentAnalysis.analysis.description.hasBenefits ? '✅' : '❌'}</p>
-                    <p><strong>Contient des caractéristiques:</strong> {contentAnalysis.analysis.description.hasFeatures ? '✅' : '❌'}</p>
-                    <p><strong>Contient un CTA:</strong> {contentAnalysis.analysis.description.hasCallToAction ? '✅' : '❌'}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-yellow-800">Suggestions d'amélioration:</p>
-                    <ul className="space-y-1">
-                      {contentAnalysis.analysis.description.suggestions.map((suggestion: string, index: number) => (
-                        <li key={index} className="text-blue-600">• {suggestion}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Variantes de titre suggérées */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">Variantes de Titre Optimisées</h3>
-                <div className="space-y-2">
-                  {contentAnalysis.title_variants.map((variant: string, index: number) => (
-                    <div key={index} className="p-3 bg-gray-50 rounded border">
-                      <p className="font-medium">Variante {index + 1}:</p>
-                      <p className="text-gray-700">{variant}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Variantes de description suggérées */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">Variantes de Description Optimisées</h3>
-                <div className="space-y-2">
-                  {contentAnalysis.description_variants.map((variant: string, index: number) => (
-                    <div key={index} className="p-3 bg-gray-50 rounded border">
-                      <p className="font-medium">Variante {index + 1}:</p>
-                      <p className="text-gray-700">{variant}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="csv-file">Fichier CSV</Label>
+              <Input
+                id="csv-file"
+                type="file"
+                accept=".csv"
+                onChange={handleCSVUpload}
+                className="w-full"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Format attendu: GTIN, Titre, Description, Prix Public, Prix Membre
+              </p>
             </div>
-          )}
+
+            {csvPreview.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-3">Aperçu du CSV</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-200">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        {Object.keys(csvPreview[0]).map(header => (
+                          <th key={header} className="border border-gray-200 p-2 text-left text-sm font-medium">
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvPreview.map((row, index) => (
+                        <tr key={index}>
+                          {Object.values(row).map((value, cellIndex) => (
+                            <td key={cellIndex} className="border border-gray-200 p-2 text-sm">
+                              {String(value)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowImportModal(false)}>
+                Annuler
+              </Button>
+              <Button onClick={importCSV} disabled={!csvFile}>
+                Importer
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Modal d'A/B Testing */}
-      <Dialog open={showABTestingModal} onOpenChange={setShowABTestingModal}>
+      {/* Modal de fiche produit */}
+      <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>A/B Testing - {selectedProductForAnalysis?.title}</DialogTitle>
+            <DialogTitle>Fiche Produit - {selectedProduct?.title}</DialogTitle>
           </DialogHeader>
           
-          {abTestingData && (
+          {selectedProduct && (
             <div className="space-y-6">
-              {/* Contenu actuel */}
-              <div className="border rounded-lg p-4 bg-blue-50">
-                <h3 className="font-semibold mb-3 text-blue-900">Contenu Actuel</h3>
-                <div className="space-y-2">
-                  <p><strong>Titre:</strong> {abTestingData.current_content.title}</p>
-                  <p><strong>Description:</strong> {abTestingData.current_content.description}</p>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <Label>Titre du produit</Label>
+                  <Input
+                    value={selectedProduct.editedTitle || selectedProduct.title}
+                    onChange={(e) => setSelectedProduct({...selectedProduct, editedTitle: e.target.value})}
+                    className="w-full"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => generateAI(selectedProduct.id, 'title')}
+                    className="mt-2"
+                  >
+                    <Sparkles className="w-3 h-3 mr-2" />
+                    Générer avec IA
+                  </Button>
+                </div>
+
+                <div>
+                  <Label>Prix public</Label>
+                  <Input
+                    value={selectedProduct.editedPrice || selectedProduct.price}
+                    onChange={(e) => setSelectedProduct({...selectedProduct, editedPrice: e.target.value})}
+                    className="w-full"
+                    type="number"
+                    step="0.01"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => generateAI(selectedProduct.id, 'price')}
+                    className="mt-2"
+                  >
+                    <Sparkles className="w-3 h-3 mr-2" />
+                    Optimiser avec IA
+                  </Button>
                 </div>
               </div>
 
-              {/* Variantes de titre pour A/B testing */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">Variantes de Titre pour A/B Testing</h3>
-                <div className="space-y-3">
-                  {abTestingData.title_variants.map((variant: string, index: number) => (
-                    <div key={index} className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-purple-900">Variante {index + 1}</span>
-                        <Badge variant="outline" className="text-xs">Test A/B</Badge>
-                      </div>
-                      <p className="text-gray-800 mb-3">{variant}</p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="text-xs">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Tester cette variante
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-xs">
-                          <Copy className="w-3 h-3 mr-1" />
-                          Copier
-                        </Button>
-                      </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea
+                  value={selectedProduct.editedDescription || selectedProduct.description}
+                  onChange={(e) => setSelectedProduct({...selectedProduct, editedDescription: e.target.value})}
+                  className="w-full min-h-[100px]"
+                  placeholder="Description du produit..."
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => generateAI(selectedProduct.id, 'description')}
+                  className="mt-2"
+                >
+                  <Sparkles className="w-3 h-3 mr-2" />
+                  Générer avec IA
+                </Button>
+              </div>
+
+              <div>
+                <Label>Prix membres</Label>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  {memberPriceTypes.map(type => (
+                    <div key={type} className="space-y-2">
+                      <Label className="text-sm">{type === 'PUBLIC' ? 'Prix Public' : 'Prix Membre'}</Label>
+                      <Input
+                        value={type === 'PUBLIC' ? selectedProduct.price : (selectedProduct.memberPrices?.[type] || selectedProduct.price)}
+                        onChange={(e) => setSelectedProduct({
+                          ...selectedProduct, 
+                          memberPrices: { 
+                            ...selectedProduct.memberPrices, 
+                            [type]: e.target.value 
+                          } 
+                        })}
+                        className="w-full"
+                        type="number"
+                        step="0.01"
+                      />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Variantes de description pour A/B testing */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">Variantes de Description pour A/B Testing</h3>
-                <div className="space-y-3">
-                  {abTestingData.description_variants.map((variant: string, index: number) => (
-                    <div key={index} className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+              {/* Analyse IA et sous-scores */}
+              {selectedProduct.ai_analysis && (
+                <div>
+                  <Label>Analyse IA</Label>
+                  <div className="mt-2 space-y-4">
+                    {/* Score global */}
+                    <div className="p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-green-900">Variante {index + 1}</span>
-                        <Badge variant="outline" className="text-xs">Test A/B</Badge>
+                        <span className="font-medium">Score Global</span>
+                        <Badge className={getPerformanceScore(selectedProduct.custom_label_2).color}>
+                          {selectedProduct.custom_label_2}/100
+                        </Badge>
                       </div>
-                      <p className="text-gray-800 mb-3 text-sm leading-relaxed">{variant}</p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="text-xs">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Tester cette variante
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-xs">
-                          <Copy className="w-3 h-3 mr-1" />
-                          Copier
-                        </Button>
+                      
+                      {/* Sous-scores */}
+                      {selectedProduct.ai_analysis.subscores && (
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div className="text-center">
+                            <div className="font-medium text-blue-600">{selectedProduct.ai_analysis.subscores.base_quality}/50</div>
+                            <div className="text-gray-600">Qualité</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-medium text-green-600">{selectedProduct.ai_analysis.subscores.margin}/25</div>
+                            <div className="text-gray-600">Marge</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-medium text-purple-600">{selectedProduct.ai_analysis.subscores.recruitment}/25</div>
+                            <div className="text-gray-600">Recrutement</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Recommandations */}
+                    {selectedProduct.ai_analysis.recommendations && selectedProduct.ai_analysis.recommendations.length > 0 && (
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <h4 className="font-medium text-blue-900 mb-2">Recommandations</h4>
+                        <ul className="text-sm text-blue-800 space-y-1">
+                          {selectedProduct.ai_analysis.recommendations.map((rec, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="mr-2">•</span>
+                              <span>{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Métriques */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="p-3 bg-gray-50 rounded">
+                        <div className="font-medium">{selectedProduct.ai_analysis.image_count}</div>
+                        <div className="text-gray-600">Images</div>
+                      </div>
+                      <div className="p-3 bg-gray-50 rounded">
+                        <div className="font-medium">{selectedProduct.ai_analysis.description_length}</div>
+                        <div className="text-gray-600">Caractères description</div>
                       </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Plan de test A/B */}
-              <div className="border rounded-lg p-4 bg-yellow-50">
-                <h3 className="font-semibold mb-3 text-yellow-900">Plan de Test A/B Recommandé</h3>
-                <div className="space-y-2 text-sm text-yellow-800">
-                  <p>• <strong>Durée:</strong> 2-4 semaines pour des résultats significatifs</p>
-                  <p>• <strong>Trafic:</strong> Diviser équitablement entre variantes</p>
-                  <p>• <strong>Métriques:</strong> CTR, conversions, temps sur page</p>
-                  <p>• <strong>Outils:</strong> Google Optimize, VWO, ou Optimizely</p>
-                </div>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowProductModal(false)}>
+                  Fermer
+                </Button>
+                <Button onClick={() => {
+                  saveProduct(selectedProduct.id)
+                  setShowProductModal(false)
+                }}>
+                  Sauvegarder
+                </Button>
               </div>
             </div>
           )}

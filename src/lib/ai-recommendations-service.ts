@@ -1,5 +1,19 @@
 import { db } from './db'
-import { openaiService } from './openai-service'
+
+// Import conditionnel pour éviter l'initialisation au build
+let openAIService: any = null
+
+function getOpenAIService() {
+  if (!openAIService && process.env.OPENAI_API_KEY) {
+    try {
+      const { openAIService: service } = require('./openai-service')
+      openAIService = service
+    } catch (error) {
+      console.log('OpenAI service non disponible:', error.message)
+    }
+  }
+  return openAIService
+}
 
 export interface AIRecommendation {
   id: string
@@ -70,7 +84,8 @@ export class AIRecommendationsService {
       const performanceData = await this.analyzePerformance(campaignId)
       
       // Générer des recommandations avec l'IA
-      const recommendations = await this.generateAIRecommendations(performanceData, campaign)
+      const aiService = getOpenAIService()
+      const recommendations = aiService ? await this.generateAIRecommendations(performanceData, campaign) : this.getFallbackRecommendations()
 
       return recommendations
     } catch (error) {
@@ -127,7 +142,7 @@ export class AIRecommendationsService {
     `
 
     try {
-      const response = await openaiService.generateRecommendations({
+      const response = await openAIService.generateRecommendations({
         prompt,
         campaignType: campaign.type,
         performanceData
@@ -233,7 +248,7 @@ export class AIRecommendationsService {
       Inclus les métriques moyennes et des recommandations spécifiques.
       `
 
-      const response = await openaiService.generateBenchmark({
+      const response = await openAIService.generateBenchmark({
         industry,
         campaignType,
         prompt

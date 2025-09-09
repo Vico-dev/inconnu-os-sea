@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { ShopifyService } from '@/lib/shopify-service'
+import { ShopifyGraphQLService } from '@/lib/shopify-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer le store
-    const stores = await ShopifyService.getUserStores(session.user.id)
+    const stores = await ShopifyGraphQLService.getUserStores(session.user.id)
     const store = stores.find(s => s.id === storeId)
 
     if (!store) {
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer le produit spécifique
-    const products = await ShopifyService.getProducts(store.domain, store.accessToken, 1000)
+    const products = await ShopifyGraphQLService.getProducts(store.domain, store.accessToken, 1000)
     const product = products.find(p => p.id.toString() === productId)
 
     if (!product) {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Optimiser le produit avec toutes les analyses IA
-    const optimizedProduct = ShopifyService.optimizeProductForGMC(product)
+    const optimizedProduct = ShopifyGraphQLService.optimizeProductForGMC(product)
 
     // Retourner l'analyse selon le type demandé
     switch (analysisType) {

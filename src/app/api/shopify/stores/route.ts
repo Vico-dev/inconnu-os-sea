@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { ShopifyService } from '@/lib/shopify-service'
+import { ShopifyGraphQLService } from '@/lib/shopify-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const stores = await ShopifyService.getUserStores(session.user.id)
+    const stores = await ShopifyGraphQLService.getUserStores(session.user.id)
 
     return NextResponse.json({
       success: true,
@@ -51,7 +51,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    await ShopifyService.removeStore(storeId, session.user.id)
+    await ShopifyGraphQLService.removeStore(storeId, session.user.id)
 
     return NextResponse.json({
       success: true,

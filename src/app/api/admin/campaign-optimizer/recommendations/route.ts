@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { GoogleAdsService } from '@/lib/google-ads-service'
-import { openaiService } from '@/lib/openai-service'
+import { openAIService } from '@/lib/openai-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -111,7 +111,7 @@ Génère 5 recommandations prioritaires au format JSON :
 }
 `
 
-    const response = await openaiService.generateRecommendations({
+    const response = await openAIService.generateRecommendations({
       prompt,
       campaignType: 'MIXED',
       performanceData: campaignAnalysis

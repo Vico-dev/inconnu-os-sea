@@ -1,170 +1,154 @@
-# 🛍️ Guide de Configuration Google Merchant Center (GMC)
+# 🚀 Guide de Setup Google Merchant Center API
 
-## 📋 **Prérequis**
+## 📋 Prérequis
 
-### **1. Compte Google Merchant Center**
-- Avoir un compte GMC actif
-- Avoir configuré au moins un feed produit
-- Avoir des permissions d'administrateur
+- Compte Google (Gmail)
+- Accès à Google Cloud Console
+- Compte Google Merchant Center
 
-### **2. Projet Google Cloud**
-- Créer un projet dans Google Cloud Console
-- Activer les APIs nécessaires
-- Créer un compte de service
+## 🔧 Étape 1: Configuration Google Cloud
 
-## 🚀 **Étapes de Configuration**
+### 1.1 Créer un projet Google Cloud
+1. Aller sur [Google Cloud Console](https://console.cloud.google.com/)
+2. Cliquer sur "Sélectionner un projet" → "Nouveau projet"
+3. Nommer le projet (ex: "inconnu-gmc-api")
+4. Cliquer sur "Créer"
 
-### **Étape 1 : Google Cloud Console**
+### 1.2 Activer l'API Merchant Center
+1. Dans le menu, aller à "APIs & Services" → "Library"
+2. Rechercher "Merchant Center API"
+3. Cliquer sur "Merchant Center API"
+4. Cliquer sur "Activer"
 
-1. **Créer un projet**
-   ```
-   https://console.cloud.google.com/
-   ```
+### 1.3 Créer un compte de service
+1. Aller à "APIs & Services" → "Credentials"
+2. Cliquer sur "Create Credentials" → "Service Account"
+3. Remplir les informations :
+   - Nom : "gmc-export-service"
+   - Description : "Service d'export vers Google Merchant Center"
+4. Cliquer sur "Create and Continue"
+5. Pour les rôles, sélectionner "Editor" (ou créer un rôle personnalisé)
+6. Cliquer sur "Continue" puis "Done"
 
-2. **Activer les APIs**
-   - Content API for Shopping
-   - Google Ads API
-   - Google Analytics API
+### 1.4 Générer la clé JSON
+1. Cliquer sur le compte de service créé
+2. Aller à l'onglet "Keys"
+3. Cliquer sur "Add Key" → "Create new key"
+4. Sélectionner "JSON"
+5. Télécharger le fichier JSON
+6. **IMPORTANT** : Placer ce fichier dans le projet et ajouter le chemin dans `.env`
 
-3. **Créer un compte de service**
-   - IAM & Admin > Service Accounts
-   - Créer un nouveau compte de service
-   - Télécharger le fichier JSON de clé
+## 🔗 Étape 2: Configuration Google Merchant Center
 
-### **Étape 2 : Configuration des Permissions**
+### 2.1 Accéder à GMC
+1. Aller sur [Google Merchant Center](https://merchants.google.com/)
+2. Se connecter avec le compte Google
 
-1. **Dans Google Merchant Center**
-   - Aller dans Paramètres > Comptes utilisateur
-   - Ajouter l'email du compte de service
-   - Donner les permissions "Administrateur"
+### 2.2 Lier le compte de service
+1. Dans GMC, aller à "Settings" → "Users"
+2. Cliquer sur "Add user"
+3. Ajouter l'email du compte de service (format: `nom@projet.iam.gserviceaccount.com`)
+4. Rôle : "Standard user" ou "Admin" selon les besoins
+5. Cliquer sur "Add user"
 
-2. **Dans Google Ads (si applicable)**
-   - Aller dans Outils > Accès et sécurité
-   - Ajouter l'email du compte de service
-   - Donner les permissions "Administrateur"
+### 2.3 Récupérer le Merchant ID
+1. Dans GMC, aller à "Settings" → "Account"
+2. Le Merchant ID est affiché en haut de la page
+3. **Notez ce numéro** - il sera utilisé dans l'application
 
-### **Étape 3 : Variables d'Environnement**
+## ⚙️ Étape 3: Configuration de l'application
 
-Ajouter dans `.env.local` :
+### 3.1 Variables d'environnement
+Ajouter dans le fichier `.env` :
 
-```env
-# Google Cloud Configuration
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+```bash
+# Google Cloud
+GOOGLE_APPLICATION_CREDENTIALS=./path/to/service-account-key.json
 GOOGLE_CLOUD_PROJECT_ID=your-project-id
 
-# Google Merchant Center
-GMC_MERCHANT_ID=123456789
-GMC_ACCOUNT_ID=123456789
-
-# Google Ads (optionnel)
-GOOGLE_ADS_CLIENT_CUSTOMER_ID=123-456-7890
-GOOGLE_ADS_DEVELOPER_TOKEN=your-developer-token
+# GMC
+GMC_DEFAULT_MERCHANT_ID=your-merchant-id
+SHOPIFY_STORE_URL=https://your-store.myshopify.com
 ```
 
-### **Étape 4 : Configuration du Fichier de Service**
+### 3.2 Structure des dossiers
+```
+src/
+├── lib/
+│   ├── gmc-service.ts      # Service principal GMC
+│   ├── gmc-config.ts       # Configuration et mapping
+│   └── google-auth.ts      # Authentification Google
+├── app/
+│   └── api/
+│       └── gmc/
+│           └── export/
+│               └── route.ts # Route d'export
+└── components/
+    └── admin/
+        └── GMCExportButton.tsx # Composant d'export
+```
 
-1. **Placer le fichier JSON**
-   ```
-   /path/to/service-account-key.json
-   ```
+## 🧪 Étape 4: Test de l'API
 
-2. **Vérifier les permissions**
-   ```bash
-   chmod 600 /path/to/service-account-key.json
-   ```
-
-## 🔧 **Test de Configuration**
-
-### **Test Automatique**
+### 4.1 Test local
 ```bash
-npm run test:gmc
+# Démarrer l'application
+npm run dev
+
+# Dans un autre terminal, lancer le test
+node test-gmc-api.js
 ```
 
-### **Test Manuel**
-1. Aller dans Campaign Operator
-2. Onglet Feed Manager
-3. Cliquer sur "Synchroniser"
+### 4.2 Test avec de vrais produits
+1. Aller sur `/admin/feed-manager`
+2. Sélectionner une boutique Shopify
+3. Cliquer sur "Export GMC"
+4. Saisir le Merchant ID
+5. Cliquer sur "Exporter"
 
-## 📊 **Structure des Custom Labels**
+## 🔍 Étape 5: Monitoring et Debug
 
-### **Custom Label 0 : Score Global**
-```
-score_8.5
-```
+### 5.1 Logs de l'application
+- Vérifier les logs dans la console
+- Les erreurs d'export sont affichées dans l'interface
 
-### **Custom Label 1 : Performance**
-```
-performance_high
-performance_medium
-performance_low
-```
+### 5.2 Vérification dans GMC
+1. Aller dans GMC → "Products"
+2. Vérifier que les produits sont bien importés
+3. Vérifier les statuts et erreurs éventuelles
 
-### **Custom Label 2 : Recommandations**
-```
-Améliorer le titre du produit
-Ajouter plus d'images
-Optimiser la description
-```
+### 5.3 API Status
+- Route GET `/api/gmc/export?merchantId=XXX` pour vérifier le statut
+- Retourne la liste des produits exportés
 
-### **Custom Label 3 : Date d'Optimisation**
-```
-2024-01-15
-```
+## 🚨 Dépannage
 
-### **Custom Label 4 : Version IA**
-```
-ai_v1.0
-```
+### Erreur d'authentification
+- Vérifier que le fichier JSON est bien placé
+- Vérifier que le compte de service a accès à GMC
+- Vérifier que l'API est activée
 
-## 🚨 **Dépannage**
+### Erreur d'export
+- Vérifier le format des produits Shopify
+- Vérifier que tous les champs requis sont présents
+- Vérifier les limites de l'API (1000 produits par batch)
 
-### **Erreur : "API GMC non initialisée"**
-- Vérifier le fichier de service
-- Vérifier les variables d'environnement
-- Vérifier les permissions du compte de service
+### Produits non visibles dans GMC
+- Vérifier que le Merchant ID est correct
+- Vérifier que les produits respectent les règles GMC
+- Attendre quelques minutes pour la synchronisation
 
-### **Erreur : "Access denied"**
-- Vérifier les permissions dans GMC
-- Vérifier les permissions dans Google Ads
-- Vérifier les scopes de l'API
+## 📚 Ressources utiles
 
-### **Erreur : "Quota exceeded"**
-- Vérifier les quotas dans Google Cloud Console
-- Réduire la fréquence des appels API
-- Contacter le support Google
+- [Documentation GMC API](https://developers.google.com/shopping-content/guides/quickstart)
+- [Google Cloud Console](https://console.cloud.google.com/)
+- [Google Merchant Center](https://merchants.google.com/)
+- [Limites de l'API](https://developers.google.com/shopping-content/guides/quotas)
 
-## 📈 **Optimisation**
+## 🎯 Prochaines étapes
 
-### **Limites API**
-- Content API : 1000 requêtes/minute
-- Google Ads API : 10000 requêtes/jour
-- Analytics API : 100000 requêtes/jour
-
-### **Bonnes Pratiques**
-- Mettre en cache les données
-- Utiliser la pagination
-- Gérer les erreurs de rate limiting
-- Monitorer l'utilisation des quotas
-
-## 🔐 **Sécurité**
-
-### **Fichier de Service**
-- Ne jamais commiter le fichier JSON
-- Utiliser des variables d'environnement
-- Limiter les permissions du compte de service
-
-### **Permissions**
-- Principe du moindre privilège
-- Révoquer les permissions inutilisées
-- Monitorer l'activité du compte de service
-
-## 📞 **Support**
-
-### **Documentation Officielle**
-- [Content API for Shopping](https://developers.google.com/shopping-content)
-- [Google Ads API](https://developers.google.com/google-ads/api)
-- [Google Analytics API](https://developers.google.com/analytics)
-
-### **Communauté**
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/google-merchant-center)
-- [Google Ads Community](https://support.google.com/google-ads/community) 
+1. **Test en production** avec de vrais produits
+2. **Optimisation des performances** (parallélisation des exports)
+3. **Monitoring avancé** (métriques d'export, alertes)
+4. **Gestion des erreurs** (retry automatique, fallback)
+5. **Interface d'administration** (gestion des comptes GMC) 

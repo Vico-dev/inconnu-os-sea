@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { ShopifyService } from '@/lib/shopify-service'
+import { ShopifyGraphQLService } from '@/lib/shopify-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,13 +36,13 @@ export async function GET(request: NextRequest) {
 
     try {
       // Échanger le code contre un token d'accès
-      const tokenData = await ShopifyService.exchangeCodeForToken(cleanShop, code)
+      const tokenData = await ShopifyGraphQLService.exchangeCodeForToken(cleanShop, code)
 
       // Récupérer les informations du store
-      const shopInfo = await ShopifyService.getShopInfo(cleanShop, tokenData.accessToken)
+      const shopInfo = await ShopifyGraphQLService.getShopInfo(cleanShop, tokenData.accessToken)
 
       // Sauvegarder le store en base de données
-      await ShopifyService.saveStore(session.user.id, {
+      await ShopifyGraphQLService.saveStore(session.user.id, {
         ...shopInfo,
         accessToken: tokenData.accessToken,
       })

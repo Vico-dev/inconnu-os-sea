@@ -1,617 +1,265 @@
-import OpenAI from 'openai'
-
-// Initialiser OpenAI seulement si la clé API est disponible
-let openai: OpenAI | null = null
-
-if (process.env.OPENAI_API_KEY) {
-  openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-}
+import OpenAI from 'openai';
 
 export interface AIGenerationRequest {
-  type: 'keywords' | 'headlines' | 'descriptions' | 'optimization'
-  industry: string
-  website: string
-  goals: string[]
-  budget?: number
-  context?: string
+  productId: string;
+  gtin: string;
+  currentTitle?: string;
+  currentDescription?: string;
+  currentPrice?: number;
+  category?: string;
+  brand?: string;
+  targetType: 'title' | 'description' | 'price';
+  clientContext?: string;
 }
 
-export interface AIGenerationResponse {
-  content: string[]
-  suggestions: string[]
-  confidence: number
+export interface AIGenerationResult {
+  success: boolean;
+  content?: string;
+  price?: number;
+  error?: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 export class OpenAIService {
-  
-  // 🔍 GÉNÉRATION DE MOTS-CLÉS
-  async generateKeywords(request: AIGenerationRequest): Promise<AIGenerationResponse> {
+  private client: OpenAI | null = null;
+
+  constructor() {
+    // Ne pas initialiser le client au constructeur
+  }
+
+  private async getClient(): Promise<OpenAI> {
+    if (this.client) {
+      return this.client;
+    }
+
+    const apiKey = process.env.OPENAI_KEY;
+    if (!apiKey) {
+      throw new Error('OPENAI_KEY environment variable is required');
+    }
+
+    this.client = new OpenAI({
+      apiKey,
+      maxRetries: 3,
+    });
+
+    return this.client;
+  }
+
+  async generateContent(request: AIGenerationRequest): Promise<AIGenerationResult> {
     try {
-      // Vérifier si OpenAI est disponible
-      if (!openai) {
-        console.log('⚠️ OpenAI non configuré, utilisation des données simulées')
-        return this.getSimulatedKeywords(request)
-      }
-
-      const prompt = `
-Tu es un expert en Google Ads spécialisé dans la génération de mots-clés optimisés.
-
-Contexte:
-- Industrie: ${request.industry}
-- Site web: ${request.website}
-- Objectifs: ${request.goals.join(', ')}
-- Budget: ${request.budget || 'Non spécifié'}€/jour
-
-Génère une liste de 15-20 mots-clés Google Ads optimisés, organisés par type:
-
-1. Mots-clés EXACT (5-7 mots-clés):
-   - Mots-clés principaux avec volume de recherche élevé
-   - Format: "mot-clé exact"
-
-2. Mots-clés PHRASE (5-7 mots-clés):
-   - Mots-clés long-tail avec bonne conversion
-   - Format: "mot clé phrase"
-
-3. Mots-clés BROAD (5-6 mots-clés):
-   - Mots-clés de découverte avec volume modéré
-   - Format: mot clé broad
-
-4. Suggestions d'optimisation (3-5 conseils):
-   - Stratégies pour améliorer les performances
-
-Retourne uniquement la liste formatée, sans explications supplémentaires.
-`
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
+      const client = await this.getClient();
+      const prompt = this.buildPrompt(request);
+      
+      const response = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
         messages: [
           {
-            role: "system",
-            content: "Tu es un expert en marketing digital et Google Ads. Réponds de manière concise et pratique."
+            role: 'system',
+            content: this.getSystemPrompt(request.targetType)
           },
           {
-            role: "user",
+            role: 'user',
             content: prompt
           }
         ],
+        max_tokens: this.getMaxTokens(request.targetType),
         temperature: 0.7,
-        max_tokens: 1000
-      })
+      });
 
-      const response = completion.choices[0]?.message?.content || ''
-      
-      // Parser la réponse
-      const lines = response.split('\n').filter(line => line.trim())
-      const keywords: string[] = []
-      const suggestions: string[] = []
-      
-      let currentSection = ''
-      
-      for (const line of lines) {
-        if (line.includes('EXACT') || line.includes('PHRASE') || line.includes('BROAD')) {
-          currentSection = line
-        } else if (line.includes('Suggestions') || line.includes('optimisation')) {
-          currentSection = 'suggestions'
-        } else if (line.trim() && !line.startsWith('-') && !line.startsWith('•')) {
-          if (currentSection === 'suggestions') {
-            suggestions.push(line.trim())
-          } else {
-            keywords.push(line.trim())
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content generated');
+      }
+
+      // Traitement spécifique selon le type
+      if (request.targetType === 'price') {
+        const price = this.extractPrice(content);
+        return {
+          success: true,
+          price,
+          usage: {
+            promptTokens: response.usage?.prompt_tokens || 0,
+            completionTokens: response.usage?.completion_tokens || 0,
+            totalTokens: response.usage?.total_tokens || 0,
           }
+        };
+      }
+
+      return {
+        success: true,
+        content: content.trim(),
+        usage: {
+          promptTokens: response.usage?.prompt_tokens || 0,
+          completionTokens: response.usage?.completion_tokens || 0,
+          totalTokens: response.usage?.total_tokens || 0,
+        }
+      };
+
+    } catch (error) {
+      console.error('OpenAI API error:', error);
+
+      // Fallback local si quota (429) ou indispo
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      const isQuota = message.includes('429') || message.toLowerCase().includes('quota') || message.includes('insufficient_quota')
+
+      if (isQuota) {
+        console.log('⚠️ Quota OpenAI dépassé, utilisation du fallback local')
+        // Heuristiques rapides et propres
+        if (request.targetType === 'title') {
+          const base = (request.currentTitle || 'Produit').trim()
+          const brand = (request.brand || '').trim()
+          const category = (request.category || '').trim()
+          const title = [brand, base, category].filter(Boolean).join(' ').slice(0, 140)
+          return { success: true, content: title }
+        }
+        if (request.targetType === 'description') {
+          const title = request.currentTitle || 'Ce produit'
+          const brand = request.brand || ''
+          const category = request.category || ''
+          const desc = `${title}${brand ? ` - ${brand}` : ''}${category ? ` (${category})` : ''}
+
+Caractéristiques principales :
+• Qualité premium et durabilité
+• Design moderne et fonctionnel  
+• Livraison rapide et sécurisée
+• Garantie satisfait ou remboursé
+• Support client réactif
+
+Idéal pour un usage quotidien, ce produit allie performance et esthétique.`
+          return { success: true, content: desc }
+        }
+        if (request.targetType === 'price') {
+          const base = typeof request.currentPrice === 'number' ? request.currentPrice : 0
+          const member = Math.max(0, +(base * 0.9).toFixed(2))
+          return { success: true, price: member }
         }
       }
 
-      return {
-        content: keywords,
-        suggestions,
-        confidence: 0.85
-      }
-
-    } catch (error) {
-      console.error('Erreur génération mots-clés OpenAI:', error)
-      console.log('⚠️ Fallback vers les données simulées')
-      return this.getSimulatedKeywords(request)
+      return { success: false, error: message };
     }
   }
 
-  // 📝 GÉNÉRATION DE HEADLINES
-  async generateHeadlines(request: AIGenerationRequest): Promise<AIGenerationResponse> {
-    try {
-      // Vérifier si OpenAI est disponible
-      if (!openai) {
-        console.log('⚠️ OpenAI non configuré, utilisation des données simulées')
-        return this.getSimulatedHeadlines(request)
-      }
+  private buildPrompt(request: AIGenerationRequest): string {
+    const baseInfo = `
+Produit: ${request.currentTitle || 'Nouveau produit'}
+GTIN: ${request.gtin}
+Catégorie: ${request.category || 'Non spécifiée'}
+Marque: ${request.brand || 'Non spécifiée'}
+${request.clientContext ? `Contexte client: ${request.clientContext}` : ''}
+`;
 
-      const prompt = `
-Tu es un expert en copywriting pour Google Ads.
+    switch (request.targetType) {
+      case 'title':
+        return `${baseInfo}
+Génère un titre Google Shopping conforme et performant qui:
+- Fait entre 65 et 140 caractères (jamais > 150)
+- Suit l'ordre: Marque + Type de produit + attributs clés (taille/couleur/matière/capacité) + modèle/référence si pertinent
+- Intègre naturellement les mots-clés recherchés (sans bourrage)
+- Est factuel, clair, en français, sans promo ni clickbait
+- Interdits: ALL CAPS, emojis, coordonnées, superlatifs non prouvés
 
-Contexte:
-- Industrie: ${request.industry}
-- Site web: ${request.website}
-- Objectifs: ${request.goals.join(', ')}
+Titre actuel: "${request.currentTitle || 'Aucun'}"
 
-Génère 8-10 headlines d'annonces Google Ads optimisées qui respectent:
-- Maximum 30 caractères par headline
-- Incluent des mots-clés pertinents
-- Créent de l'urgence ou de la valeur
-- Utilisent des chiffres et des preuves sociales
+Sors uniquement le titre final, sans guillemets ni explications.`;
 
-Format de réponse:
-- Une headline par ligne
-- Pas de numérotation
-- Pas d'explications
+      case 'description':
+        return `${baseInfo}
+Rédige une description Google Shopping conforme et convaincante qui:
+- Fait entre 700 et 1100 caractères
+- Structure: 1) accroche factuelle courte; 2) puces avec bénéfices/usage; 3) spécifications clés (marque, modèle/référence si dispo, matière, dimensions/taille/capacité, compatibilités, contenu du colis, entretien si pertinent); 4) rassurance factuelle (garantie, conformité, retours/livraison si connu)
+- Intègre des mots-clés naturels, sans bourrage
+- Interdits: claims non vérifiables, superlatifs non prouvés, clickbait, répétition inutile du titre, HTML, emojis, ALL CAPS, coordonnées, promotions
+- Langue: français, ton précis et informatif
 
-Exemple de style:
-"Agence Marketing | +200% ROI"
-"Conseil Expert | Gratuit 30min"
-"Optimisation Conversion | Résultats"
-`
+Description actuelle: "${request.currentDescription || 'Aucune'}"
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un expert copywriter spécialisé dans les annonces Google Ads. Crée des headlines percutantes et optimisées."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 500
-      })
+Sors uniquement le texte final, sans guillemets ni explications.`;
 
-      const response = completion.choices[0]?.message?.content || ''
-      const headlines = response.split('\n').filter(line => line.trim())
+      case 'price':
+        return `${baseInfo}
+Prix actuel: ${request.currentPrice ? `${request.currentPrice}€` : 'Non défini'}
 
-      return {
-        content: headlines,
-        suggestions: [
-          'Testez différentes combinaisons de headlines',
-          'Utilisez des extensions d\'annonces pour plus d\'informations',
-          'A/B testez les headlines les plus performantes'
-        ],
-        confidence: 0.9
-      }
+Analyse le produit et suggère un prix public et un prix membre optimisés:
+- Prix public: prix de vente standard
+- Prix membre: prix réduit pour les clients fidèles (réduction de 10-25%)
 
-    } catch (error) {
-      console.error('Erreur génération headlines OpenAI:', error)
-      console.log('⚠️ Fallback vers les données simulées')
-      return this.getSimulatedHeadlines(request)
+Réponds uniquement au format: "Prix public: X.XX€, Prix membre: Y.YY€"`;
+
+      default:
+        throw new Error(`Type de génération non supporté: ${request.targetType}`);
     }
   }
 
-  // 📄 GÉNÉRATION DE DESCRIPTIONS
-  async generateDescriptions(request: AIGenerationRequest): Promise<AIGenerationResponse> {
-    try {
-      // Vérifier si OpenAI est disponible
-      if (!openai) {
-        console.log('⚠️ OpenAI non configuré, utilisation des données simulées')
-        return this.getSimulatedDescriptions(request)
-      }
-
-      const prompt = `
-Tu es un expert en copywriting pour Google Ads.
-
-Contexte:
-- Industrie: ${request.industry}
-- Site web: ${request.website}
-- Objectifs: ${request.goals.join(', ')}
-
-Génère 4-5 descriptions d'annonces Google Ads optimisées qui respectent:
-- Maximum 90 caractères par description
-- Incluent un appel à l'action clair
-- Mettent en avant les bénéfices
-- Utilisent des preuves sociales ou des garanties
-
-Format de réponse:
-- Une description par ligne
-- Pas de numérotation
-- Pas d'explications
-
-Exemple de style:
-"Agence marketing digitale spécialisée dans l'optimisation des conversions. Résultats garantis ou remboursé. Consultation gratuite."
-"Stratégie marketing personnalisée pour votre entreprise. Augmentation moyenne du ROI de 200%. Devis gratuit."
-`
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un expert copywriter spécialisé dans les descriptions d'annonces Google Ads. Crée des descriptions persuasives et optimisées."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 500
-      })
-
-      const response = completion.choices[0]?.message?.content || ''
-      const descriptions = response.split('\n').filter(line => line.trim())
-
-      return {
-        content: descriptions,
-        suggestions: [
-          'Incluez toujours un appel à l\'action',
-          'Utilisez des chiffres et des preuves sociales',
-          'Testez différentes longueurs de descriptions'
-        ],
-        confidence: 0.9
-      }
-
-    } catch (error) {
-      console.error('Erreur génération descriptions OpenAI:', error)
-      console.log('⚠️ Fallback vers les données simulées')
-      return this.getSimulatedDescriptions(request)
-    }
-  }
-
-  // ⚡ GÉNÉRATION DE SUGGESTIONS D'OPTIMISATION
-  async generateOptimizationSuggestions(request: AIGenerationRequest): Promise<AIGenerationResponse> {
-    try {
-      // Vérifier si OpenAI est disponible
-      if (!openai) {
-        console.log('⚠️ OpenAI non configuré, utilisation des données simulées')
-        return this.getSimulatedOptimizationSuggestions(request)
-      }
-
-      const prompt = `
-Tu es un expert en optimisation Google Ads.
-
-Contexte:
-- Industrie: ${request.industry}
-- Site web: ${request.website}
-- Objectifs: ${request.goals.join(', ')}
-- Budget: ${request.budget || 'Non spécifié'}€/jour
-- Contexte supplémentaire: ${request.context || 'Aucun'}
-
-Génère 5-7 suggestions d'optimisation spécifiques et actionnables pour améliorer les performances des campagnes Google Ads.
-
-Les suggestions doivent inclure:
-- Optimisation des mots-clés
-- Amélioration des annonces
-- Gestion du budget
-- Ciblage et audiences
-- Tests A/B
-
-Format de réponse:
-- Une suggestion par ligne
-- Commence par un verbe d'action
-- Sois spécifique et mesurable
-- Pas de numérotation
-
-Exemple de style:
-"Pausez les mots-clés avec un CTR < 1% depuis 14 jours"
-"Augmentez les enchères de 20% sur les mots-clés avec un ROAS > 3"
-"Créez 3 nouvelles annonces par groupe d'annonces"
-`
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un expert en optimisation Google Ads. Donne des conseils pratiques et actionnables."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 800
-      })
-
-      const response = completion.choices[0]?.message?.content || ''
-      const suggestions = response.split('\n').filter(line => line.trim())
-
-      return {
-        content: suggestions,
-        suggestions: [
-          'Priorisez les optimisations par impact potentiel',
-          'Testez les changements sur de petits volumes d\'abord',
-          'Surveillez les performances après chaque optimisation'
-        ],
-        confidence: 0.8
-      }
-
-    } catch (error) {
-      console.error('Erreur génération suggestions OpenAI:', error)
-      console.log('⚠️ Fallback vers les données simulées')
-      return this.getSimulatedOptimizationSuggestions(request)
-    }
-  }
-
-  // 🎯 ANALYSE DE PERFORMANCE
-  async analyzePerformance(metrics: any): Promise<AIGenerationResponse> {
-    try {
-      // Vérifier si OpenAI est disponible
-      if (!openai) {
-        console.log('⚠️ OpenAI non configuré, utilisation des données simulées')
-        return this.getSimulatedPerformanceAnalysis(metrics)
-      }
-
-      const prompt = `
-Tu es un expert en analyse de performance Google Ads.
-
-Métriques actuelles:
-- CTR: ${metrics.ctr}%
-- CPC: €${metrics.cpc}
-- ROAS: ${metrics.roas}x
-- Conversions: ${metrics.conversions}
-- Coût: €${metrics.cost}
-
-Analyse ces performances et génère:
-1. 3-5 problèmes identifiés
-2. 3-5 solutions d'amélioration
-3. 2-3 opportunités d'optimisation
-
-Format de réponse:
-- Problèmes: "Problème: [description]"
-- Solutions: "Solution: [action concrète]"
-- Opportunités: "Opportunité: [suggestion]"
-`
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un expert en analyse de performance Google Ads. Analyse les données et propose des améliorations."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.6,
-        max_tokens: 600
-      })
-
-      const response = completion.choices[0]?.message?.content || ''
-      const analysis = response.split('\n').filter(line => line.trim())
-
-      return {
-        content: analysis,
-        suggestions: [
-          'Surveillez ces métriques régulièrement',
-          'Implémentez les solutions par ordre de priorité',
-          'Mesurez l\'impact de chaque changement'
-        ],
-        confidence: 0.85
-      }
-
-    } catch (error) {
-      console.error('Erreur analyse performance OpenAI:', error)
-      console.log('⚠️ Fallback vers les données simulées')
-      return this.getSimulatedPerformanceAnalysis(metrics)
-    }
-  }
-
-  // 🎯 MÉTHODES DE FALLBACK (données simulées)
-  private getSimulatedKeywords(request: AIGenerationRequest): AIGenerationResponse {
-    const keywords = [
-      `${request.industry} expert`,
-      `${request.industry} professionnel`,
-      `${request.industry} spécialiste`,
-      `${request.industry} conseil`,
-      `${request.industry} service`,
-      `meilleur ${request.industry}`,
-      `${request.industry} pas cher`,
-      `${request.industry} prix`,
-      `${request.industry} avis`,
-      `${request.industry} recommandé`
-    ]
-
-    const suggestions = [
-      'Cibler les mots-clés long-tail pour réduire les coûts',
-      'Utiliser des extensions d\'annonces pour améliorer le CTR',
-      'Créer des landing pages dédiées pour chaque groupe d\'annonces'
-    ]
-
-    return {
-      content: keywords,
-      suggestions,
-      confidence: 0.6
-    }
-  }
-
-  private getSimulatedHeadlines(request: AIGenerationRequest): AIGenerationResponse {
-    const headlines = [
-      `${request.industry} Expert | Résultats Garantis`,
-      `Conseil ${request.industry} | +200% ROI`,
-      `${request.industry} Spécialiste | Gratuit 30min`,
-      `Optimisation ${request.industry} | Résultats Immédiats`,
-      `${request.industry} Professionnel | Devis Gratuit`
-    ]
-
-    return {
-      content: headlines,
-      suggestions: [
-        'Testez différentes combinaisons de headlines',
-        'Utilisez des extensions d\'annonces pour plus d\'informations'
-      ],
-      confidence: 0.7
-    }
-  }
-
-  private getSimulatedDescriptions(request: AIGenerationRequest): AIGenerationResponse {
-    const descriptions = [
-      `${request.industry} spécialisé dans l'optimisation des performances. Résultats garantis ou remboursé. Consultation gratuite.`,
-      `Stratégie ${request.industry} personnalisée pour votre entreprise. Augmentation moyenne du ROI de 200%. Devis gratuit.`
-    ]
-
-    return {
-      content: descriptions,
-      suggestions: [
-        'Incluez toujours un appel à l\'action',
-        'Utilisez des chiffres et des preuves sociales'
-      ],
-      confidence: 0.7
-    }
-  }
-
-  private getSimulatedOptimizationSuggestions(request: AIGenerationRequest): AIGenerationResponse {
-    const suggestions = [
-      'Pausez les mots-clés avec un CTR < 1% depuis 14 jours',
-      'Augmentez les enchères de 20% sur les mots-clés avec un ROAS > 3',
-      'Créez 3 nouvelles annonces par groupe d\'annonces',
-      'Optimisez les heures de diffusion selon les performances',
-      'Ajoutez des extensions d\'annonces pour améliorer le CTR'
-    ]
-
-    return {
-      content: suggestions,
-      suggestions: [
-        'Priorisez les optimisations par impact potentiel',
-        'Testez les changements sur de petits volumes d\'abord'
-      ],
-      confidence: 0.6
-    }
-  }
-
-  private getSimulatedPerformanceAnalysis(metrics: any): AIGenerationResponse {
-    const analysis = [
-      'Problème: CTR faible (2.5%) - en dessous de la moyenne du secteur',
-      'Problème: ROAS de 2.2x - objectif non atteint',
-      'Solution: Optimiser les annonces pour améliorer le CTR',
-      'Solution: Ajuster les enchères sur les mots-clés performants',
-      'Opportunité: Tester de nouveaux mots-clés long-tail'
-    ]
-
-    return {
-      content: analysis,
-      suggestions: [
-        'Surveillez ces métriques régulièrement',
-        'Implémentez les solutions par ordre de priorité'
-      ],
-      confidence: 0.6
-    }
-  }
-
-  /**
-   * Génère des recommandations d'optimisation
-   */
-  async generateRecommendations(request: {
-    prompt: string
-    campaignType: string
-    performanceData: any
-  }): Promise<{ recommendations: any[] }> {
-    try {
-      if (!openai) {
-        console.log('⚠️ OpenAI non configuré, utilisation des recommandations simulées')
-        return { recommendations: [] }
-      }
-
-      const enhancedPrompt = `
-${request.prompt}
-
-Analyse ces données de performance et génère des recommandations d'optimisation spécifiques et actionnables.
-
-Retourne la réponse au format JSON strict :
-{
-  "recommendations": [
-    {
-      "id": "unique-id",
-      "type": "BUDGET|BID|KEYWORD|TARGETING|CREATIVE",
-      "priority": "HIGH|MEDIUM|LOW",
-      "title": "Titre de la recommandation",
-      "description": "Description détaillée",
-      "impact": "POSITIVE|NEGATIVE|NEUTRAL",
-      "estimatedImprovement": 15,
-      "action": "Action spécifique à effectuer",
-      "applied": false
-    }
-  ]
-}
-
-Assure-toi que la réponse est un JSON valide et parsable.
-`
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un expert en optimisation Google Ads. Réponds uniquement en JSON valide."
-          },
-          {
-            role: "user",
-            content: enhancedPrompt
-          }
-        ],
-        max_tokens: 1500,
-        temperature: 0.3,
-      })
-
-      const response = completion.choices[0]?.message?.content
+  private getSystemPrompt(targetType: string): string {
+    switch (targetType) {
+      case 'title':
+        return `Tu es expert Google Merchant Center et SEO. Tu écris des titres conformes aux politiques Google Shopping: exacts, utiles, sans promo ni claims non prouvés, sans ALL CAPS/emoji. Priorité: clarté, pertinence, mots-clés naturels.`;
       
-      if (!response) {
-        console.log('⚠️ Réponse OpenAI vide')
-        return { recommendations: [] }
-      }
+      case 'description':
+        return `Tu es expert Google Merchant Center. Tu rédiges des descriptions conformes aux politiques Shopping: exactes, utiles, sans exagération ni promesses non fondées, sans HTML/emoji/ALL CAPS, sans coordonnées ni promotions. Style clair, français natif, orienté bénéfices + preuves.`;
+      
+      case 'price':
+        return `Tu es un expert en pricing et stratégie commerciale. Tu analyses les produits et suggères des prix optimaux basés sur la valeur perçue et la concurrence.`;
+      
+      default:
+        return `Tu es un assistant IA spécialisé dans l'optimisation de contenu e-commerce.`;
+    }
+  }
 
+  private getMaxTokens(targetType: string): number {
+    switch (targetType) {
+      case 'title': return 80;
+      case 'description': return 500;
+      case 'price': return 150;
+      default: return 200;
+    }
+  }
+
+  private extractPrice(content: string): number {
+    // Extraction du prix depuis la réponse IA
+    const priceMatch = content.match(/(\d+[.,]\d{2})/);
+    if (priceMatch) {
+      return parseFloat(priceMatch[1].replace(',', '.'));
+    }
+    
+    // Fallback: extraction d'un nombre simple
+    const numberMatch = content.match(/(\d+)/);
+    if (numberMatch) {
+      return parseFloat(numberMatch[1]);
+    }
+    
+    throw new Error('Impossible d\'extraire un prix de la réponse IA');
+  }
+
+  // Méthode pour la génération en lot
+  async generateBatch(requests: AIGenerationRequest[]): Promise<AIGenerationResult[]> {
+    const results: AIGenerationResult[] = [];
+    
+    // Traitement séquentiel pour éviter les rate limits
+    for (const request of requests) {
       try {
-        // Essayer de parser la réponse JSON
-        const parsedResponse = JSON.parse(response)
+        const result = await this.generateContent(request);
+        results.push(result);
         
-        if (parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations)) {
-          console.log('✅ Recommandations générées avec succès:', parsedResponse.recommendations.length)
-          return parsedResponse
-        } else {
-          console.log('⚠️ Format de réponse invalide')
-          return { recommendations: [] }
+        // Pause entre les requêtes pour respecter les rate limits
+        if (requests.length > 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-      } catch (parseError) {
-        console.error('❌ Erreur parsing JSON OpenAI:', parseError)
-        console.log('Réponse brute:', response)
-        return { recommendations: [] }
+      } catch (error) {
+        results.push({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
-    } catch (error) {
-      console.error('Erreur génération recommandations OpenAI:', error)
-      return { recommendations: [] }
     }
-  }
-
-  /**
-   * Génère un benchmark pour un secteur
-   */
-  async generateBenchmark(request: {
-    industry: string
-    campaignType: string
-    prompt: string
-  }): Promise<any> {
-    try {
-      if (!openai) {
-        console.log('⚠️ OpenAI non configuré, utilisation du benchmark simulé')
-        return {}
-      }
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [{ role: "user", content: request.prompt }],
-        max_tokens: 800,
-        temperature: 0.2,
-      })
-
-      const response = completion.choices[0]?.message?.content
-      
-      // TODO: Parser la réponse JSON structurée
-      return {}
-    } catch (error) {
-      console.error('Erreur génération benchmark OpenAI:', error)
-      return {}
-    }
+    
+    return results;
   }
 }
 
-export const openaiService = new OpenAIService() 
+// Instance singleton - ne s'initialise qu'au moment de l'utilisation
+export const openAIService = new OpenAIService(); 

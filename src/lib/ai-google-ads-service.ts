@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db"
 import { googleAdsSync } from "./google-ads-sync"
-import { openaiService, AIGenerationRequest } from "./openai-service"
+import { openAIService, AIGenerationRequest } from "./openai-service"
 
 export interface CampaignData {
   name: string
@@ -162,7 +162,7 @@ export class AIGoogleAdsService {
         budget: campaignData.budget
       }
 
-      const aiResponse = await openaiService.generateKeywords(aiRequest)
+      const aiResponse = await openAIService.generateKeywords(aiRequest)
       
       // Convertir la réponse IA en format KeywordData
       const keywords: KeywordData[] = aiResponse.content.map((keyword, index) => ({

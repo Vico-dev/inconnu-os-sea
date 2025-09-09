@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { openaiService } from '@/lib/openai-service'
+import { openAIService } from '@/lib/openai-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +41,7 @@ Réponds au format JSON :
 }
 `
 
-    const suggestions = await openaiService.generateContent(prompt)
+    const suggestions = await openAIService.generateContent(prompt)
     
     // Parser la réponse JSON
     let parsedSuggestions

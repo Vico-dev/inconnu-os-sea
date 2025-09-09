@@ -66,6 +66,7 @@ model ClientAccount {
   id                    String   @id @default(cuid())
   userId                String   @unique
   companyId             String
+  merchantCenterMerchantId String? // Merchant ID GMC du client
   subscriptionPlan      String?
   monthlyBudget         Float?
   onboardingCompleted   Boolean  @default(false)
@@ -92,6 +93,10 @@ model ClientAccount {
   notifications Notification[]
   aiCampaigns AICampaign[]
   aiTasks AITask[]
+  // Feed Manager relations
+  productOptimizations ProductOptimization[]
+  memberPrices          MemberPrice[]
+  csvImportJobs         CsvImportJob[]
 
   @@map("client_accounts")
 }
@@ -629,5 +634,139 @@ model ABTestVariant {
   test        ABTest @relation(fields: [testId], references: [id], onDelete: Cascade)
 
   @@map("ab_test_variants")
+}
+
+// === Feed Manager: Optimisations produits (titres/descriptions IA) ===
+model ProductOptimization {
+  id                    String   @id @default(cuid())
+  clientAccountId       String
+  gtin                  String
+  language              String   @default("fr")
+  // Données originales (sources Shopify/GMC)
+  originalTitle         String?
+  originalDescription   String?
+  originalPublicPrice   Float?
+  originalCurrency      String?  @default("EUR")
+  // Propositions IA
+  aiTitle               String?
+  aiDescription         String?
+  aiPublicPrice         Float?
+  aiMeta                Json?
+  // Workflow
+  status                OptimizationStatus @default(DRAFT)
+  source                OptimizationSource  @default(AI)
+  approvedBy            String?
+  approvedAt            DateTime?
+  publishedAt           DateTime?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  @@index([clientAccountId])
+  @@index([gtin])
+  @@unique([clientAccountId, gtin, language])
+  @@map("product_optimizations")
+}
+
+enum OptimizationStatus {
+  DRAFT
+  APPROVED
+  PUBLISHED
+  REJECTED
+}
+
+enum OptimizationSource {
+  AI
+  CSV
+  MANUAL
+}
+
+// === Feed Manager: Prix membres (loyalty_program) ===
+model MemberPrice {
+  id               String   @id @default(cuid())
+  clientAccountId  String
+  gtin             String
+  country          String   @default("FR")
+  currency         String   @default("EUR")
+  loyaltyLevel     String   @default("MEMBER")
+  publicPrice      Float
+  memberPrice      Float
+  validFrom        DateTime?
+  validTo          DateTime?
+  source           OptimizationSource @default(CSV)
+  status           MemberPriceStatus  @default(DRAFT)
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  @@index([clientAccountId])
+  @@index([gtin])
+  @@unique([clientAccountId, gtin, country, loyaltyLevel])
+  @@map("member_prices")
+}
+
+enum MemberPriceStatus {
+  DRAFT
+  APPROVED
+  PUBLISHED
+  EXPIRED
+}
+
+// === Feed Manager: Imports CSV (batch) ===
+model CsvImportJob {
+  id               String   @id @default(cuid())
+  clientAccountId  String
+  filename         String
+  status           ImportStatus @default(PENDING)
+  summary          Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  items         CsvImportItem[]
+
+  @@index([clientAccountId])
+  @@map("csv_import_jobs")
+}
+
+model CsvImportItem {
+  id          String   @id @default(cuid())
+  jobId       String
+  gtin        String
+  // Champs optionnels importables
+  title       String?
+  description String?
+  publicPrice Float?
+  memberPrice Float?
+  currency    String? @default("EUR")
+  country     String? @default("FR")
+  // Validation
+  errors      String?
+  status      ImportItemStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  job CsvImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([gtin])
+  @@map("csv_import_items")
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ImportItemStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 

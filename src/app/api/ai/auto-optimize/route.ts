@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
-import { openaiService } from "@/lib/openai-service"
+import { openAIService } from "@/lib/openai-service"
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Générer les suggestions d'optimisation avec l'IA
-    const optimizationResponse = await openaiService.generateOptimizationSuggestions(campaignData)
+    const optimizationResponse = await openAIService.generateOptimizationSuggestions(campaignData)
     
     // Analyser les performances avec l'IA
-    const performanceAnalysis = await openaiService.analyzePerformance(performanceMetrics)
+    const performanceAnalysis = await openAIService.analyzePerformance(performanceMetrics)
 
     // Créer un rapport d'optimisation
     const optimizationReport = {

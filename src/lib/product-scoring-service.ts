@@ -1,4 +1,4 @@
-import { openaiService } from './openai-service'
+import { openAIService } from './openai-service'
 
 export interface ProductScore {
   overall: number
@@ -64,7 +64,7 @@ Retourne au format JSON :
 }
 `
 
-      const response = await openaiService.generateRecommendations({
+      const response = await openAIService.generateRecommendations({
         prompt,
         campaignType: 'SHOPPING',
         performanceData: [product]
@@ -135,7 +135,7 @@ Génère des améliorations au format JSON :
 }
 `
 
-      const response = await openaiService.generateRecommendations({
+      const response = await openAIService.generateRecommendations({
         prompt: optimizationPrompt,
         campaignType: 'SHOPPING',
         performanceData: [product]
