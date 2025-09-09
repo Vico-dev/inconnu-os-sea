@@ -27,9 +27,8 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
   if (isProtectedRoute) {
-    // Vérifier l'authentification avec les nouveaux noms de cookies
-    const sessionToken = request.cookies.get('__Secure-next-auth.session-token')?.value ||
-                        request.cookies.get('next-auth.session-token')?.value
+    // Vérifier l'authentification avec le nom de cookie standard
+    const sessionToken = request.cookies.get('next-auth.session-token')?.value
 
     // Si pas de token, on ne redirige que les pages HTML, pas les assets/API
     if (!sessionToken && request.headers.get('accept')?.includes('text/html')) {

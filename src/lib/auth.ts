@@ -6,19 +6,6 @@ import { prisma } from "@/lib/db"
 export const authOptions: AuthOptions = {
   // Fait confiance aux en-têtes de proxy (Railway)
   trustHost: true,
-  // Configuration des cookies pour Railway
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? '.agence-inconnu.fr' : undefined
-      }
-    }
-  },
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -98,7 +85,7 @@ export const authOptions: AuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 jours
   },
   secret: process.env.NEXTAUTH_SECRET,
-  // Configuration pour Railway
-  useSecureCookies: process.env.NODE_ENV === 'production',
-  debug: process.env.NODE_ENV === 'development'
+  // Configuration simplifiée pour Railway
+  useSecureCookies: false,
+  debug: true
 } 
