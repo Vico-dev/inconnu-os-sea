@@ -252,80 +252,280 @@ export class ShopifyGraphQLService {
   }
 
   /**
-   * Récupère tous les produits du store
+   * Récupère tous les produits du store via GraphQL (migration depuis REST déprécié)
    */
   static async getProducts(shop: string, accessToken: string, limit: number = 250): Promise<ShopifyProduct[]> {
-    // Ajouter .myshopify.com si pas déjà présent
     const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
-    const products: ShopifyProduct[] = []
-    let nextPageInfo: string | null = null
+    
+    const query = `
+      query GetProducts($first: Int!) {
+        products(first: $first) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          edges {
+            node {
+              id
+              title
+              description
+              handle
+              vendor
+              productType
+              tags
+              status
+              createdAt
+              updatedAt
+              variants(first: 10) {
+                edges {
+                  node {
+                    id
+                    title
+                    sku
+                    price
+                    compareAtPrice
+                    inventoryQuantity
+                    inventoryPolicy
+                    taxable
+                    barcode
+                  }
+                }
+              }
+              images(first: 10) {
+                edges {
+                  node {
+                    id
+                    url
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `
 
-    do {
-      const url = nextPageInfo 
-        ? `https://${fullShopDomain}/admin/api/2024-01/products.json?limit=${limit}&page_info=${nextPageInfo}`
-        : `https://${fullShopDomain}/admin/api/2024-01/products.json?limit=${limit}`
-
-      const response = await fetch(url, {
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-        },
+    const response = await fetch(`https://${fullShopDomain}/admin/api/2024-07/graphql.json`, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        variables: { first: Math.min(limit, 250) }
       })
+    })
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des produits')
-      }
+    if (!response.ok) {
+      throw new Error(`Erreur API Shopify GraphQL: ${response.status} ${response.statusText}`)
+    }
 
-      const data = await response.json()
-      
-      // Debug: afficher la structure des premiers produits
-      if (products.length === 0 && data.products.length > 0) {
-        console.log('🔍 Debug - Premier produit Shopify:', JSON.stringify(data.products[0], null, 2))
-      }
-      
-      products.push(...data.products)
+    const data = await response.json()
+    
+    if (data.errors) {
+      console.error('Erreurs GraphQL Shopify:', data.errors)
+      throw new Error(`Erreur GraphQL: ${JSON.stringify(data.errors)}`)
+    }
 
-      // Récupérer le lien vers la page suivante
-      const linkHeader = response.headers.get('Link')
-      nextPageInfo = this.extractNextPageInfo(linkHeader)
-    } while (nextPageInfo)
-
+    const products = data.data.products.edges.map((edge: any) => this.convertGraphQLToShopifyProduct(edge.node))
+    
+    // Debug: afficher la structure du premier produit
+    if (products.length > 0) {
+      console.log('🔍 Debug - Premier produit Shopify GraphQL:', JSON.stringify(products[0], null, 2))
+    }
+    
     return products
+  }
+
+  /**
+   * Convertit un produit GraphQL vers le format Shopify standard
+   */
+  private static convertGraphQLToShopifyProduct(graphqlProduct: any): ShopifyProduct {
+    return {
+      id: graphqlProduct.id.replace('gid://shopify/Product/', ''),
+      title: graphqlProduct.title || 'Sans titre',
+      body_html: graphqlProduct.description || '',
+      description: graphqlProduct.description || '',
+      vendor: graphqlProduct.vendor || 'Marque inconnue',
+      product_type: graphqlProduct.productType || '',
+      productType: graphqlProduct.productType || '',
+      tags: graphqlProduct.tags || [],
+      status: graphqlProduct.status?.toLowerCase() || 'draft',
+      published_at: graphqlProduct.createdAt || '',
+      publishedAt: graphqlProduct.createdAt || '',
+      created_at: graphqlProduct.createdAt || '',
+      createdAt: graphqlProduct.createdAt || '',
+      updated_at: graphqlProduct.updatedAt || '',
+      updatedAt: graphqlProduct.updatedAt || '',
+      handle: graphqlProduct.handle || '',
+      variants: graphqlProduct.variants?.edges?.map((edge: any) => ({
+        id: edge.node.id.replace('gid://shopify/ProductVariant/', ''),
+        title: edge.node.title || 'Default Title',
+        sku: edge.node.sku || '',
+        price: edge.node.price || '0.00',
+        compare_at_price: edge.node.compareAtPrice || '',
+        compareAtPrice: edge.node.compareAtPrice || '',
+        inventory_quantity: edge.node.inventoryQuantity || 0,
+        inventoryQuantity: edge.node.inventoryQuantity || 0,
+        inventory_policy: edge.node.inventoryPolicy || 'deny',
+        inventoryPolicy: edge.node.inventoryPolicy || 'deny',
+        taxable: edge.node.taxable || false,
+        barcode: edge.node.barcode || ''
+      })) || [],
+      images: graphqlProduct.images?.edges?.map((edge: any) => ({
+        id: edge.node.id.replace('gid://shopify/MediaImage/', ''),
+        src: edge.node.url || '',
+        alt: edge.node.altText || '',
+        width: edge.node.width || 0,
+        height: edge.node.height || 0
+      })) || []
+    }
   }
 
   /**
    * Récupère les collections du store
    */
   static async getCollections(shop: string, accessToken: string): Promise<ShopifyCollection[]> {
-    const response = await fetch(`${this.baseUrl}/collections.json`, {
+    const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
+    
+    const query = `
+      query GetCollections($first: Int!) {
+        collections(first: $first) {
+          edges {
+            node {
+              id
+              title
+              handle
+              description
+              updatedAt
+            }
+          }
+        }
+      }
+    `
+
+    const response = await fetch(`https://${fullShopDomain}/admin/api/2024-07/graphql.json`, {
+      method: 'POST',
       headers: {
         'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        query,
+        variables: { first: 250 }
+      })
     })
 
     if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des collections')
+      throw new Error(`Erreur API Shopify GraphQL: ${response.status} ${response.statusText}`)
     }
 
     const data = await response.json()
-    return data.collections
+    
+    if (data.errors) {
+      console.error('Erreurs GraphQL Shopify:', data.errors)
+      throw new Error(`Erreur GraphQL: ${JSON.stringify(data.errors)}`)
+    }
+
+    return data.data.collections.edges.map((edge: any) => ({
+      id: edge.node.id.replace('gid://shopify/Collection/', ''),
+      title: edge.node.title || 'Sans titre',
+      handle: edge.node.handle || '',
+      description: edge.node.description || '',
+      updated_at: edge.node.updatedAt || ''
+    }))
   }
 
   /**
    * Récupère les produits d'une collection spécifique
    */
   static async getCollectionProducts(shop: string, accessToken: string, collectionId: string): Promise<ShopifyProduct[]> {
-    const response = await fetch(`${this.baseUrl}/collections/${collectionId}/products.json`, {
+    const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
+    
+    const query = `
+      query GetCollectionProducts($id: ID!, $first: Int!) {
+        collection(id: $id) {
+          products(first: $first) {
+            edges {
+              node {
+                id
+                title
+                description
+                handle
+                vendor
+                productType
+                tags
+                status
+                createdAt
+                updatedAt
+                variants(first: 10) {
+                  edges {
+                    node {
+                      id
+                      title
+                      sku
+                      price
+                      compareAtPrice
+                      inventoryQuantity
+                      inventoryPolicy
+                      taxable
+                      barcode
+                    }
+                  }
+                }
+                images(first: 10) {
+                  edges {
+                    node {
+                      id
+                      url
+                      altText
+                      width
+                      height
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `
+
+    const response = await fetch(`https://${fullShopDomain}/admin/api/2024-07/graphql.json`, {
+      method: 'POST',
       headers: {
         'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        query,
+        variables: { 
+          id: `gid://shopify/Collection/${collectionId}`,
+          first: 250 
+        }
+      })
     })
 
     if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des produits de la collection')
+      throw new Error(`Erreur API Shopify GraphQL: ${response.status} ${response.statusText}`)
     }
 
     const data = await response.json()
-    return data.products
+    
+    if (data.errors) {
+      console.error('Erreurs GraphQL Shopify:', data.errors)
+      throw new Error(`Erreur GraphQL: ${JSON.stringify(data.errors)}`)
+    }
+
+    const products = data.data.collection?.products?.edges?.map((edge: any) => 
+      this.convertGraphQLToShopifyProduct(edge.node)
+    ) || []
+    
+    return products
   }
 
   /**

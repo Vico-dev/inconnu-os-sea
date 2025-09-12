@@ -20,6 +20,14 @@ OPENAI_API_KEY=your_openai_api_key
 GOOGLE_APPLICATION_CREDENTIALS=path_to_service_account_key.json
 ```
 
+### **Shopify App**
+```env
+SHOPIFY_CLIENT_ID=your_shopify_app_client_id
+SHOPIFY_CLIENT_SECRET=your_shopify_app_client_secret
+SHOPIFY_REDIRECT_URI=https://your-domain.com/api/shopify/callback
+SHOPIFY_SCOPES=read_products,read_inventory,read_orders
+```
+
 ## 📧 **Email & Notifications**
 
 ### **Resend (Email Service)**
