@@ -77,7 +77,6 @@ export interface ShopifyCollection {
 }
 
 export class ShopifyGraphQLService {
-  private static baseUrl = 'https://api.shopify.com/admin/api/2024-01'
 
   /**
    * Initialise la connexion Shopify avec OAuth
@@ -97,26 +96,103 @@ export class ShopifyGraphQLService {
   }
 
   /**
-   * Récupère les commandes payées avec pagination, filtrées par date
+   * Récupère les commandes payées avec pagination, filtrées par date via GraphQL
    */
   static async getPaidOrders(shop: string, accessToken: string, createdAtMin?: string): Promise<any[]> {
     const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
-    const orders: any[] = []
-    let pageInfo: string | null = null
-    const base = `https://${fullShopDomain}/admin/api/2024-01/orders.json?status=any&financial_status=paid&limit=250${createdAtMin ? `&created_at_min=${encodeURIComponent(createdAtMin)}` : ''}`
+    
+    const query = `
+      query GetPaidOrders($first: Int!, $createdAt: String) {
+        orders(first: $first, query: $createdAt) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          edges {
+            node {
+              id
+              name
+              createdAt
+              totalPrice
+              financialStatus
+              fulfillmentStatus
+              lineItems(first: 50) {
+                edges {
+                  node {
+                    id
+                    title
+                    quantity
+                    variant {
+                      id
+                      product {
+                        id
+                        title
+                      }
+                    }
+                  }
+                }
+              }
+              customer {
+                id
+                email
+                firstName
+                lastName
+              }
+            }
+          }
+        }
+      }
+    `
 
-    do {
-      const url = pageInfo ? `${base}&page_info=${pageInfo}` : base
-      const response = await fetch(url, {
-        headers: { 'X-Shopify-Access-Token': accessToken },
-      })
-      if (!response.ok) throw new Error('Erreur lors de la récupération des commandes')
-      const data = await response.json()
-      orders.push(...(data.orders || []))
-      pageInfo = this.extractNextPageInfo(response.headers.get('Link'))
-    } while (pageInfo)
+    const variables: any = { first: 250 }
+    if (createdAtMin) {
+      variables.createdAt = `created_at:>=${createdAtMin} AND financial_status:paid`
+    } else {
+      variables.createdAt = 'financial_status:paid'
+    }
 
-    return orders
+    const response = await fetch(`https://${fullShopDomain}/admin/api/2024-07/graphql.json`, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, variables })
+    })
+
+    if (!response.ok) {
+      throw new Error(`Erreur API Shopify GraphQL: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    
+    if (data.errors) {
+      console.error('Erreurs GraphQL Shopify:', data.errors)
+      throw new Error(`Erreur GraphQL: ${JSON.stringify(data.errors)}`)
+    }
+
+    // Convertir le format GraphQL vers le format REST pour compatibilité
+    return data.data.orders.edges.map((edge: any) => ({
+      id: edge.node.id.replace('gid://shopify/Order/', ''),
+      name: edge.node.name,
+      created_at: edge.node.createdAt,
+      total_price: edge.node.totalPrice,
+      financial_status: edge.node.financialStatus?.toLowerCase(),
+      fulfillment_status: edge.node.fulfillmentStatus?.toLowerCase(),
+      line_items: edge.node.lineItems.edges.map((itemEdge: any) => ({
+        id: itemEdge.node.id.replace('gid://shopify/LineItem/', ''),
+        title: itemEdge.node.title,
+        quantity: itemEdge.node.quantity,
+        variant_id: itemEdge.node.variant?.id?.replace('gid://shopify/ProductVariant/', ''),
+        product_id: itemEdge.node.variant?.product?.id?.replace('gid://shopify/Product/', '')
+      })),
+      customer: edge.node.customer ? {
+        id: edge.node.customer.id.replace('gid://shopify/Customer/', ''),
+        email: edge.node.customer.email,
+        first_name: edge.node.customer.firstName,
+        last_name: edge.node.customer.lastName
+      } : null
+    }))
   }
 
   /**
@@ -225,29 +301,54 @@ export class ShopifyGraphQLService {
   }
 
   /**
-   * Récupère les informations du store
+   * Récupère les informations du store via GraphQL
    */
   static async getShopInfo(shop: string, accessToken: string): Promise<Partial<ShopifyStore>> {
-    // Ajouter .myshopify.com si pas déjà présent
     const fullShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`
-    const response = await fetch(`https://${fullShopDomain}/admin/api/2024-01/shop.json`, {
+    
+    const query = `
+      query GetShopInfo {
+        shop {
+          name
+          myshopifyDomain
+          email
+          currencyCode
+          countryName
+          timezoneAbbreviation
+          plan {
+            displayName
+          }
+        }
+      }
+    `
+
+    const response = await fetch(`https://${fullShopDomain}/admin/api/2024-07/graphql.json`, {
+      method: 'POST',
       headers: {
         'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ query })
     })
 
     if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des informations du store')
+      throw new Error(`Erreur API Shopify GraphQL: ${response.status} ${response.statusText}`)
     }
 
     const data = await response.json()
+    
+    if (data.errors) {
+      console.error('Erreurs GraphQL Shopify:', data.errors)
+      throw new Error(`Erreur GraphQL: ${JSON.stringify(data.errors)}`)
+    }
+
     return {
-      name: data.shop.name,
-      domain: data.shop.domain,
-      email: data.shop.email,
-      currency: data.shop.currency,
-      country: data.shop.country_name,
-      timezone: data.shop.timezone,
+      name: data.data.shop.name,
+      domain: data.data.shop.myshopifyDomain,
+      email: data.data.shop.email,
+      currency: data.data.shop.currencyCode,
+      country: data.data.shop.countryName,
+      timezone: data.data.shop.timezoneAbbreviation,
     }
   }
 
@@ -584,20 +685,6 @@ export class ShopifyGraphQLService {
     }
   }
 
-  /**
-   * Extrait l'information de pagination depuis le header Link
-   */
-  private static extractNextPageInfo(linkHeader: string | null): string | null {
-    if (!linkHeader) return null
-
-    const links = linkHeader.split(',')
-    const nextLink = links.find(link => link.includes('rel="next"'))
-    
-    if (!nextLink) return null
-
-    const match = nextLink.match(/page_info=([^&>]+)/)
-    return match ? match[1] : null
-  }
 
   /**
    * Optimise les données produit pour Google Merchant Center
