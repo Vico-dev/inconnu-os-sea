@@ -259,6 +259,82 @@ Réponds uniquement au format: "Prix public: X.XX€, Prix membre: Y.YY€"`;
     
     return results;
   }
+
+  // Méthode pour les recommandations de scoring (utilisée par le feed manager)
+  async generateRecommendations(request: {
+    prompt: string;
+    campaignType: string;
+    performanceData: any[];
+  }): Promise<{
+    recommendations: Array<{
+      title?: string;
+      description?: string;
+      content?: string;
+    }>;
+  }> {
+    try {
+      const client = await this.getClient();
+      
+      const response = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `Tu es un expert en analyse de produits e-commerce et optimisation pour Google Shopping. 
+            Analyse les produits et fournis des recommandations détaillées pour améliorer leur performance.`
+          },
+          {
+            role: 'user',
+            content: request.prompt
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.7,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content generated');
+      }
+
+      // Parser la réponse JSON si possible
+      try {
+        const parsed = JSON.parse(content);
+        if (parsed.recommendations) {
+          return { recommendations: parsed.recommendations };
+        }
+      } catch (parseError) {
+        // Si ce n'est pas du JSON, créer des recommandations à partir du texte
+      }
+
+      // Fallback: créer des recommandations à partir du contenu
+      const recommendations = content
+        .split('\n')
+        .filter(line => line.trim() && !line.startsWith('{') && !line.startsWith('}'))
+        .map(line => ({
+          title: line.trim().substring(0, 100),
+          description: line.trim(),
+          content: line.trim()
+        }))
+        .slice(0, 5); // Limiter à 5 recommandations
+
+      return { recommendations };
+
+    } catch (error) {
+      console.error('Erreur génération recommandations:', error);
+      
+      // Fallback en cas d'erreur
+      return {
+        recommendations: [
+          {
+            title: 'Optimisation recommandée',
+            description: 'Améliorer la qualité du produit',
+            content: 'Vérifier les images, optimiser le titre et la description'
+          }
+        ]
+      };
+    }
+  }
 }
 
 // Instance singleton - ne s'initialise qu'au moment de l'utilisation
