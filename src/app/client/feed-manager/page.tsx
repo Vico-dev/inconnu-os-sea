@@ -607,12 +607,12 @@ export default function FeedManagerPage() {
                   {/* Score minimum */}
                   <div>
                     <Label htmlFor="min-score">Score minimum</Label>
-                    <Select value={filterScore?.toString() || ''} onValueChange={(value) => setFilterScore(value ? parseInt(value) : null)}>
+                    <Select value={filterScore?.toString() || 'all'} onValueChange={(value) => setFilterScore(value === 'all' ? null : parseInt(value))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Tous les scores" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Tous les scores</SelectItem>
+                        <SelectItem value="all">Tous les scores</SelectItem>
                         <SelectItem value="80">80+ (Excellent)</SelectItem>
                         <SelectItem value="60">60+ (Bon)</SelectItem>
                         <SelectItem value="40">40+ (Moyen)</SelectItem>
