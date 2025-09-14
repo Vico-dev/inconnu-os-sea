@@ -14,6 +14,7 @@ import MandateLegalTerms from '@/components/client/MandateLegalTerms'
 import { Download } from 'lucide-react'
 import SignatureModal from '@/components/client/SignatureModal'
 import { useSession } from 'next-auth/react'
+import { PageContainer, PageHeader, PageContent } from '@/components/ui/PageContainer'
 
 interface MonthlyBudget {
   month: number
@@ -321,12 +322,12 @@ export default function MandatePage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
+      <PageContainer>
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
@@ -343,13 +344,14 @@ export default function MandatePage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Mandat Publicitaire</h1>
-        <p className="text-gray-600 mt-2">
-          Gérez votre mandat publicitaire annuel requis pour les services de publicité en ligne.
-        </p>
-      </div>
+    <PageContainer size="lg">
+      <PageContent>
+        <PageHeader>
+          <h1 className="text-2xl font-bold text-gray-900">Mandat Publicitaire</h1>
+          <p className="text-gray-600 mt-2">
+            Gérez votre mandat publicitaire annuel requis pour les services de publicité en ligne.
+          </p>
+        </PageHeader>
 
       {/* Grille principale */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

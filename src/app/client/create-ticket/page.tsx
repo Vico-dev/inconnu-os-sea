@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, MessageSquare, Send } from "lucide-react"
+import { PageContainer, PageHeader, PageContent } from "@/components/ui/PageContainer"
 
 export default function CreateTicketPage() {
   const router = useRouter()
@@ -60,11 +61,10 @@ export default function CreateTicketPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+    <PageContainer size="md">
+      <PageContent>
+        <PageHeader>
+          <div className="flex items-center space-x-4 mb-4">
             <Button variant="ghost" size="sm" onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Retour
@@ -76,11 +76,7 @@ export default function CreateTicketPage() {
               <span className="text-xl font-bold text-gray-900">Nouveau Ticket</span>
             </div>
           </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
+        </PageHeader>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -164,8 +160,7 @@ export default function CreateTicketPage() {
               </form>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </div>
+        </PageContent>
+    </PageContainer>
   )
 } 

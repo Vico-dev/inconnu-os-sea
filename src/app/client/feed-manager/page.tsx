@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { GMCExportButton } from '@/components/admin/GMCExportButton'
+import { PageContainer, PageHeader, PageContent } from '@/components/ui/PageContainer'
 
 interface ShopifyStore {
   id: string
@@ -483,27 +484,30 @@ export default function FeedManagerPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Catalogue Produits</h1>
-          <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
-            Gérez et optimisez vos produits pour Google Merchant Center
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-          <Button onClick={() => setShowImportModal(true)} variant="outline" className="flex items-center gap-2 text-sm">
-            <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Import CSV</span>
-            <span className="sm:hidden">Import</span>
-          </Button>
-          <Button onClick={() => setShowConnectDialog(true)} className="flex items-center gap-2 text-sm">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Connecter Shopify</span>
-            <span className="sm:hidden">Connecter</span>
-          </Button>
-        </div>
-      </div>
+    <PageContainer>
+      <PageContent>
+        <PageHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Catalogue Produits</h1>
+              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
+                Gérez et optimisez vos produits pour Google Merchant Center
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+              <Button onClick={() => setShowImportModal(true)} variant="outline" className="flex items-center gap-2 text-sm">
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline">Import CSV</span>
+                <span className="sm:hidden">Import</span>
+              </Button>
+              <Button onClick={() => setShowConnectDialog(true)} className="flex items-center gap-2 text-sm">
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Connecter Shopify</span>
+                <span className="sm:hidden">Connecter</span>
+              </Button>
+            </div>
+          </div>
+        </PageHeader>
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -1343,6 +1347,7 @@ export default function FeedManagerPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      </PageContent>
+    </PageContainer>
   )
 } 
