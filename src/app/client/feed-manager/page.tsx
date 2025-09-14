@@ -484,78 +484,80 @@ export default function FeedManagerPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Catalogue Produits</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Catalogue Produits</h1>
+          <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
             Gérez et optimisez vos produits pour Google Merchant Center
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Button onClick={() => setShowImportModal(true)} variant="outline" className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+          <Button onClick={() => setShowImportModal(true)} variant="outline" className="flex items-center gap-2 text-sm">
             <Upload className="w-4 h-4" />
-            Import CSV
+            <span className="hidden sm:inline">Import CSV</span>
+            <span className="sm:hidden">Import</span>
           </Button>
-          <Button onClick={() => setShowConnectDialog(true)} className="flex items-center gap-2">
+          <Button onClick={() => setShowConnectDialog(true)} className="flex items-center gap-2 text-sm">
             <Plus className="w-4 h-4" />
-            Connecter Shopify
+            <span className="hidden sm:inline">Connecter Shopify</span>
+            <span className="sm:hidden">Connecter</span>
           </Button>
         </div>
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Boutiques connectées</p>
-                <p className="text-2xl font-bold text-blue-600">{stores.length}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Boutiques connectées</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">{stores.length}</p>
               </div>
-              <Store className="w-8 h-8 text-blue-600" />
+              <Store className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Produits total</p>
-                <p className="text-2xl font-bold text-green-600">{products.length}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Produits total</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">{products.length}</p>
               </div>
-              <Package className="w-8 h-8 text-green-600" />
+              <Package className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Score moyen</p>
-                <p className="text-2xl font-bold text-purple-600">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Score moyen</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-600">
                   {products.length > 0 
                     ? Math.round(products.reduce((sum, p) => sum + parseInt(p.custom_label_2), 0) / products.length)
                     : 0
                   }/100
                 </p>
               </div>
-              <TrendingUp className="w-8 h-8 text-purple-600" />
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Dernière sync</p>
-                <p className="text-2xl font-bold text-orange-600">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Dernière sync</p>
+                <p className="text-xl sm:text-2xl font-bold text-orange-600">
                   {stores.length > 0 ? 'Aujourd\'hui' : 'Jamais'}
                 </p>
               </div>
-              <RefreshCw className="w-8 h-8 text-orange-600" />
+              <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
@@ -563,11 +565,11 @@ export default function FeedManagerPage() {
 
       {/* Interface principale */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="catalogue">Catalogue Produits</TabsTrigger>
-          <TabsTrigger value="ab-testing">Tests A/B</TabsTrigger>
-          <TabsTrigger value="stores">Boutiques Shopify</TabsTrigger>
-          <TabsTrigger value="export">Export GMC</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsTrigger value="catalogue" className="text-xs sm:text-sm">Catalogue</TabsTrigger>
+          <TabsTrigger value="ab-testing" className="text-xs sm:text-sm">Tests A/B</TabsTrigger>
+          <TabsTrigger value="stores" className="text-xs sm:text-sm">Boutiques</TabsTrigger>
+          <TabsTrigger value="export" className="text-xs sm:text-sm">Export GMC</TabsTrigger>
         </TabsList>
 
         <TabsContent value="catalogue" className="space-y-4">
@@ -592,7 +594,7 @@ export default function FeedManagerPage() {
             <CardContent>
               {/* Contrôles de filtrage et tri */}
               <div className="mb-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
                   {/* Recherche texte */}
                   <div>
                     <Label htmlFor="search-text">Recherche</Label>
@@ -654,7 +656,7 @@ export default function FeedManagerPage() {
                 </div>
                 
                 {/* Filtres rapides */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   <Button
                     variant={filterHasImage === true ? "default" : "outline"}
                     size="sm"
@@ -699,8 +701,79 @@ export default function FeedManagerPage() {
                   <p className="text-gray-500">Aucun produit trouvé</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-200">
+                <>
+                  {/* Version mobile - Cartes */}
+                  <div className="block lg:hidden space-y-4">
+                    {filteredAndSortedProducts.map((product) => {
+                      const score = getPerformanceScore(product.custom_label_2)
+                      return (
+                        <Card key={product.id} className="p-4">
+                          <div className="flex gap-4">
+                            {/* Image */}
+                            <div className="flex-shrink-0">
+                              {product.image_link ? (
+                                <img 
+                                  src={product.image_link} 
+                                  alt={product.title}
+                                  className="w-16 h-16 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
+                                  <Package className="w-8 h-8 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Contenu */}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm truncate">
+                                {product.editedTitle || product.title}
+                              </h3>
+                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                {product.editedDescription || product.description || 'Aucune description'}
+                              </p>
+                              
+                              {/* Score et prix */}
+                              <div className="flex items-center justify-between mt-2">
+                                <Badge className={`text-xs ${score.color}`}>
+                                  {product.custom_label_2}/100
+                                </Badge>
+                                <span className="text-sm font-medium">
+                                  {product.price}€
+                                </span>
+                              </div>
+                              
+                              {/* Actions */}
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => generateAI(product.id, 'title')}
+                                  className="h-8 text-xs"
+                                >
+                                  <Sparkles className="w-3 h-3 mr-1" />
+                                  Titre
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => generateAI(product.id, 'description')}
+                                  className="h-8 text-xs"
+                                >
+                                  <Sparkles className="w-3 h-3 mr-1" />
+                                  Desc
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      )
+                    })}
+                  </div>
+
+                  {/* Version desktop - Tableau */}
+                  <div className="hidden lg:block overflow-x-auto">
+                    <table className="w-full border-collapse border border-gray-200">
                     <thead>
                       <tr className="bg-gray-50">
                         <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Image</th>
@@ -876,7 +949,8 @@ export default function FeedManagerPage() {
                       })}
                     </tbody>
                   </table>
-                </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
