@@ -59,20 +59,20 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }: any) {
+      // Ne placer que le minimum dans le JWT
       if (user) {
-        token.role = user.role
         token.id = user.id
-        token.clientAccount = user.clientAccount
-        token.accountManager = user.accountManager
+        token.role = user.role
+        token.email = user.email
+        // Ne pas embarquer des objets volumineux/sensibles dans le token
       }
       return token
     },
     async session({ session, token }: any) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
-        session.user.clientAccount = token.clientAccount
-        session.user.accountManager = token.accountManager
+        session.user.email = token.email as string
       }
       return session
     }

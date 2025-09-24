@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { rateLimiters } from "@/lib/rate-limit"
 
 export async function GET(request: NextRequest) {
   try {
+    const limited = rateLimiters.api(request)
+    if (limited) return limited
+
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
 

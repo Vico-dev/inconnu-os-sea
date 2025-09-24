@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { rateLimiters } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,6 +54,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimiters.api(request)
+    if (limited) return limited
+
     // Pour les formulaires publics, on ne vérifie pas l'authentification
     // Pour les créations admin, on vérifie l'authentification
     const session = await getServerSession(authOptions)

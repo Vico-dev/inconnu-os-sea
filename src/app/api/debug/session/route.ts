@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { rateLimiters } from "@/lib/rate-limit"
 
 export async function GET(request: NextRequest) {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    const limited = rateLimiters.api(request)
+    if (limited) return limited
+
     console.log("🔍 Debug session - Headers:", Object.fromEntries(request.headers.entries()))
     console.log("🔍 Debug session - Cookies:", request.cookies.getAll())
     

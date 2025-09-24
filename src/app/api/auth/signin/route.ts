@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/db"
+import { rateLimiters } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    const limited = rateLimiters.auth(request)
+    if (limited) return limited
+
     const body = await request.json()
     const { email, password } = body
 
@@ -46,10 +54,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: "Connexion réussie",
       user: {
-        ...userWithoutPassword,
-        name: `${user.firstName} ${user.lastName}` // Ajouter le nom complet
-      },
-      role: user.role
+        id: userWithoutPassword.id,
+        email: userWithoutPassword.email,
+        name: `${user.firstName} ${user.lastName}`,
+        role: user.role
+      }
     })
 
   } catch (error) {
