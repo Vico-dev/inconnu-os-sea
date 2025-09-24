@@ -143,7 +143,7 @@ export default function HomePage() {
                   Connexion
                 </Button>
               </Link>
-              <a href="https://calendly.com/victor-soldet/audit-gratuit" target="_blank" rel="noopener noreferrer">
+              <a href="https://calendly.com/victor-agence-inconnu/1heure" target="_blank" rel="noopener noreferrer">
                 <Button className="bg-blue-900 hover:bg-blue-800 text-white">
                   Audit gratuit
                 </Button>
@@ -177,7 +177,7 @@ export default function HomePage() {
                       Connexion
                     </Button>
                   </Link>
-                  <a href="https://calendly.com/victor-soldet/audit-gratuit" target="_blank" rel="noopener noreferrer">
+                  <a href="https://calendly.com/victor-agence-inconnu/1heure" target="_blank" rel="noopener noreferrer">
                     <Button className="w-full bg-blue-900 hover:bg-blue-800 text-white">
                       Audit gratuit
                     </Button>
@@ -221,14 +221,14 @@ export default function HomePage() {
             
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <a href="https://calendly.com/victor-soldet/audit-gratuit" target="_blank" rel="noopener noreferrer">
+              <a href="https://calendly.com/victor-agence-inconnu/1heure" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" className="bg-blue-900 hover:bg-blue-800 text-white px-8 py-3">
                   <BarChart3 className="mr-3 w-5 h-5" />
                   Obtenir mon audit gratuit
                   <ArrowRight className="ml-3 w-5 h-5" />
                 </Button>
               </a>
-              <a href="https://calendly.com/victor-soldet/audit-gratuit" target="_blank" rel="noopener noreferrer">
+              <a href="https://calendly.com/victor-agence-inconnu/1heure" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50 px-8 py-3">
                   <Calendar className="mr-3 w-5 h-5" />
                   Voir un exemple de résultats
@@ -323,14 +323,14 @@ export default function HomePage() {
                   Rejoignez les entreprises qui ont déjà doublé leur ROAS en 3 mois grâce à notre approche.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <a href="https://calendly.com/victor-soldet/audit-gratuit" target="_blank" rel="noopener noreferrer">
+                  <a href="https://calendly.com/victor-agence-inconnu/1heure" target="_blank" rel="noopener noreferrer">
                     <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white px-8 py-4 rounded-xl shadow-lg">
                       <BarChart3 className="mr-3 w-5 h-5" />
                       Obtenir mon audit gratuit
                       <ArrowRight className="ml-3 w-5 h-5" />
                     </Button>
                   </a>
-                  <a href="https://calendly.com/victor-soldet/audit-gratuit" target="_blank" rel="noopener noreferrer">
+                  <a href="https://calendly.com/victor-agence-inconnu/1heure" target="_blank" rel="noopener noreferrer">
                     <Button size="lg" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50 px-8 py-4 rounded-xl">
                       <Calendar className="mr-3 w-5 h-5" />
                       Voir nos résultats
@@ -497,13 +497,13 @@ export default function HomePage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="https://calendly.com/victor-soldet/audit-gratuit" target="_blank" rel="noopener noreferrer">
+            <a href="https://calendly.com/victor-agence-inconnu/1heure" target="_blank" rel="noopener noreferrer">
               <Button size="lg" variant="secondary" className="bg-white text-blue-900 hover:bg-blue-50 px-8 py-3">
                 <BarChart3 className="mr-3 w-5 h-5" />
                 Audit gratuit de vos campagnes
               </Button>
             </a>
-            <a href="https://calendly.com/victor-soldet/audit-gratuit" target="_blank" rel="noopener noreferrer">
+            <a href="https://calendly.com/victor-agence-inconnu/1heure" target="_blank" rel="noopener noreferrer">
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-900 px-8 py-3">
                 <Calendar className="mr-3 w-5 h-5" />
                 Appel d&apos;analyse (30 min)
