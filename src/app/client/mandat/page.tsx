@@ -745,6 +745,7 @@ export default function MandatePage() {
         initialStep={signatureInitialStep}
         initialExpiresAt={signatureExpiresAt}
       />
-    </div>
+      </PageContent>
+    </PageContainer>
   )
 }
