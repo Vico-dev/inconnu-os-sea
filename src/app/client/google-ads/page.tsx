@@ -122,7 +122,12 @@ export default function GoogleAdsPage() {
     })
     
     try {
-      const response = await fetch(`/api/google-ads/data?${params}`)
+      // Admin doit passer par l'API admin (connexion MCC) au lieu de l'API client (permission par compte)
+      const isAdmin = session?.user?.role === 'ADMIN'
+      const url = isAdmin
+        ? `/api/admin/google-ads/data?${params}`
+        : `/api/google-ads/data?${params}`
+      const response = await fetch(url)
       const data = await response.json()
       
       if (data.success) {
