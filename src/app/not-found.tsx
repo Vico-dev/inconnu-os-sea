@@ -1,6 +1,11 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
+// Évite toute tentative de parsing du body (FormData) sur la 404 en prod
+// en forçant le rendu statique et le runtime Node.js
+export const dynamic = 'force-static'
+export const runtime = 'nodejs'
+
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

@@ -5,7 +5,14 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function makeAdmin() {
-  const email = 'victorsoldet@gmail.com'
+  const argEmail = process.argv[2]
+  const envEmail = process.env.EMAIL
+  const email = argEmail || envEmail
+
+  if (!email) {
+    console.error('❌ Veuillez fournir un email: npx tsx scripts/make-admin.ts "email@example.com"')
+    process.exit(1)
+  }
   
   try {
     console.log(`🔄 Attribution du rôle ADMIN à ${email}...`)
@@ -21,8 +28,12 @@ async function makeAdmin() {
       id: user.id
     })
     
-  } catch (error) {
-    console.error('❌ Erreur:', error)
+  } catch (error: any) {
+    if (error?.code === 'P2025') {
+      console.error(`❌ Utilisateur introuvable pour l'email: ${email}. Créez d'abord l'utilisateur puis relancez.`)
+    } else {
+      console.error('❌ Erreur:', error)
+    }
   } finally {
     await prisma.$disconnect()
   }
