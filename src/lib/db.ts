@@ -4,11 +4,21 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Configuration SSL pour Railway
+// Configuration SSL pour Railway - forcer sslmode=disable
+let databaseUrl = process.env.DATABASE_URL
+if (process.env.NODE_ENV === 'production' && databaseUrl) {
+  // Remplacer ou ajouter sslmode=disable
+  if (databaseUrl.includes('sslmode=')) {
+    databaseUrl = databaseUrl.replace(/sslmode=[^&]*/, 'sslmode=disable')
+  } else {
+    databaseUrl = `${databaseUrl}?sslmode=disable`
+  }
+}
+
 const prismaConfig = process.env.NODE_ENV === 'production' ? {
   datasources: {
     db: {
-      url: process.env.DATABASE_URL?.replace('sslmode=require', 'sslmode=disable')
+      url: databaseUrl
     }
   }
 } : {}
