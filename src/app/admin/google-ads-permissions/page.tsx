@@ -169,22 +169,19 @@ export default function GoogleAdsPermissionsPage() {
   if (loading) {
     return (
       <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <AdminLayout>
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Chargement des permissions...</p>
-            </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Chargement des permissions...</p>
           </div>
-        </AdminLayout>
+        </div>
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute allowedRoles={["ADMIN"]}>
-      <AdminLayout>
-        <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Permissions Google Ads</h1>
@@ -398,7 +395,6 @@ export default function GoogleAdsPermissionsPage() {
         </Card>
       )}
         </div>
-      </AdminLayout>
     </ProtectedRoute>
   )
 } 
