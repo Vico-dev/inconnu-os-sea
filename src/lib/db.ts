@@ -10,7 +10,7 @@ const prismaConfig = process.env.NODE_ENV === 'production' ? {
     db: {
       url: process.env.DATABASE_URL?.includes('?') 
         ? process.env.DATABASE_URL 
-        : `${process.env.DATABASE_URL}?sslmode=require`
+        : `${process.env.DATABASE_URL}?sslmode=disable`
     }
   }
 } : {}
