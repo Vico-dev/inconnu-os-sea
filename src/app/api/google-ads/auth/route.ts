@@ -34,10 +34,8 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.append('prompt', 'consent')
     authUrl.searchParams.append('state', session.user.id) // Pour identifier l'utilisateur
 
-    return NextResponse.json({
-      success: true,
-      authUrl: authUrl.toString()
-    })
+    // Redirige directement vers Google au lieu de renvoyer du JSON
+    return NextResponse.redirect(authUrl.toString(), 302)
 
   } catch (error) {
     console.error('Erreur lors de la génération de l\'URL d\'auth:', error)
