@@ -4,7 +4,18 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+// Configuration SSL pour Railway
+const prismaConfig = process.env.NODE_ENV === 'production' ? {
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL?.includes('?') 
+        ? process.env.DATABASE_URL 
+        : `${process.env.DATABASE_URL}?sslmode=require`
+    }
+  }
+} : {}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient(prismaConfig)
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
