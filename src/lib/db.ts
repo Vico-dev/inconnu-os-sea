@@ -15,6 +15,11 @@ if (process.env.NODE_ENV === 'production' && databaseUrl) {
   }
 }
 
+// Forcer la variable d'environnement effective utilisée par Prisma
+if (process.env.NODE_ENV === 'production' && databaseUrl) {
+  process.env.DATABASE_URL = databaseUrl
+}
+
 const prismaConfig = process.env.NODE_ENV === 'production' ? {
   datasources: {
     db: {
