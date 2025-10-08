@@ -6,6 +6,12 @@ const globalForPrisma = globalThis as unknown as {
 
 // Configuration SSL pour Railway - forcer sslmode=disable
 let databaseUrl = process.env.DATABASE_URL
+
+// Pendant le build, DATABASE_URL peut être undefined - utiliser une URL factice
+if (!databaseUrl && process.env.NODE_ENV === 'production') {
+  databaseUrl = 'postgresql://dummy:dummy@localhost:5432/dummy'
+}
+
 if (process.env.NODE_ENV === 'production' && databaseUrl) {
   // Remplacer ou ajouter sslmode=disable
   if (databaseUrl.includes('sslmode=')) {
