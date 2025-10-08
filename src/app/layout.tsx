@@ -87,6 +87,21 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <head>
+        {/* Consent Mode v2 - valeurs par défaut (denied) avant chargement GTM */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('consent','default',{
+                'ad_storage':'denied',
+                'analytics_storage':'denied',
+                'ad_user_data':'denied',
+                'ad_personalization':'denied'
+              });
+            `
+          }}
+        />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <meta name="theme-color" content="#1E293B" />
@@ -112,6 +127,10 @@ export default function RootLayout({
         ) : null}
       </head>
       <body className={inter.className}>
+        {/* Klaro CMP (open-source) */}
+        <link rel="stylesheet" href="https://cdn.kiprotect.com/klaro/latest/klaro.min.css" />
+        <script src="https://cdn.kiprotect.com/klaro/latest/klaro.min.js" defer />
+        <script src="/klaro-config.js" defer />
         {/* Google Tag Manager (noscript) */}
         {gtmId ? (
           <noscript>
