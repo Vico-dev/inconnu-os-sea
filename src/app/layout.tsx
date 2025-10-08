@@ -132,6 +132,22 @@ export default function RootLayout({
         {/* Important: passer le nom de config à Klaro pour initialiser la bannière */}
         <script src="/klaro-config.js" defer />
         <script src="https://cdn.jsdelivr.net/npm/klaro@0.7.24/dist/klaro.min.js" defer data-klaro-config="klaroConfig" />
+        {/* Forcer l'ouverture de la bannière une fois Klaro chargé */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(
+              function waitKlaro(){
+                try{
+                  if (window.klaro && typeof window.klaro.show === 'function') {
+                    window.klaro.show();
+                    return;
+                  }
+                }catch(e){}
+                setTimeout(waitKlaro, 400);
+              }
+              )( );`
+          }}
+        />
         {/* Google Tag Manager (noscript) */}
         {gtmId ? (
           <noscript>
