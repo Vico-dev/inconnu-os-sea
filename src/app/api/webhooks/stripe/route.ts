@@ -4,6 +4,21 @@ import Stripe from 'stripe'
 import { prisma } from '@/lib/db'
 import { EmailService } from '@/lib/email-service'
 
+// Utilitaire pour convertir les timestamps Stripe de manière sécurisée
+function safeStripeTimestamp(timestamp: number | undefined | null): Date | undefined {
+  if (!timestamp || typeof timestamp !== 'number' || timestamp <= 0) {
+    return undefined
+  }
+  
+  const date = new Date(timestamp * 1000)
+  if (isNaN(date.getTime())) {
+    console.warn('Timestamp Stripe invalide:', timestamp)
+    return undefined
+  }
+  
+  return date
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-12-18.acacia'
 })
@@ -85,8 +100,8 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
       where: { id: subscription.id },
       data: {
         status: 'ACTIVE',
-        currentPeriodStart: new Date(invoice.period_start * 1000),
-        currentPeriodEnd: new Date(invoice.period_end * 1000)
+        currentPeriodStart: safeStripeTimestamp(invoice.period_start),
+        currentPeriodEnd: safeStripeTimestamp(invoice.period_end)
       }
     })
 
@@ -164,7 +179,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
         subscription.clientAccount.company.name,
         subscription.plan,
         `${invoice.amount_due / 100} ${invoice.currency.toUpperCase()}`,
-        new Date(invoice.due_date! * 1000).toISOString()
+        safeStripeTimestamp(invoice.due_date)?.toISOString() || new Date().toISOString()
       )
     } catch (emailError) {
       console.error('Erreur envoi email échec:', emailError)
@@ -195,8 +210,8 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
       data: {
         stripeSubscriptionId: subscription.id,
         status: subscription.status.toUpperCase(),
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000)
+        currentPeriodStart: safeStripeTimestamp(subscription.current_period_start),
+        currentPeriodEnd: safeStripeTimestamp(subscription.current_period_end)
       }
     })
 
@@ -223,8 +238,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       where: { id: dbSubscription.id },
       data: {
         status: subscription.status.toUpperCase(),
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000)
+        currentPeriodStart: safeStripeTimestamp(subscription.current_period_start),
+        currentPeriodEnd: safeStripeTimestamp(subscription.current_period_end)
       }
     })
 

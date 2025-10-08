@@ -3,6 +3,21 @@ import Stripe from "stripe"
 import { prisma } from "@/lib/db"
 import { EmailService } from "@/lib/email-service-stub"
 
+// Utilitaire pour convertir les timestamps Stripe de manière sécurisée
+function safeStripeTimestamp(timestamp: number | undefined | null): Date | undefined {
+  if (!timestamp || typeof timestamp !== 'number' || timestamp <= 0) {
+    return undefined
+  }
+  
+  const date = new Date(timestamp * 1000)
+  if (isNaN(date.getTime())) {
+    console.warn('Timestamp Stripe invalide:', timestamp)
+    return undefined
+  }
+  
+  return date
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-06-20"
 })
@@ -112,8 +127,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       status: 'ACTIVE',
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscriptionId,
-      currentPeriodStart: new Date(sub.current_period_start * 1000),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      currentPeriodStart: safeStripeTimestamp(sub.current_period_start),
+      currentPeriodEnd: safeStripeTimestamp(sub.current_period_end),
       amount: (sub.items.data[0]?.price?.unit_amount ?? 0) / 100,
       currency: (sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()
     },
@@ -122,8 +137,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       status: 'ACTIVE',
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscriptionId,
-      currentPeriodStart: new Date(sub.current_period_start * 1000),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      currentPeriodStart: safeStripeTimestamp(sub.current_period_start),
+      currentPeriodEnd: safeStripeTimestamp(sub.current_period_end),
       amount: (sub.items.data[0]?.price?.unit_amount ?? 0) / 100,
       currency: (sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()
     }
@@ -167,8 +182,8 @@ async function upsertSubscriptionFromStripe(sub: Stripe.Subscription, status: st
       status,
       stripeCustomerId: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id,
       stripeSubscriptionId: sub.id,
-      currentPeriodStart: new Date(sub.current_period_start * 1000),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      currentPeriodStart: safeStripeTimestamp(sub.current_period_start),
+      currentPeriodEnd: safeStripeTimestamp(sub.current_period_end),
       amount: (sub.items.data[0]?.price?.unit_amount ?? 0) / 100,
       currency: (sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()
     },
@@ -177,8 +192,8 @@ async function upsertSubscriptionFromStripe(sub: Stripe.Subscription, status: st
       status,
       stripeCustomerId: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id,
       stripeSubscriptionId: sub.id,
-      currentPeriodStart: new Date(sub.current_period_start * 1000),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      currentPeriodStart: safeStripeTimestamp(sub.current_period_start),
+      currentPeriodEnd: safeStripeTimestamp(sub.current_period_end),
       amount: (sub.items.data[0]?.price?.unit_amount ?? 0) / 100,
       currency: (sub.items.data[0]?.price?.currency ?? 'eur').toUpperCase()
     }
@@ -191,8 +206,8 @@ async function handleInvoicePaymentSuccess(invoice: Stripe.Invoice) {
       where: { stripeSubscriptionId: invoice.subscription as string },
       data: {
         status: "ACTIVE",
-        currentPeriodStart: invoice.lines?.data[0]?.period?.start ? new Date(invoice.lines.data[0].period.start * 1000) : undefined,
-        currentPeriodEnd: invoice.lines?.data[0]?.period?.end ? new Date(invoice.lines.data[0].period.end * 1000) : undefined,
+        currentPeriodStart: safeStripeTimestamp(invoice.lines?.data[0]?.period?.start),
+        currentPeriodEnd: safeStripeTimestamp(invoice.lines?.data[0]?.period?.end),
       }
     })
   }
