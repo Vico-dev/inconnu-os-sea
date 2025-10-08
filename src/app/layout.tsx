@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/components/providers/AuthProvider"
+import Script from "next/script"
 import { Toaster } from "react-hot-toast"
 
 export const dynamic = 'force-dynamic'
@@ -130,22 +131,21 @@ export default function RootLayout({
         {/* Klaro CMP (open-source) */}
         <link rel="stylesheet" href="/vendor/klaro/klaro.min.css" />
         {/* Important: passer le nom de config à Klaro pour initialiser la bannière */}
-        <script src="/klaro-config.js" defer />
-        <script src="/vendor/klaro/klaro.min.js" defer data-klaro-config="klaroConfig" />
-        {/* Forcer l'ouverture de la bannière une fois Klaro chargé */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(
-              function waitKlaro(){
-                try{
-                  if (window.klaro && typeof window.klaro.show === 'function') {
-                    window.klaro.show();
-                    return;
-                  }
-                }catch(e){}
-                setTimeout(waitKlaro, 400);
+        <Script src="/klaro-config.js" strategy="beforeInteractive" />
+        <Script
+          id="klaro-script"
+          src="/vendor/klaro/klaro.min.js"
+          data-klaro-config="klaroConfig"
+          strategy="afterInteractive"
+          onLoad={() => {
+            try {
+              // Ouvrir la bannière si aucun consentement n'est stocké
+              // @ts-ignore
+              if (typeof window !== 'undefined' && !(window as any).klaro?.getManager().getConsent()) {
+                // @ts-ignore
+                (window as any).klaro?.show()
               }
-              )( );`
+            } catch {}
           }}
         />
         {/* Google Tag Manager (noscript) */}
