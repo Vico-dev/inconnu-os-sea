@@ -57,6 +57,17 @@ export default function ContactForm() {
         setIsSubmitted(true)
         toast.success('Message envoyé avec succès !')
         
+        // Push a reliable business event to the dataLayer for GTM
+        if (typeof window !== 'undefined') {
+          ;(window as any).dataLayer = (window as any).dataLayer || []
+          ;(window as any).dataLayer.push({
+            event: 'generate_lead',
+            form_id: 'contact',
+            form_name: 'ContactForm',
+            page_location: window.location.href,
+          })
+        }
+
         // Tracker l'interaction si on a un prospectId
         if (result.prospectId) {
           trackDemoRequest(result.prospectId)
