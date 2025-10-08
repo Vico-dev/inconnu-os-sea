@@ -137,15 +137,25 @@ export default function RootLayout({
           src="/vendor/klaro/klaro.min.js"
           data-klaro-config="klaroConfig"
           strategy="afterInteractive"
-          onLoad={() => {
-            try {
-              // Ouvrir la bannière si aucun consentement n'est stocké
-              // @ts-ignore
-              if (typeof window !== 'undefined' && !(window as any).klaro?.getManager().getConsent()) {
-                // @ts-ignore
-                (window as any).klaro?.show()
+        />
+        {/* Attendre que Klaro soit chargé puis ouvrir la bannière si aucun consentement */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(
+              function waitKlaro(){
+                try{
+                  if (window.klaro && typeof window.klaro.show === 'function') {
+                    try {
+                      var manager = window.klaro.getManager && window.klaro.getManager();
+                      var hasConsent = manager && manager.getConsent && manager.getConsent();
+                      if (!hasConsent) { window.klaro.show(); }
+                    } catch (e) { window.klaro.show(); }
+                    return;
+                  }
+                }catch(e){}
+                setTimeout(waitKlaro, 300);
               }
-            } catch {}
+              )();`
           }}
         />
         {/* Google Tag Manager (noscript) */}
