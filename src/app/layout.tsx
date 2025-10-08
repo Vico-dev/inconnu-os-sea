@@ -145,15 +145,18 @@ export default function RootLayout({
               function waitKlaro(){
                 try{
                   if (window.klaro && typeof window.klaro.show === 'function') {
-                    try {
-                      var manager = window.klaro.getManager && window.klaro.getManager();
-                      var hasConsent = manager && manager.getConsent && manager.getConsent();
-                      if (!hasConsent) { window.klaro.show(); }
-                    } catch (e) { window.klaro.show(); }
+                    // Créer un conteneur s'il n'existe pas
+                    if (!document.querySelector('.klaro')) {
+                      var el = document.createElement('div');
+                      el.className = 'klaro';
+                      document.body.appendChild(el);
+                    }
+                    var hasCookie = document.cookie.indexOf('klaro-consent=') !== -1;
+                    if (!hasCookie) { window.klaro.show(); }
                     return;
                   }
                 }catch(e){}
-                setTimeout(waitKlaro, 300);
+                setTimeout(waitKlaro, 250);
               }
               )();`
           }}

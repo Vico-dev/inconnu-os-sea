@@ -19,6 +19,20 @@
   }
 }
 
+/* Klaro CMP overrides - forcer l'affichage au-dessus de tout */
+.klaro .cm-modal {
+  z-index: 2147483647 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+.klaro .cm-overlay {
+  z-index: 2147483646 !important;
+  opacity: .6 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
