@@ -5,7 +5,10 @@ window.klaroConfig = {
   acceptAll: true,
   hideDeclineAll: false,
   default: false,
-  mustConsent: false,
+  mustConsent: true,
+  noticeAsModal: true,
+  storageMethod: 'cookie',
+  cookieName: 'klaro-consent',
   translations: {
     fr: {
       consentModal: {
@@ -57,6 +60,9 @@ window.klaroConfig = {
     if (typeof window === 'undefined') return
     window.dataLayer = window.dataLayer || []
     function gtag() { window.dataLayer.push(arguments) }
+
+    // Debug minimal pour vérifier l'init en prod
+    try { console.log('[Klaro] consent update', consent) } catch (e) {}
 
     const analyticsGranted = consent['ga4'] === true
     const adsGranted = consent['google-ads'] === true
