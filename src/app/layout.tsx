@@ -129,8 +129,9 @@ export default function RootLayout({
       <body className={inter.className}>
         {/* Klaro CMP (open-source) */}
         <link rel="stylesheet" href="https://cdn.kiprotect.com/klaro/latest/klaro.min.css" />
-        <script src="https://cdn.kiprotect.com/klaro/latest/klaro.min.js" defer />
+        {/* Important: passer le nom de config à Klaro pour initialiser la bannière */}
         <script src="/klaro-config.js" defer />
+        <script src="https://cdn.kiprotect.com/klaro/latest/klaro.min.js" defer data-klaro-config="klaroConfig" />
         {/* Google Tag Manager (noscript) */}
         {gtmId ? (
           <noscript>
