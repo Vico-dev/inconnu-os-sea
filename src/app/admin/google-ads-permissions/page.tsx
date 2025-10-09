@@ -189,10 +189,18 @@ export default function GoogleAdsPermissionsPage() {
             Gérez les accès aux comptes Google Ads via le MCC
           </p>
         </div>
-        <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Ajouter une Permission
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => {
+            // Redirige vers l'OAuth Google Ads (MCC)
+            window.location.href = '/api/google-ads/auth'
+          }}>
+            Se connecter au MCC
+          </Button>
+          <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Ajouter une Permission
+          </Button>
+        </div>
       </div>
 
       {/* Formulaire d'ajout */}
