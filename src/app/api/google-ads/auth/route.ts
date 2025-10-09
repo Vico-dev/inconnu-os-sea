@@ -7,17 +7,21 @@ export async function GET(request: NextRequest) {
     // Vérifier l'authentification
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
+      console.log('❌ OAuth: session manquante')
       return NextResponse.json(
         { error: "Authentification requise" },
         { status: 401 }
       )
     }
 
+    console.log('🔍 OAuth: session OK, userId:', session.user.id, 'role:', session.user.role)
+
     // Vérifier les variables d'environnement
     if (!process.env.GOOGLE_ADS_CLIENT_ID || 
         !process.env.GOOGLE_ADS_CLIENT_SECRET || 
         !process.env.GOOGLE_ADS_DEVELOPER_TOKEN ||
         !process.env.GOOGLE_ADS_REDIRECT_URI) {
+      console.log('❌ OAuth: variables manquantes')
       return NextResponse.json(
         { error: "Configuration Google Ads manquante" },
         { status: 500 }
@@ -34,11 +38,13 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.append('prompt', 'consent')
     authUrl.searchParams.append('state', session.user.id) // Pour identifier l'utilisateur
 
+    console.log('🔍 OAuth: redirection vers:', authUrl.toString())
+
     // Redirige directement vers Google au lieu de renvoyer du JSON
     return NextResponse.redirect(authUrl.toString(), 302)
 
   } catch (error) {
-    console.error('Erreur lors de la génération de l\'URL d\'auth:', error)
+    console.error('❌ OAuth: erreur génération URL:', error)
     return NextResponse.json(
       { error: "Erreur lors de la génération de l'URL d'authentification" },
       { status: 500 }

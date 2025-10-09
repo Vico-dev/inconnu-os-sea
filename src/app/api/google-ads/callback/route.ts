@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get('error')
     
     console.log('📋 Paramètres reçus:', { code: code ? 'présent' : 'manquant', state, error })
+    console.log('📋 URL complète:', request.url)
 
     if (error) {
       return NextResponse.redirect(
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
     
     const tokenText = await tokenResponse.text()
     console.log('🔍 Réponse Google OAuth - Body (premiers 500 chars):', tokenText.substring(0, 500))
+    console.log('🔍 Refresh token présent:', tokenText.includes('refresh_token') ? 'OUI' : 'NON')
     
     let tokenData
     try {
@@ -55,6 +57,8 @@ export async function GET(request: NextRequest) {
       
       tokenData = JSON.parse(cleanedTokenText)
       console.log('✅ JSON nettoyé et parsé avec succès')
+      console.log('🔍 Token data keys:', Object.keys(tokenData))
+      console.log('🔍 Refresh token dans data:', tokenData.refresh_token ? 'OUI' : 'NON')
     } catch (parseError) {
       console.error('❌ Erreur parsing JSON:', parseError)
       console.error('📋 Réponse complète de Google:', tokenText)
@@ -130,6 +134,14 @@ export async function GET(request: NextRequest) {
     const isManager = customerInfo?.manager || false
     
     console.log('🔍 Tentative de sauvegarde de la connexion Google Ads...')
+    console.log('🔍 Données à sauvegarder:', {
+      userId: actualUserId,
+      customerId: customerIdFromAPI,
+      customerName: customerName,
+      hasAccessToken: !!tokenData.access_token,
+      hasRefreshToken: !!tokenData.refresh_token,
+      tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000)
+    })
     
     // TEMPORAIRE: Désactiver la sauvegarde en base pour éviter l'erreur customerId
     // TODO: Réactiver une fois la migration appliquée en production
@@ -178,6 +190,10 @@ export async function GET(request: NextRequest) {
     } catch (dbError) {
       console.warn('⚠️ Erreur lors de la sauvegarde en base (ignorée temporairement):', dbError)
       console.log('ℹ️ La connexion Google Ads fonctionne mais n\'est pas sauvegardée en base')
+      console.log('🔍 Détails erreur DB:', {
+        message: dbError instanceof Error ? dbError.message : 'Erreur inconnue',
+        stack: dbError instanceof Error ? dbError.stack : 'Pas de stack trace'
+      })
     }
 
     // Rediriger selon le type de connexion
