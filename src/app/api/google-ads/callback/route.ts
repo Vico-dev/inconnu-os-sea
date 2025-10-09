@@ -203,9 +203,23 @@ export async function GET(request: NextRequest) {
       console.log('🔄 Redirection vers onboarding:', redirectUrl)
       return NextResponse.redirect(redirectUrl)
     } else {
-      return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/client/google-ads?success=connected`
-      )
+      // Vérifier si l'utilisateur est admin pour rediriger vers la bonne interface
+      const user = await prisma.user.findUnique({
+        where: { id: actualUserId },
+        select: { role: true }
+      })
+      
+      if (user?.role === 'ADMIN') {
+        console.log('🔄 Redirection vers admin (utilisateur admin)')
+        return NextResponse.redirect(
+          `${process.env.NEXTAUTH_URL}/admin/google-ads-permissions?success=connected`
+        )
+      } else {
+        console.log('🔄 Redirection vers client (utilisateur client)')
+        return NextResponse.redirect(
+          `${process.env.NEXTAUTH_URL}/client/google-ads?success=connected`
+        )
+      }
     }
 
   } catch (error) {
