@@ -43,20 +43,34 @@ export default function CMPBanner() {
     ;(window as any).dataLayer.push({event:'consent_updated'})
   }
 
+  // Lock/unlock scroll when visible
+  useEffect(() => {
+    if (visible) {
+      const prev = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = prev }
+    }
+  }, [visible])
+
   if (!visible) return null
 
   return (
     <div style={{
-      position:'fixed',left:0,right:0,bottom:0,zIndex:2147483647,
-      background:'linear-gradient(180deg,#0b1220 0%, #0f172a 100%)',
-      color:'#e5e7eb',padding:'18px 16px',boxShadow:'0 -8px 24px rgba(0,0,0,.35)'
+      position:'fixed',inset:0 as any,zIndex:2147483647,
+      display:'grid',placeItems:'center'
     }}>
-      <div style={{maxWidth:1120,margin:'0 auto'}}>
-        <div style={{
-          display:'flex',gap:16,alignItems:'center',flexWrap:'wrap',
-          background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',
-          borderRadius:12,padding:'16px 18px'
-        }}>
+      {/* Overlay */}
+      <div style={{
+        position:'absolute',inset:0 as any,background:'rgba(2,6,23,.78)',backdropFilter:'blur(2px)'
+      }} />
+      {/* Modal */}
+      <div style={{
+        position:'relative',maxWidth:720,width:'92%',
+        background:'#0f172a',color:'#e5e7eb',
+        border:'1px solid rgba(255,255,255,.06)',borderRadius:14,
+        boxShadow:'0 18px 60px rgba(0,0,0,.55)'
+      }}>
+        <div style={{padding:'22px 22px 16px'}}>
           <div style={{flex:1,minWidth:280}}>
             <div style={{fontSize:16,fontWeight:700,color:'#fff',marginBottom:6}}>
               Votre confidentialité, notre priorité
@@ -81,19 +95,23 @@ export default function CMPBanner() {
               marginTop:10,background:'transparent',border:'none',color:'#93c5fd',textDecoration:'underline',cursor:'pointer'
             }}>{showPrefs? 'Masquer les préférences' : 'Personnaliser mes choix'}</button>
           </div>
-          <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-            <button onClick={acceptAll} style={{
-              padding:'12px 18px',background:'#22c55e',color:'#052e1b',
-              borderRadius:10,fontWeight:800,boxShadow:'0 6px 18px rgba(34,197,94,.35)'
-            }}>Tout accepter</button>
-            <button onClick={()=>updateConsent(analytics, ads)} style={{
-              padding:'12px 16px',background:'#0ea5e9',color:'#03131e',borderRadius:10,fontWeight:700
-            }}>Enregistrer</button>
-            <button onClick={denyAll} style={{
-              padding:'10px 14px',background:'transparent',border:'1px solid #475569',
-              color:'#cbd5e1',borderRadius:10
-            }}>Tout refuser</button>
-          </div>
+        </div>
+        <div style={{
+          display:'flex',gap:10,alignItems:'center',justifyContent:'flex-end',
+          padding:'12px 16px',background:'rgba(255,255,255,.03)',borderTop:'1px solid rgba(255,255,255,.06)',
+          borderBottomLeftRadius:14,borderBottomRightRadius:14
+        }}>
+          <button onClick={denyAll} style={{
+            padding:'10px 14px',background:'transparent',border:'1px solid #475569',
+            color:'#cbd5e1',borderRadius:10
+          }}>Tout refuser</button>
+          <button onClick={()=>updateConsent(analytics, ads)} style={{
+            padding:'12px 16px',background:'#0ea5e9',color:'#03131e',borderRadius:10,fontWeight:700
+          }}>Enregistrer</button>
+          <button onClick={acceptAll} style={{
+            padding:'12px 18px',background:'#22c55e',color:'#052e1b',
+            borderRadius:10,fontWeight:800,boxShadow:'0 6px 18px rgba(34,197,94,.35)'
+          }}>Tout accepter</button>
         </div>
       </div>
     </div>
