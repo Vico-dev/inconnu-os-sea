@@ -5,6 +5,8 @@ import { useEffect, useState } from "react"
 // Minimal open-source-like CMP fallback to unlock Consent Mode v2
 export default function CMPBanner() {
   const [visible, setVisible] = useState(false)
+  const [analytics, setAnalytics] = useState(false)
+  const [ads, setAds] = useState(false)
 
   useEffect(() => {
     // show if no consent stored
@@ -51,7 +53,16 @@ export default function CMPBanner() {
         <div style={{flex:1,minWidth:260}}>
           Nous utilisons des cookies pour la mesure d'audience (GA4) et la publicité (Google Ads).
         </div>
-        <div style={{display:'flex',gap:8}}>
+        <div style={{display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
+          <label style={{display:'flex',gap:8,alignItems:'center'}}>
+            <input type="checkbox" checked={analytics} onChange={e=>setAnalytics(e.target.checked)} />
+            <span>Mesure d'audience (GA4)</span>
+          </label>
+          <label style={{display:'flex',gap:8,alignItems:'center'}}>
+            <input type="checkbox" checked={ads} onChange={e=>setAds(e.target.checked)} />
+            <span>Publicité (Google Ads)</span>
+          </label>
+          <button onClick={()=>updateConsent(analytics, ads)} style={{padding:'10px 14px',background:'#38bdf8',color:'#0b1c1a',borderRadius:8,fontWeight:700}}>Enregistrer</button>
           <button onClick={denyAll} style={{padding:'10px 14px',background:'#334155',color:'#fff',borderRadius:8}}>Tout refuser</button>
           <button onClick={acceptAll} style={{padding:'10px 14px',background:'#10b981',color:'#0b1c1a',borderRadius:8,fontWeight:700}}>Tout accepter</button>
         </div>
