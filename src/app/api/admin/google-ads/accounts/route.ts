@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         customer_client.status,
         customer_client.manager
       FROM customer_client
-      WHERE customer_client.status != 'UNSPECIFIED'
+      WHERE customer_client.status IN ('ENABLED', 'PAUSED', 'REMOVED')
       ORDER BY customer_client.descriptive_name
     `
 
