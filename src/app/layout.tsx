@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/components/providers/AuthProvider"
 import Script from "next/script"
+import CMPBanner from "@/components/CMPBanner"
 import { Toaster } from "react-hot-toast"
 
 export const dynamic = 'force-dynamic'
@@ -174,6 +175,8 @@ export default function RootLayout({
         ) : null}
         <AuthProvider>
           {children}
+          {/* Minimal CMP fallback (visible si aucun consentement) */}
+          <CMPBanner />
         </AuthProvider>
         <Toaster 
           position="top-right"
